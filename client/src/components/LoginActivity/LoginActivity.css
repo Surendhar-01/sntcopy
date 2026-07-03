@@ -1,0 +1,27 @@
+.login-activity-page {
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.05);
+}
+
+.login-activity-header {
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.login-activity-title {
+  margin-bottom: 0;
+}
+
+.login-activity-table-wrap {
+  overflow: hidden;
+}
+
+.login-activity-empty {
+  border: 1px dashed rgba(156, 163, 175, 0.35);
+  border-radius: 18px;
+  background: var(--surface);
+}
+
+.login-activity-empty-icon {
+  font-size: 1.1rem;
+  margin-bottom: 10px;
+}

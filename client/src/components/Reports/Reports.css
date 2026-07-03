@@ -1,0 +1,110 @@
+.reports-page-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.reports-filter-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.reports-filter-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.reports-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: flex-end;
+}
+
+.reports-filters .control-group {
+  min-width: 180px;
+}
+
+.reports-filters .control-group label {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--text2);
+  margin-bottom: 6px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.reports-filters .form-control {
+  width: 100%;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: var(--text);
+  font-size: 0.9rem;
+  outline: none;
+  transition: 0.2s ease;
+}
+
+.reports-filters .form-control:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(249,115,22,.08);
+}
+
+.reports-filter-actions {
+  display: flex;
+  align-items: flex-end;
+}
+
+.reports-page {
+  gap: 18px;
+}
+
+.reports-card {
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  position: relative;
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+.reports-card::after {
+  content: '';
+  position: absolute;
+  inset: auto -24px -24px auto;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0) 70%);
+  pointer-events: none;
+}
+
+.reports-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.12);
+}
+
+.reports-card-sales,
+.reports-card-stock,
+.reports-card-price,
+.reports-card-login,
+.reports-card-customer {
+  background: var(--surface);
+}
+
+@media (max-width: 768px) {
+  .reports-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .reports-filters .control-group,
+  .reports-filter-actions {
+    width: 100%;
+  }
+}

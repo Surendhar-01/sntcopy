@@ -1,0 +1,128 @@
+.settings-page {
+  align-items: start;
+}
+
+.settings-column {
+  min-width: 0;
+}
+
+.settings-top-card {
+  height: auto;
+  overflow: hidden;
+}
+
+.settings-staff-card {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  height: auto;
+  overflow: hidden;
+}
+
+.settings-staff-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.settings-staff-table-wrap {
+  height: 322px;
+  min-height: 0;
+  max-height: 322px;
+  margin-bottom: 0 !important;
+  overflow-y: auto;
+}
+
+.settings-staff-table-wrap::-webkit-scrollbar-track {
+  margin-top: 35.99px;
+  margin-bottom: 12px;
+}
+
+.settings-staff-table-wrap thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--surface);
+}
+
+.settings-staff-user {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.settings-staff-delete {
+  border: 1px solid rgba(248, 113, 113, 0.24);
+  background: rgba(248, 113, 113, 0.12);
+  color: var(--red);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.settings-staff-delete:hover {
+  background: rgba(248, 113, 113, 0.18);
+}
+
+.settings-shop-card .form-group + .form-group {
+  margin-top: 10px;
+}
+
+.settings-shop-card .form-group label {
+  display: block;
+  margin-bottom: 10px;
+}
+
+.settings-staff-modal {
+  width: min(480px, 95vw);
+}
+
+.settings-reset-modal {
+  width: min(440px, 95vw);
+  min-width: 0;
+}
+
+.settings-bottom-card {
+  height: auto;
+}
+
+.settings-db-card {
+  display: grid;
+  row-gap: 4px;
+}
+
+.settings-gst-card {
+  padding-bottom: 12px;
+}
+
+.settings-gst-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.settings-gst-row label {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.settings-gst-row input {
+  flex: 1;
+}
+
+@media (max-width: 1024px) {
+  .settings-top-card,
+  .settings-staff-card {
+    height: auto;
+  }
+
+  .settings-bottom-card {
+    height: auto;
+  }
+
+  .settings-gst-row {
+    flex-wrap: wrap;
+  }
+}

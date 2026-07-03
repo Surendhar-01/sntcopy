@@ -1,0 +1,21 @@
+.pricing-page {
+  display: grid;
+  gap: 16px;
+}
+
+.pricing-card {
+  border-color: #e6ebf3;
+}
+
+.pricing-log-header {
+  padding-bottom: 6px;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.pricing-inline-title {
+  margin-bottom: 0;
+}
+
+.pricing-modal {
+  width: min(520px, 95vw);
+}

@@ -1,0 +1,3 @@
+[BACKUP] server/index.js - before manager account insertion
+
+Created before modifying initializeDatabase to add default manager insertion.

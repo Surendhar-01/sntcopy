@@ -1,0 +1,21 @@
+.stock-page {
+  display: grid;
+  gap: 16px;
+}
+
+.stock-card {
+  border-color: #e7edf4;
+}
+
+.stock-history-header {
+  padding-bottom: 6px;
+  border-bottom: 1px solid #edf2f7;
+}
+
+.stock-inline-title {
+  margin-bottom: 0;
+}
+
+.stock-modal {
+  width: min(520px, 95vw);
+}

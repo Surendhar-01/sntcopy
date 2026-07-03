@@ -1,0 +1,23 @@
+<svg width="40" height="40" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffd86e" />
+      <stop offset="24%" stop-color="#e9bb3d" />
+      <stop offset="62%" stop-color="#c89318" />
+      <stop offset="100%" stop-color="#8f6205" />
+    </linearGradient>
+    <linearGradient id="highlightGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.8" />
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0" />
+    </linearGradient>
+    <filter id="dropShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="3.5" flood-color="#6f4a00" flood-opacity="0.24"/>
+    </filter>
+  </defs>
+  <!-- Main drop -->
+  <path d="M50 10 C50 10, 20 45, 20 65 A30 30 0 1 0 80 65 C80 45, 50 10, 50 10 Z" fill="url(#goldGrad)" filter="url(#dropShadow)" />
+  <!-- Left curve highlight -->
+  <path d="M35 50 Q28 65 38 80" fill="none" stroke="url(#highlightGrad)" stroke-width="5" stroke-linecap="round" />
+  <!-- Inner soft highlight -->
+  <path d="M45 25 C45 25, 30 50, 30 65 A20 20 0 0 0 50 85" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" opacity="0.4" />
+</svg>

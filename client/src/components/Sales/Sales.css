@@ -1,0 +1,94 @@
+.sales-page {
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.05);
+}
+
+.sales-header-row {
+  border-bottom: 2px solid var(--border);
+  padding-bottom: 12px;
+  margin-bottom: 20px !important;
+}
+
+.sales-title {
+  padding-bottom: 0 !important;
+  border-bottom: none !important;
+}
+
+.sales-stats {
+  background: var(--bg);
+  padding: 6px 16px;
+  border-radius: 30px;
+  border: 1px solid var(--border);
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);
+}
+
+.sales-controls {
+  display: flex;
+  background: var(--surface);
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.control-group label {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text2);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.control-group .form-control {
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 0.85rem;
+  width: 100%;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.control-group .form-control:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.1);
+  outline: none;
+}
+
+.sales-table {
+  margin-top: 10px;
+}
+
+.sales-table table th {
+  background: var(--surface);
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.5px;
+  color: var(--text2);
+}
+
+@media (max-width: 768px) {
+  .sales-header-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .sales-stats {
+    width: 100%;
+    text-align: center;
+  }
+
+  .sales-controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px !important;
+  }
+
+  .sales-controls .control-group {
+    width: 100%;
+    min-width: 0 !important;
+  }
+}
+
