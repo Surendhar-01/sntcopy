@@ -336,10 +336,29 @@ export default function Billing({ erp, user }) {
       return null;
     }
 
-    return (Array.isArray(db.customers) ? db.customers : []).find((existingCustomer) => (
+    // First check the customers table
+    const fromCustomers = (Array.isArray(db.customers) ? db.customers : []).find((existingCustomer) => (
       String(existingCustomer.phone || '').replace(/\D/g, '') === digits
-    )) || null;
+    ));
+    if (fromCustomers) return fromCustomers;
+
+    // Fallback: check past bills for this phone number
+    const fromBills = (Array.isArray(db.bills) ? db.bills : []).find((bill) => (
+      String(bill.phone || '').replace(/\D/g, '') === digits && bill.customer
+    ));
+    if (fromBills) return { name: fromBills.customer, phone: fromBills.phone };
+
+    return null;
   };
+
+  // Bills matching the currently entered phone number (customer history)
+  const phoneDigits = phone.replace(/\D/g, '');
+  const customerBills = phoneDigits.length === 10
+    ? (db.bills || []).filter(bill => String(bill.phone || '').replace(/\D/g, '') === phoneDigits)
+        .sort((a, b) => new Date(b.date) - new Date(a.date))
+        .slice(0, 20)
+    : [];
+
   const todayStr = new Date().toDateString();
   const recentBills = (db.bills || [])
     .filter(bill => (isAdmin || (bill.by || bill.by_user) === user?.user) && !hiddenRecentBillIds.includes(bill.id) && new Date(bill.date).toDateString() === todayStr)
@@ -469,28 +488,69 @@ export default function Billing({ erp, user }) {
         </div>
       </div>
 
-      <div className="card no-print" style={{ width: '100%', minWidth: 0 }}>
-        <div className="section-title">Recent Bills</div>
-        <div className="recent-bills-list">
-          {recentBills.map((bill) => (
-            <div key={bill.id} className="card bg3 border-radius mb-1" style={{ padding: '10px', cursor: 'pointer', transition: '0.2s', border: '1px solid var(--border)' }} onClick={() => { setViewBill(bill); setIsReviewMode(false); }} title="Click to view details">
-              <div className="flex justify-between items-center mb-1">
-                <b className="text-accent text-sm">{bill.billNo}</b>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted">{new Date(bill.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                  <button className="del-btn" style={{ padding: '2px', color: 'var(--red)', width: 'auto', height: 'auto' }} onClick={(event) => { event.stopPropagation(); hideRecentBill(bill.id); }} title="Remove from recent list">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 01 2-2h4a2 2 0 01 2 2v2M10 11v6M14 11v6"></path></svg>
-                  </button>
-                </div>
+      <div style={{ width: '100%', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {/* Customer History Section */}
+        {customerBills.length > 0 && (
+          <div className="card no-print customer-history-card">
+            <div className="flex items-center justify-between mb-3">
+              <div className="section-title" style={{ marginBottom: 0 }}>Customer History</div>
+              <span className="badge badge-blue" style={{ fontSize: '.78rem' }}>{customerBills.length} bill{customerBills.length !== 1 ? 's' : ''}</span>
+            </div>
+            <div className="customer-history-info">
+              <div className="customer-history-name">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                <span>{customer || customerBills[0]?.customer || 'Unknown'}</span>
               </div>
-              <div className="text-sm fw-600">{bill.customer}</div>
-              <div className="flex justify-between mt-2">
-                <span className="badge badge-green text-xs" style={{ padding: '1px 6px' }}>{bill.payment}</span>
-                <b className="text-sm">Rs {bill.grand.toFixed(2)}</b>
+              <div className="customer-history-phone">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.79 19.79 0 012.12 4.18 2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.362 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.338 1.85.573 2.81.7A2 2 0 0122 16.92z"></path></svg>
+                <span>{phone}</span>
+              </div>
+              <div className="customer-history-total">
+                Total Spent: <b>Rs {customerBills.reduce((sum, b) => sum + Number(b.grand || 0), 0).toFixed(2)}</b>
               </div>
             </div>
-          ))}
-          {recentBills.length === 0 && <div className="text-center text-muted text-sm mt-4">No recent bills</div>}
+            <div className="customer-history-list">
+              {customerBills.map((bill) => (
+                <div key={bill.id} className="customer-history-item" onClick={() => { setViewBill(bill); setIsReviewMode(false); }} title="Click to view details">
+                  <div className="flex justify-between items-center mb-1">
+                    <b className="text-accent" style={{ fontSize: '.88rem' }}>{bill.billNo}</b>
+                    <span className="text-xs text-muted">{new Date(bill.date).toLocaleDateString([], { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                  </div>
+                  <div className="text-sm fw-600" style={{ marginBottom: '4px' }}>{bill.customer}</div>
+                  <div className="flex justify-between items-center">
+                    <span className="badge badge-green text-xs" style={{ padding: '1px 6px' }}>{bill.payment}</span>
+                    <b style={{ fontSize: '.92rem' }}>Rs {Number(bill.grand || 0).toFixed(2)}</b>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Recent Bills Section */}
+        <div className="card no-print">
+          <div className="section-title">Recent Bills</div>
+          <div className="recent-bills-list">
+            {recentBills.map((bill) => (
+              <div key={bill.id} className="card bg3 border-radius mb-1" style={{ padding: '10px', cursor: 'pointer', transition: '0.2s', border: '1px solid var(--border)' }} onClick={() => { setViewBill(bill); setIsReviewMode(false); }} title="Click to view details">
+                <div className="flex justify-between items-center mb-1">
+                  <b className="text-accent text-sm">{bill.billNo}</b>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted">{new Date(bill.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    <button className="del-btn" style={{ padding: '2px', color: 'var(--red)', width: 'auto', height: 'auto' }} onClick={(event) => { event.stopPropagation(); hideRecentBill(bill.id); }} title="Remove from recent list">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 01 2-2h4a2 2 0 01 2 2v2M10 11v6M14 11v6"></path></svg>
+                    </button>
+                  </div>
+                </div>
+                <div className="text-sm fw-600">{bill.customer}</div>
+                <div className="flex justify-between mt-2">
+                  <span className="badge badge-green text-xs" style={{ padding: '1px 6px' }}>{bill.payment}</span>
+                  <b className="text-sm">Rs {bill.grand.toFixed(2)}</b>
+                </div>
+              </div>
+            ))}
+            {recentBills.length === 0 && <div className="text-center text-muted text-sm mt-4">No recent bills</div>}
+          </div>
         </div>
       </div>
 

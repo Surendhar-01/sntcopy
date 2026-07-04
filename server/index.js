@@ -447,8 +447,8 @@ async function initializeDatabase() {
       sales: `CREATE TABLE IF NOT EXISTS \`sales\` ( \`id\` INT AUTO_INCREMENT PRIMARY KEY, \`date\` DATETIME NOT NULL, \`billNo\` VARCHAR(255), \`customer\` VARCHAR(255), \`product\` VARCHAR(255), \`qty\` INT NOT NULL DEFAULT 0, \`amount\` DECIMAL(12, 2) NOT NULL DEFAULT 0.00, \`by_user\` VARCHAR(100), \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ) ENGINE=InnoDB`,
       refills: `CREATE TABLE IF NOT EXISTS \`refills\` ( \`id\` INT AUTO_INCREMENT PRIMARY KEY, \`date\` DATETIME NOT NULL, \`product\` VARCHAR(255), \`qty\` INT NOT NULL DEFAULT 0, \`by\` VARCHAR(100), \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ) ENGINE=InnoDB`,
       price_history: `CREATE TABLE IF NOT EXISTS \`price_history\` ( \`id\` INT AUTO_INCREMENT PRIMARY KEY, \`date\` DATETIME NOT NULL, \`product\` VARCHAR(255), \`old\` DECIMAL(12, 2) NOT NULL DEFAULT 0.00, \`new\` DECIMAL(12, 2) NOT NULL DEFAULT 0.00, \`by\` VARCHAR(100), \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ) ENGINE=InnoDB`,
-      login_logs: `CREATE TABLE IF NOT EXISTS \`login_logs\` ( \`id\` INT AUTO_INCREMENT PRIMARY KEY, \`user\` VARCHAR(255), \`role\` VARCHAR(50), \`loginTime\` DATETIME, \`logoutTime\` DATETIME, \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ) ENGINE=InnoDB`,
-      shift_reports: `CREATE TABLE IF NOT EXISTS \`shift_reports\` ( \`id\` INT AUTO_INCREMENT PRIMARY KEY, \`session_id\` INT NULL, \`user\` VARCHAR(255) NOT NULL, \`role\` VARCHAR(50) NOT NULL DEFAULT 'Staff', \`shift_start\` DATETIME NOT NULL, \`shift_end\` DATETIME NOT NULL, \`total_bills\` INT NOT NULL DEFAULT 0, \`total_items_sold\` INT NOT NULL DEFAULT 0, \`total_sales_amount\` DECIMAL(12, 2) NOT NULL DEFAULT 0.00, \`payment_breakdown\` JSON NULL, \`remaining_stock_summary\` JSON NULL, \`report_email\` VARCHAR(255) NULL, \`report_subject\` VARCHAR(255) NULL, \`email_status\` VARCHAR(50) NOT NULL DEFAULT 'pending', \`email_error\` TEXT NULL, \`email_sent_at\` DATETIME NULL, \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ) ENGINE=InnoDB`,
+      login_logs: `CREATE TABLE IF NOT EXISTS \`login_logs\` ( \`id\` INT AUTO_INCREMENT PRIMARY KEY, \`user\` VARCHAR(255), \`role\` VARCHAR(50), \`loginTime\` DATETIME, \`logoutTime\` DATETIME, \`status\` VARCHAR(50) NOT NULL DEFAULT 'Active', \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ) ENGINE=InnoDB`,
+      shift_reports: `CREATE TABLE IF NOT EXISTS \`shift_reports\` ( \`id\` INT AUTO_INCREMENT PRIMARY KEY, \`session_id\` INT NULL, \`user\` VARCHAR(255) NOT NULL, \`role\` VARCHAR(50) NOT NULL DEFAULT 'Staff', \`shift_start\` DATETIME NOT NULL, \`shift_end\` DATETIME NOT NULL, \`total_bills\` INT NOT NULL DEFAULT 0, \`total_items_sold\` INT NOT NULL DEFAULT 0, \`total_sales_amount\` DECIMAL(12, 2) NOT NULL DEFAULT 0.00, \`payment_breakdown\` JSON NULL, \`remaining_stock_summary\` JSON NULL, \`report_email\` VARCHAR(255) NULL, \`report_subject\` VARCHAR(255) NULL, \`email_status\` VARCHAR(50) NOT NULL DEFAULT 'pending', \`email_error\` TEXT NULL, \`email_sent_at\` DATETIME NULL, \`status\` VARCHAR(50) NOT NULL DEFAULT 'Completed', \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ) ENGINE=InnoDB`,
       settings: `CREATE TABLE IF NOT EXISTS \`settings\` ( \`id\` INT AUTO_INCREMENT PRIMARY KEY, \`gst\` DECIMAL(5, 2) NOT NULL DEFAULT 0.00, \`shop\` VARCHAR(255), \`addr\` TEXT, \`gstin\` VARCHAR(100), \`fssai\` VARCHAR(100), \`phone\` VARCHAR(100), \`logo\` TEXT, \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ) ENGINE=InnoDB`
     };
 
@@ -503,6 +503,24 @@ async function initializeDatabase() {
     );
     if (deviceCols.length > 0) {
       await tempConnection.query('ALTER TABLE `login_logs` DROP COLUMN `device`');
+    }
+
+    // login_logs status column migration
+    const [loginLogsStatusCols] = await tempConnection.query(
+      'SELECT COLUMN_NAME FROM information_schema.columns WHERE table_schema = ? AND table_name = ? AND column_name = ?',
+      [dbName, 'login_logs', 'status']
+    );
+    if (loginLogsStatusCols.length === 0) {
+      await tempConnection.query("ALTER TABLE `login_logs` ADD COLUMN `status` VARCHAR(50) NOT NULL DEFAULT 'Active'");
+    }
+
+    // shift_reports status column migration
+    const [shiftReportsStatusCols] = await tempConnection.query(
+      'SELECT COLUMN_NAME FROM information_schema.columns WHERE table_schema = ? AND table_name = ? AND column_name = ?',
+      [dbName, 'shift_reports', 'status']
+    );
+    if (shiftReportsStatusCols.length === 0) {
+      await tempConnection.query("ALTER TABLE `shift_reports` ADD COLUMN `status` VARCHAR(50) NOT NULL DEFAULT 'Completed'");
     }
 
   } finally {
@@ -1317,7 +1335,7 @@ app.post('/api/login-logs', async (req, res) => {
 
 app.put('/api/login-logs/:id/logout', async (req, res) => {
   try {
-    await pool.query('UPDATE login_logs SET logoutTime = NOW() WHERE id = ?', [req.params.id]);
+    await pool.query("UPDATE login_logs SET logoutTime = NOW(), status = 'Completed' WHERE id = ?", [req.params.id]);
     await syncSchemaSql('update login log logout');
     res.json({ success: true });
   } catch (error) {
@@ -1350,9 +1368,24 @@ app.post('/api/shifts/start', async (req, res) => {
   }
 
   try {
+    // Check if an active shift session already exists for this user to prevent duplicate shifts
+    const [activeSessions] = await pool.query(
+      "SELECT id, loginTime FROM login_logs WHERE user = ? AND status = 'Active' AND logoutTime IS NULL ORDER BY id DESC LIMIT 1",
+      [shiftUser]
+    );
+
+    if (activeSessions.length > 0) {
+      return res.json({
+        success: true,
+        message: 'Active shift session detected',
+        sessionId: activeSessions[0].id,
+        shiftStart: new Date(activeSessions[0].loginTime).toISOString()
+      });
+    }
+
     const shiftStartSql = toMysqlDateTime(shiftStart);
     const [result] = await pool.query(
-      'INSERT INTO login_logs (user, role, loginTime, logoutTime, created_at) VALUES (?, ?, ?, NULL, NOW())',
+      "INSERT INTO login_logs (user, role, loginTime, logoutTime, status, created_at) VALUES (?, ?, ?, NULL, 'Active', NOW())",
       [shiftUser, shiftRole, shiftStartSql]
     );
 
@@ -1395,7 +1428,10 @@ app.post('/api/shifts/end', async (req, res) => {
     return res.status(400).json({ error: 'Valid shift start time is required' });
   }
 
-  if (!recipientEmail) {
+  const normalizedRole = shiftRole.toLowerCase();
+
+  // Email validation is ONLY required if user role is Admin
+  if (normalizedRole === 'admin' && !recipientEmail) {
     return res.status(400).json({ error: 'Report recipient email is not configured' });
   }
 
@@ -1508,49 +1544,62 @@ app.post('/api/shifts/end', async (req, res) => {
     const text = buildShiftReportText(report);
     const reportFileSuffix = shiftEnd.toISOString().slice(0, 19).replace(/[:T]/g, '-');
 
-    await sendShiftReportEmail({
-      recipient: recipientEmail,
-      subject,
-      text,
-      html,
-      attachments: [
-        {
-          filename: `shift_report_${shiftUser}_${reportFileSuffix}.html`,
-          content: html
-        },
-        {
-          filename: `sales_shift_${shiftUser}_${reportFileSuffix}.csv`,
-          content: salesCsv
-        },
-        {
-          filename: `stock_shift_${shiftUser}_${reportFileSuffix}.csv`,
-          content: stockCsv
-        }
-      ]
-    });
+    let emailStatus = 'skipped';
+    let emailError = null;
+    let emailSentAtSql = null;
 
-    const normalizedRole = shiftRole.toLowerCase();
+    // Trigger email ONLY if admin is ending shift
+    if (normalizedRole === 'admin') {
+      try {
+        await sendShiftReportEmail({
+          recipient: recipientEmail,
+          subject,
+          text,
+          html,
+          attachments: [
+            {
+              filename: `shift_report_${shiftUser}_${reportFileSuffix}.html`,
+              content: html
+            },
+            {
+              filename: `sales_shift_${shiftUser}_${reportFileSuffix}.csv`,
+              content: salesCsv
+            },
+            {
+              filename: `stock_shift_${shiftUser}_${reportFileSuffix}.csv`,
+              content: stockCsv
+            }
+          ]
+        });
+        emailStatus = 'sent';
+        emailSentAtSql = shiftEndSql;
+      } catch (err) {
+        emailStatus = 'failed';
+        emailError = err.message || 'Email sending failed';
+        console.error('Failed to send admin shift mail:', err);
+      }
+    }
+
     await connection.beginTransaction();
 
-    if (normalizedRole !== 'admin') {
-      if (Number.isFinite(shiftSessionId)) {
-        await connection.query(
-          'UPDATE login_logs SET logoutTime = ? WHERE id = ?',
-          [shiftEndSql, shiftSessionId]
-        );
-      } else {
-        await connection.query(
-          'UPDATE login_logs SET logoutTime = ? WHERE user = ? AND logoutTime IS NULL ORDER BY id DESC LIMIT 1',
-          [shiftEndSql, shiftUser]
-        );
-      }
+    // Mark shift as Completed in login_logs, both for admin and non-admin
+    if (Number.isFinite(shiftSessionId)) {
+      await connection.query(
+        'UPDATE login_logs SET logoutTime = ?, status = ? WHERE id = ?',
+        [shiftEndSql, 'Completed', shiftSessionId]
+      );
+    } else {
+      await connection.query(
+        'UPDATE login_logs SET logoutTime = ?, status = ? WHERE user = ? AND logoutTime IS NULL ORDER BY id DESC LIMIT 1',
+        [shiftEndSql, 'Completed', shiftUser]
+      );
     }
 
     await connection.query(
       `INSERT INTO shift_reports (
         session_id, user, role, shift_start, shift_end, total_bills, total_items_sold, total_sales_amount,
-        payment_breakdown, remaining_stock_summary, report_email, report_subject, email_status, email_error, email_sent_at, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'sent', NULL, ?, NOW())`,
+        payment_breakdown, remaining_stock_summary, report_email, report_subject, email_status, email_error, email_sent_at, status, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
       [
         Number.isFinite(shiftSessionId) ? shiftSessionId : null,
         shiftUser,
@@ -1562,9 +1611,12 @@ app.post('/api/shifts/end', async (req, res) => {
         totalShiftSales,
         JSON.stringify(paymentBreakdown),
         JSON.stringify(remainingStockSummary),
-        recipientEmail,
-        subject,
-        shiftEndSql
+        normalizedRole === 'admin' ? recipientEmail : null,
+        normalizedRole === 'admin' ? subject : 'Shift Completed Automatically on Logout',
+        emailStatus,
+        emailError,
+        emailSentAtSql,
+        'Completed'
       ]
     );
 
@@ -1573,8 +1625,8 @@ app.post('/api/shifts/end', async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Shift closed and report sent successfully',
-      emailedTo: recipientEmail,
+      message: normalizedRole === 'admin' ? 'Shift closed and report sent successfully' : 'Shift completed automatically',
+      emailedTo: normalizedRole === 'admin' ? recipientEmail : null,
       shiftStart: shiftStart.toISOString(),
       shiftEnd: shiftEnd.toISOString(),
       billsCount: billRows.length,
@@ -1594,16 +1646,17 @@ app.post('/api/shifts/end', async (req, res) => {
       await connection.query(
         `INSERT INTO shift_reports (
           session_id, user, role, shift_start, shift_end, total_bills, total_items_sold, total_sales_amount,
-          payment_breakdown, remaining_stock_summary, report_email, report_subject, email_status, email_error, email_sent_at, created_at
-        ) VALUES (?, ?, ?, ?, ?, 0, 0, 0, NULL, NULL, ?, 'Shift Sales Report Failed', 'failed', ?, NULL, NOW())`,
+          payment_breakdown, remaining_stock_summary, report_email, report_subject, email_status, email_error, email_sent_at, status, created_at
+        ) VALUES (?, ?, ?, ?, ?, 0, 0, 0, NULL, NULL, ?, 'Shift Sales Report Failed', 'failed', ?, NULL, ?, NOW())`,
         [
           Number.isFinite(shiftSessionId) ? shiftSessionId : null,
           shiftUser,
           shiftRole,
           toMysqlDateTime(shiftStart),
           toMysqlDateTime(shiftEnd),
-          recipientEmail || null,
-          error.message || 'Email sending failed'
+          normalizedRole === 'admin' ? (recipientEmail || null) : null,
+          error.message || 'Email sending failed',
+          'Failed'
         ]
       );
       await syncSchemaSql('log failed shift report');

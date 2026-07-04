@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import './PriceBoard.css';
 
 function formatDate(date) {
@@ -13,8 +13,14 @@ function formatTime(date) {
   }).format(date);
 }
 
-export default function PriceBoard({ db }) {
+export default function PriceBoard({ db, fetchPriceHistory }) {
   const now = new Date();
+
+  useEffect(() => {
+    if (fetchPriceHistory) {
+      fetchPriceHistory().catch(() => {});
+    }
+  }, [fetchPriceHistory]);
 
   return (
     <div className="price-board">

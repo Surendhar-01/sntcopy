@@ -51,6 +51,7 @@ export default function Topbar({ title, user, erp, session, setUser, setSession 
   const [isStartingShift, setIsStartingShift] = useState(false);
   const [canStartNextShift, setCanStartNextShift] = useState(false);
   const [showNextShiftPrompt, setShowNextShiftPrompt] = useState(false);
+  const [shiftActive, setShiftActive] = useState(() => Boolean(user?.loginTime));
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
@@ -61,6 +62,10 @@ export default function Topbar({ title, user, erp, session, setUser, setSession 
   }, []);
 
   const formatShiftDuration = () => {
+    if (!shiftActive) {
+      return '00:00:00';
+    }
+
     const loginTimeValue = user?.loginTime;
     if (!loginTimeValue) {
       return '00:00:00';
@@ -108,6 +113,7 @@ export default function Topbar({ title, user, erp, session, setUser, setSession 
         loginTime: nextLoginTime,
         logoutTime: null
       } : null);
+      setShiftActive(true);
       setCanStartNextShift(false);
       setShowNextShiftPrompt(false);
       alert(response?.message || 'Next shift started successfully');
@@ -124,6 +130,7 @@ export default function Topbar({ title, user, erp, session, setUser, setSession 
     }
 
     setIsEndingShift(true);
+    setShiftActive(false);
     try {
       const response = await erp.endShift({
         user: user.user,
@@ -194,15 +201,17 @@ export default function Topbar({ title, user, erp, session, setUser, setSession 
             })}
           </div>
 
-          <div className="shift-action-wrap">
-            <button className="overall-report-btn" onClick={handlePrimaryAction} disabled={isBusy}>
-              <span>
-                {isEndingShift ? 'Closing...' : isStartingShift ? 'Starting...' : primaryButtonLabel}
-              </span>
-              <span className="icon">{canStartNextShift ? '\u{23ED}' : '\u{1F4CA}'}</span>
-            </button>
-            <span className="shift-duration">{formatShiftDuration()}</span>
-          </div>
+          {user?.role?.toLowerCase() === 'admin' && (
+            <div className="shift-action-wrap">
+              <button className="overall-report-btn" onClick={handlePrimaryAction} disabled={isBusy}>
+                <span>
+                  {isEndingShift ? 'Closing...' : isStartingShift ? 'Starting...' : primaryButtonLabel}
+                </span>
+                <span className="icon">{canStartNextShift ? '\u{23ED}' : '\u{1F4CA}'}</span>
+              </button>
+              <span className="shift-duration">{formatShiftDuration()}</span>
+            </div>
+          )}
 
           <div className="user-pill">
             <div className="dot"></div>

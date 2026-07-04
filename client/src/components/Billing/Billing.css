@@ -145,6 +145,76 @@
     font-size: 0.92rem;
   }
 }
+/* Customer History Section */
+.customer-history-card {
+  border: 1px solid var(--accent3);
+  background: linear-gradient(180deg, var(--card) 0%, var(--surface) 100%);
+}
+
+.customer-history-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border-radius: 8px;
+  margin-bottom: 12px;
+  border: 1px solid var(--border);
+}
+
+.customer-history-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.customer-history-name svg { color: var(--accent); flex-shrink: 0; }
+
+.customer-history-phone {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: .88rem;
+  color: var(--text2);
+}
+
+.customer-history-phone svg { color: var(--text3); flex-shrink: 0; }
+
+.customer-history-total {
+  font-size: .85rem;
+  color: var(--text2);
+  margin-top: 2px;
+}
+
+.customer-history-total b { color: var(--accent); }
+
+.customer-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 280px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.customer-history-item {
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: box-shadow 0.2s ease, transform 0.15s ease;
+}
+
+.customer-history-item:hover {
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.10);
+  transform: translateY(-1px);
+  border-color: var(--accent3);
+}
+
 .btn-review{
   background-color: greenyellow;
 }

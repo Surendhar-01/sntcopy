@@ -30,7 +30,12 @@ const Reports = React.memo(ReportsPage);
 const LoginActivity = React.memo(LoginActivityPage);
 const Settings = React.memo(SettingsPage);
 
-function getDefaultPageForRole() {
+function getDefaultPageForRole(role) {
+  const normalized = String(role || '').trim().toLowerCase();
+  
+  if (normalized === 'staff') {
+    return 'billing';
+  }
   return 'dashboard';
 }
 
@@ -50,12 +55,30 @@ function App() {
   const [currentPage, setCurrentPage] = useState('dashboard');
   const [user, setUser] = useState(() => {
     const saved = localStorage.getItem('sri_nikil_user');
-    return saved ? JSON.parse(saved) : null;
+    if (!saved) return null;
+    try {
+      const parsed = JSON.parse(saved);
+      if (parsed && !parsed.loginTime) {
+        parsed.loginTime = new Date().toISOString();
+        localStorage.setItem('sri_nikil_user', JSON.stringify(parsed));
+      }
+      return parsed;
+    } catch {
+      return null;
+    }
   });
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
     return localStorage.getItem('sri_nikil_user') !== null;
   });
-  const [session, setSession] = useState(null);
+  const [session, setSession] = useState(() => {
+    const saved = localStorage.getItem('sri_nikil_session');
+    if (!saved) return null;
+    try {
+      return JSON.parse(saved);
+    } catch {
+      return null;
+    }
+  });
   
   const erp = useERPData();
 
@@ -80,18 +103,12 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (!user || user.loginTime) {
-      return;
+    if (session) {
+      localStorage.setItem('sri_nikil_session', JSON.stringify(session));
+    } else {
+      localStorage.removeItem('sri_nikil_session');
     }
-
-    const userWithLoginTime = {
-      ...user,
-      loginTime: new Date().toISOString()
-    };
-
-    setUser(userWithLoginTime);
-    localStorage.setItem('sri_nikil_user', JSON.stringify(userWithLoginTime));
-  }, [user]);
+  }, [session]);
 
   const handleLogin = async (username, password) => {
     try {
@@ -127,7 +144,21 @@ function App() {
 
   const handleLogout = async () => {
     if (session) {
-      await erp.updateLoginLog(session.id);
+      if (user?.role?.toLowerCase() === 'staff') {
+        try {
+          await erp.endShift({
+            user: user.user,
+            role: user.role,
+            sessionId: session.id,
+            shiftStart: user.loginTime
+          });
+        } catch (error) {
+          console.error('Failed to auto-end shift on staff logout:', error);
+          await erp.updateLoginLog(session.id).catch(() => {});
+        }
+      } else {
+        await erp.updateLoginLog(session.id);
+      }
     }
     setUser(null);
     setIsLoggedIn(false);
@@ -156,8 +187,9 @@ function App() {
   }), [erp.db.products, erp.db.priceHistory]);
 
   const priceBoardDb = useMemo(() => ({
-    products: erp.db.products
-  }), [erp.db.products]);
+    products: erp.db.products,
+    priceHistory: erp.db.priceHistory
+  }), [erp.db.products, erp.db.priceHistory]);
 
   const salesDb = useMemo(() => ({
     bills: erp.db.bills
@@ -169,8 +201,11 @@ function App() {
 
   const reportsDb = useMemo(() => ({
     bills: erp.db.bills,
-    products: erp.db.products
-  }), [erp.db.bills, erp.db.products]);
+    products: erp.db.products,
+    loginLogs: erp.db.loginLogs,
+    priceHistory: erp.db.priceHistory,
+    customers: erp.db.customers
+  }), [erp.db.bills, erp.db.products, erp.db.loginLogs, erp.db.priceHistory, erp.db.customers]);
 
   const loginActivityDb = useMemo(() => ({
     loginLogs: erp.db.loginLogs
@@ -261,9 +296,9 @@ function App() {
       case 'products': return <Products db={productsDb} erp={erpProducts} user={user} />;
       case 'stock': return <Stock db={stockDb} erp={erpStock} user={user} />;
       case 'pricing': return canManageAdminPages ? <Pricing db={pricingDb} erp={erpPricing} user={user} /> : <Dashboard db={dashboardDb} user={user} />;
-      case 'priceboard': return <PriceBoard db={priceBoardDb} />;
-      case 'sales': return <Sales db={salesDb} user={user} />;
-      case 'customers': return canViewCustomers ? <Customers db={customersDb} /> : <Dashboard db={dashboardDb} user={user} />;
+      case 'priceboard': return <PriceBoard db={priceBoardDb} fetchPriceHistory={erp.fetchPriceHistory} />;
+      case 'sales': return <Sales db={salesDb} fetchBills={erp.fetchBills} user={user} />;
+      case 'customers': return canViewCustomers ? <Customers db={customersDb} fetchCustomers={erp.fetchCustomers} /> : <Dashboard db={dashboardDb} user={user} />;
       case 'reports': return <Reports db={reportsDb} user={user} />;
       case 'loginlog': return canManageAdminPages ? <LoginActivity db={loginActivityDb} erp={erpLoginActivity} user={user} /> : <Dashboard db={dashboardDb} user={user} />;
       case 'settings': return canViewSettings ? <Settings db={settingsDb} erp={erpSettings} user={user} /> : <Dashboard db={dashboardDb} user={user} />;

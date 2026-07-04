@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 
 const STORAGE_KEY = 'sri_nikil_erp_db';
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
@@ -266,7 +266,30 @@ export function useERPData() {
     billSeq: getNextBillSequence(bills)
   }), [products, bills, customers, refills, priceHistory, loginLogs, accounts, settings]);
 
-  const fetchSettings = useCallback(async () => {
+  const initDone = useRef(false);
+  const lastFetched = useRef({
+    products: 0,
+    bills: 0,
+    customers: 0,
+    refills: 0,
+    priceHistory: 0,
+    loginLogs: 0,
+    accounts: 0,
+    settings: 0
+  });
+
+  const CACHE_TTL = 15000; // 15 seconds cache duration
+
+  const shouldFetch = useCallback((resource, force) => {
+    if (force) return true;
+    const last = lastFetched.current[resource] || 0;
+    return Date.now() - last > CACHE_TTL;
+  }, []);
+
+  const fetchSettings = useCallback(async (force = false) => {
+    if (!shouldFetch('settings', force)) {
+      return settings;
+    }
     try {
       const data = await apiRequest('/api/settings');
       const normalized = {
@@ -275,14 +298,18 @@ export function useERPData() {
         gst: Number(data?.gst ?? defaultDb.settings.gst)
       };
       setSettings(normalized);
+      lastFetched.current.settings = Date.now();
       return normalized;
     } catch (e) {
       console.error('Failed to fetch settings:', e);
       throw e;
     }
-  }, []);
+  }, [shouldFetch, settings]);
 
-  const fetchProducts = useCallback(async () => {
+  const fetchProducts = useCallback(async (force = false) => {
+    if (!shouldFetch('products', force)) {
+      return products;
+    }
     try {
       const data = await apiRequest('/api/products');
       const normalized = (Array.isArray(data) ? data : []).map((product, index) => ({
@@ -293,14 +320,18 @@ export function useERPData() {
         image: product.image || defaultProducts[index]?.image || 'https://placehold.co/150x150?text=Product'
       }));
       setProducts(normalized);
+      lastFetched.current.products = Date.now();
       return normalized;
     } catch (e) {
       console.error('Failed to fetch products:', e);
       throw e;
     }
-  }, []);
+  }, [shouldFetch, products]);
 
-  const fetchBills = useCallback(async () => {
+  const fetchBills = useCallback(async (force = false) => {
+    if (!shouldFetch('bills', force)) {
+      return bills;
+    }
     try {
       const data = await apiRequest('/api/bills');
       const normalized = (Array.isArray(data) ? data : []).map((bill) => ({
@@ -314,14 +345,18 @@ export function useERPData() {
         items: parseBillItems(bill.items)
       }));
       setBills(normalized);
+      lastFetched.current.bills = Date.now();
       return normalized;
     } catch (e) {
       console.error('Failed to fetch bills:', e);
       throw e;
     }
-  }, []);
+  }, [shouldFetch, bills]);
 
-  const fetchCustomers = useCallback(async () => {
+  const fetchCustomers = useCallback(async (force = false) => {
+    if (!shouldFetch('customers', force)) {
+      return customers;
+    }
     try {
       const data = await apiRequest('/api/customers');
       const normalized = (Array.isArray(data) ? data : []).map((customer) => ({
@@ -332,14 +367,18 @@ export function useERPData() {
         lastVisit: customer.lastVisit || customer.firstVisit || null
       }));
       setCustomers(normalized);
+      lastFetched.current.customers = Date.now();
       return normalized;
     } catch (e) {
       console.error('Failed to fetch customers:', e);
       throw e;
     }
-  }, []);
+  }, [shouldFetch, customers]);
 
-  const fetchRefills = useCallback(async () => {
+  const fetchRefills = useCallback(async (force = false) => {
+    if (!shouldFetch('refills', force)) {
+      return refills;
+    }
     try {
       const data = await apiRequest('/api/refills');
       const normalized = (Array.isArray(data) ? data : []).map((refill) => ({
@@ -348,14 +387,18 @@ export function useERPData() {
         by: refill.by || refill.by_user
       }));
       setRefills(normalized);
+      lastFetched.current.refills = Date.now();
       return normalized;
     } catch (e) {
       console.error('Failed to fetch refills:', e);
       throw e;
     }
-  }, []);
+  }, [shouldFetch, refills]);
 
-  const fetchPriceHistory = useCallback(async () => {
+  const fetchPriceHistory = useCallback(async (force = false) => {
+    if (!shouldFetch('priceHistory', force)) {
+      return priceHistory;
+    }
     try {
       const data = await apiRequest('/api/price-history');
       const normalized = (Array.isArray(data) ? data : []).map((history) => ({
@@ -365,14 +408,18 @@ export function useERPData() {
         by: history.by || history.by_user
       }));
       setPriceHistory(normalized);
+      lastFetched.current.priceHistory = Date.now();
       return normalized;
     } catch (e) {
       console.error('Failed to fetch price history:', e);
       throw e;
     }
-  }, []);
+  }, [shouldFetch, priceHistory]);
 
-  const fetchLoginLogs = useCallback(async () => {
+  const fetchLoginLogs = useCallback(async (force = false) => {
+    if (!shouldFetch('loginLogs', force)) {
+      return loginLogs;
+    }
     try {
       const data = await apiRequest('/api/login-logs');
       const normalized = (Array.isArray(data) ? data : []).map((log) => ({
@@ -382,45 +429,48 @@ export function useERPData() {
         logoutTime: log.logoutTime || log.logout_time
       }));
       setLoginLogs(normalized);
+      lastFetched.current.loginLogs = Date.now();
       return normalized;
     } catch (e) {
       console.error('Failed to fetch login logs:', e);
       throw e;
     }
-  }, []);
+  }, [shouldFetch, loginLogs]);
 
-  const fetchAccounts = useCallback(async () => {
+  const fetchAccounts = useCallback(async (force = false) => {
+    if (!shouldFetch('accounts', force)) {
+      return accounts;
+    }
     try {
       const data = await apiRequest('/api/accounts');
-      const normalized = (Array.isArray(data) ? data : [])
-        .filter((account) => account && account.user)
-        .map((account) => ({
-          ...account,
-          pass: account.pass || '',
-          role: account.role || (account.user?.toLowerCase() === 'admin' ? 'Admin' : 'Staff')
-        }));
+      const normalized = (Array.isArray(data) ? data : []).filter((account) => account && account.user).map((account) => ({
+        ...account,
+        pass: account.pass || '',
+        role: account.role || (account.user?.toLowerCase() === 'admin' ? 'Admin' : 'Staff')
+      }));
       setAccounts(normalized);
+      lastFetched.current.accounts = Date.now();
       return normalized;
     } catch (e) {
       console.error('Failed to fetch accounts:', e);
       throw e;
     }
-  }, []);
+  }, [shouldFetch, accounts]);
 
-  const refreshData = useCallback(async ({ showLoading = true } = {}) => {
+  const refreshData = useCallback(async ({ showLoading = false } = {}) => {
     if (showLoading) {
       setLoading(true);
     }
     try {
       const results = await Promise.all([
-        fetchProducts().catch(() => {}),
-        fetchBills().catch(() => {}),
-        fetchCustomers().catch(() => {}),
-        fetchRefills().catch(() => {}),
-        fetchPriceHistory().catch(() => {}),
-        fetchLoginLogs().catch(() => {}),
-        fetchAccounts().catch(() => {}),
-        fetchSettings().catch(() => {})
+        fetchProducts(true).catch(() => {}),
+        fetchBills(true).catch(() => {}),
+        fetchCustomers(true).catch(() => {}),
+        fetchRefills(true).catch(() => {}),
+        fetchPriceHistory(true).catch(() => {}),
+        fetchLoginLogs(true).catch(() => {}),
+        fetchAccounts(true).catch(() => {}),
+        fetchSettings(true).catch(() => {})
       ]);
       setError('');
       return db;
@@ -436,13 +486,15 @@ export function useERPData() {
   }, [fetchProducts, fetchBills, fetchCustomers, fetchRefills, fetchPriceHistory, fetchLoginLogs, fetchAccounts, fetchSettings, db]);
 
   useEffect(() => {
+    if (initDone.current) return;
+    initDone.current = true;
     const init = async () => {
       setLoading(true);
       try {
         await Promise.all([
-          fetchSettings().catch(() => {}),
-          fetchProducts().catch(() => {}),
-          fetchBills().catch(() => {})
+          fetchSettings(true).catch(() => {}),
+          fetchProducts(true).catch(() => {}),
+          fetchBills(true).catch(() => {})
         ]);
         setError('');
       } catch (err) {
@@ -452,7 +504,8 @@ export function useERPData() {
       }
     };
     init();
-  }, [fetchSettings, fetchProducts, fetchBills]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
@@ -496,7 +549,7 @@ export function useERPData() {
   const runMutation = useCallback(async (path, options, fetchers = []) => {
     await apiRequest(path, options);
     if (fetchers.length > 0) {
-      await Promise.all(fetchers.map(f => f().catch(() => {})));
+      await Promise.all(fetchers.map(f => f(true).catch(() => {})));
     } else {
       await refreshData();
     }
@@ -765,7 +818,7 @@ export function useERPData() {
           login_time: log.loginTime || log.login_time
         })
       });
-      await fetchLoginLogs().catch(() => {});
+      await fetchLoginLogs(true).catch(() => {});
       return response;
     } catch (logError) {
       console.warn('Failed to save login log to backend, storing locally instead', logError);
@@ -776,7 +829,7 @@ export function useERPData() {
   const updateLoginLog = useCallback(async (id) => {
     try {
       const response = await apiRequest(`/api/login-logs/${id}/logout`, { method: 'PUT' });
-      await fetchLoginLogs().catch(() => {});
+      await fetchLoginLogs(true).catch(() => {});
       return response;
     } catch (logError) {
       console.warn('Failed to update login log in backend, updating locally instead', logError);
@@ -794,7 +847,7 @@ export function useERPData() {
         shiftStart: shiftStart || new Date().toISOString()
       })
     });
-    await fetchLoginLogs().catch(() => {});
+    await fetchLoginLogs(true).catch(() => {});
     return response;
   }, [fetchLoginLogs]);
 
@@ -810,9 +863,9 @@ export function useERPData() {
       })
     });
     await Promise.all([
-      fetchProducts().catch(() => {}),
-      fetchBills().catch(() => {}),
-      fetchLoginLogs().catch(() => {})
+      fetchProducts(true).catch(() => {}),
+      fetchBills(true).catch(() => {}),
+      fetchLoginLogs(true).catch(() => {})
     ]);
     return response;
   }, [fetchProducts, fetchBills, fetchLoginLogs]);
@@ -881,7 +934,7 @@ export function useERPData() {
       method: 'PUT',
       body: JSON.stringify({ password: String(password || '') })
     });
-    await fetchAccounts().catch(() => {});
+    await fetchAccounts(true).catch(() => {});
   }, [fetchAccounts]);
 
   const actions = useMemo(() => ({
