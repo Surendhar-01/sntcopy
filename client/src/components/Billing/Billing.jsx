@@ -8,6 +8,7 @@ export default function Billing({ erp, user }) {
   const [showProductPopup, setShowProductPopup] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [qty, setQty] = useState(1);
+  const [selectedProducts, setSelectedProducts] = useState({});
   const [customer, setCustomer] = useState('');
   const [phone, setPhone] = useState('');
   const [payment, setPayment] = useState('Cash');
@@ -67,6 +68,7 @@ export default function Billing({ erp, user }) {
         setViewBill(null);
         setIsReviewMode(false);
         setShowProductPopup(false);
+        setSelectedProducts({});
       }
     };
 
@@ -87,21 +89,42 @@ export default function Billing({ erp, user }) {
     })
     .slice(0, 80);
 
-  const addItem = (product) => {
-    const parsedQty = parseInt(qty, 10) || 1;
-    const newItem = {
-      id: product.id,
-      name: product.name,
-      qty: parsedQty,
-      price: product.price,
-      total: product.price * parsedQty
-    };
+  const toggleProductSelection = (product) => {
+    setSelectedProducts((prev) => {
+      const next = { ...prev };
+      if (next[product.id] !== undefined) {
+        delete next[product.id];
+      } else {
+        next[product.id] = Number(qty) || 1;
+      }
+      return next;
+    });
+  };
 
-    setItems([...items, newItem]);
+  const handleAddSelected = () => {
+    const newItems = [];
+    Object.keys(selectedProducts).forEach((prodId) => {
+      const product = db.products.find((p) => String(p.id) === String(prodId));
+      if (product) {
+        const parsedQty = parseInt(selectedProducts[prodId], 10) || 1;
+        newItems.push({
+          id: product.id,
+          name: product.name,
+          qty: parsedQty,
+          price: product.price,
+          total: product.price * parsedQty
+        });
+      }
+    });
+
+    if (newItems.length > 0) {
+      setItems((prevItems) => [...prevItems, ...newItems]);
+      showToast(`${newItems.length} products added to cart`);
+    }
+    setSelectedProducts({});
     setSearchTerm('');
     setQty(1);
     setShowProductPopup(false);
-    showToast('Product added to cart');
   };
 
   const removeItem = (index) => {
@@ -351,13 +374,7 @@ export default function Billing({ erp, user }) {
     return null;
   };
 
-  // Bills matching the currently entered phone number (customer history)
-  const phoneDigits = phone.replace(/\D/g, '');
-  const customerBills = phoneDigits.length === 10
-    ? (db.bills || []).filter(bill => String(bill.phone || '').replace(/\D/g, '') === phoneDigits)
-        .sort((a, b) => new Date(b.date) - new Date(a.date))
-        .slice(0, 20)
-    : [];
+
 
   const todayStr = new Date().toDateString();
   const recentBills = (db.bills || [])
@@ -366,6 +383,10 @@ export default function Billing({ erp, user }) {
 
   return (
     <>
+      <div className="page-header">
+        <h1 className="page-title">Billing Workspace</h1>
+        <p className="page-description">Create, manage and print customer bills.</p>
+      </div>
       {toast && (
         <div className={`toast-msg ${toast.type}`}>
           {toast.type === 'success' ? '✅' : '❌'} {toast.msg}
@@ -480,52 +501,16 @@ export default function Billing({ erp, user }) {
           </div>
 
           <div className="mt-4 flex gap-2">
-            <button className="btn btn-primary" onClick={handleSaveBill}>Save Receipt</button>
-            <button className="btn btn-secondary btn-review" onClick={reviewBill}>Review Order</button>
-            <button className="btn btn-blue" onClick={printBill}>Print</button>
+            <button className="btn btn-primary" onClick={handleSaveBill}>Save Bill</button>
+            <button className="btn btn-secondary btn-review" onClick={reviewBill}>Review Bill</button>
+            <button className="btn btn-blue" onClick={printBill}>Print Bill</button>
             <button className="btn btn-danger" onClick={() => setItems([])}>Clear</button>
           </div>
         </div>
       </div>
 
       <div style={{ width: '100%', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {/* Customer History Section */}
-        {customerBills.length > 0 && (
-          <div className="card no-print customer-history-card">
-            <div className="flex items-center justify-between mb-3">
-              <div className="section-title" style={{ marginBottom: 0 }}>Customer History</div>
-              <span className="badge badge-blue" style={{ fontSize: '.78rem' }}>{customerBills.length} bill{customerBills.length !== 1 ? 's' : ''}</span>
-            </div>
-            <div className="customer-history-info">
-              <div className="customer-history-name">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                <span>{customer || customerBills[0]?.customer || 'Unknown'}</span>
-              </div>
-              <div className="customer-history-phone">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.79 19.79 0 012.12 4.18 2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.362 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.338 1.85.573 2.81.7A2 2 0 0122 16.92z"></path></svg>
-                <span>{phone}</span>
-              </div>
-              <div className="customer-history-total">
-                Total Spent: <b>Rs {customerBills.reduce((sum, b) => sum + Number(b.grand || 0), 0).toFixed(2)}</b>
-              </div>
-            </div>
-            <div className="customer-history-list">
-              {customerBills.map((bill) => (
-                <div key={bill.id} className="customer-history-item" onClick={() => { setViewBill(bill); setIsReviewMode(false); }} title="Click to view details">
-                  <div className="flex justify-between items-center mb-1">
-                    <b className="text-accent" style={{ fontSize: '.88rem' }}>{bill.billNo}</b>
-                    <span className="text-xs text-muted">{new Date(bill.date).toLocaleDateString([], { day: '2-digit', month: 'short', year: 'numeric' })}</span>
-                  </div>
-                  <div className="text-sm fw-600" style={{ marginBottom: '4px' }}>{bill.customer}</div>
-                  <div className="flex justify-between items-center">
-                    <span className="badge badge-green text-xs" style={{ padding: '1px 6px' }}>{bill.payment}</span>
-                    <b style={{ fontSize: '.92rem' }}>Rs {Number(bill.grand || 0).toFixed(2)}</b>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+
 
         {/* Recent Bills Section */}
         <div className="card no-print">
@@ -613,54 +598,110 @@ export default function Billing({ erp, user }) {
       )}
 
       {showProductPopup && (
-        <div className="modal-overlay open" onClick={() => setShowProductPopup(false)} style={{ padding: '20px' }}>
+        <div className="modal-overlay open" onClick={() => { setShowProductPopup(false); setSelectedProducts({}); }} style={{ padding: '20px' }}>
           <div className="modal billing-product-modal" onClick={(event) => event.stopPropagation()}>
             <div className="modal-header">
               <div>
-                <div className="modal-title">Select Product</div>
-                <div className="text-muted text-sm">Choose item and it will be added to cart with selected quantity.</div>
+                <div className="modal-title">Select Products</div>
+                <div className="text-muted text-sm">Choose items and add them to cart in batch.</div>
               </div>
-              <button className="modal-close" onClick={() => setShowProductPopup(false)}>x</button>
+              <button className="modal-close" onClick={() => { setShowProductPopup(false); setSelectedProducts({}); }}>x</button>
             </div>
 
-            <div className="flex gap-2 mb-3">
-              <div className="form-group" style={{ flex: 1 }}>
-                <input
-                  autoFocus
-                  placeholder="Search by name or code..."
-                  value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
-                />
-              </div>
-              <div className="form-group" style={{ width: '120px' }}>
-                <input
-                  type="number"
-                  min="1"
-                  placeholder="Enter Quantity"
-                  value={qty}
-                  onChange={(event) => setQty(Math.max(1, Number.parseInt(event.target.value, 10) || 1))}
-                  title="Quantity"
-                />
-              </div>
+            <div className="form-group mb-3">
+              <label style={{ fontSize: '0.8rem', marginBottom: '4px' }}>Search Products</label>
+              <input
+                autoFocus
+                placeholder="Search by name or code..."
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+              />
             </div>
 
             <div className="billing-product-list">
-              {popupProducts.map((product) => (
-                <button
-                  key={product.id}
-                  className="billing-product-row"
-                  type="button"
-                  onClick={() => addItem(product)}
-                >
-                  <span className="billing-product-name">{product.name}</span>
-                  <span className="billing-product-price">Rs {Number(product.price || 0).toFixed(2)}</span>
-                </button>
-              ))}
+              {popupProducts.map((product) => {
+                const isSelected = selectedProducts[product.id] !== undefined;
+                return (
+                  <div
+                    key={product.id}
+                    className={`billing-product-row ${isSelected ? 'selected' : ''}`}
+                    onClick={() => toggleProductSelection(product)}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', cursor: 'pointer' }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleProductSelection(product)}
+                        onClick={(e) => e.stopPropagation()}
+                        style={{ cursor: 'pointer', width: '16px', height: '16px', flexShrink: 0 }}
+                      />
+                      <div className="billing-product-name" style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span>{product.name}</span>
+                        {product.code && <span className="text-muted text-xs" style={{ marginTop: '2px' }}>{product.code}</span>}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()} style={{ flexShrink: 0 }}>
+                      <span className="billing-product-price">Rs {Number(product.price || 0).toFixed(2)}</span>
+                      {isSelected && (
+                        <input
+                          type="number"
+                          min="1"
+                          value={selectedProducts[product.id]}
+                          onChange={(e) => {
+                            const val = Math.max(1, parseInt(e.target.value, 10) || 1);
+                            setSelectedProducts((prev) => ({
+                              ...prev,
+                              [product.id]: val
+                            }));
+                          }}
+                          style={{
+                            width: '74px',
+                            padding: '6px 8px',
+                            borderRadius: '4px',
+                            border: '1px solid var(--border)',
+                            background: 'var(--surface-muted)',
+                            color: 'var(--text)',
+                            textAlign: 'center',
+                            fontWeight: 700
+                          }}
+                        />
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
               {popupProducts.length === 0 && (
                 <div className="text-center text-muted text-sm" style={{ padding: '12px 8px' }}>
                   No matching products found
                 </div>
               )}
+            </div>
+
+            <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border)', gap: '12px' }}>
+              <div className="text-sm text-muted">
+                Selected: <b className="text-accent">{Object.keys(selectedProducts).length}</b> product(s)
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => {
+                    setSelectedProducts({});
+                    setShowProductPopup(false);
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  disabled={Object.keys(selectedProducts).length === 0}
+                  onClick={handleAddSelected}
+                >
+                  Add Selected to Cart
+                </button>
+              </div>
             </div>
           </div>
         </div>

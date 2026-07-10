@@ -74,8 +74,11 @@ export default function Products({ db, erp, user }) {
 
   return (
     <div>
+      <div className="page-header">
+        <h1 className="page-title">Products</h1>
+        <p className="page-description">Manage your product catalog and view current prices.</p>
+      </div>
       <div className="product-catalog-header">
-        <h2 className="section-title" style={{ margin: 0 }}>Product Catalog (Store View)</h2>
         <div className="flex gap-2 product-catalog-controls">
           <div className="search-box">
             <input 
@@ -96,7 +99,7 @@ export default function Products({ db, erp, user }) {
             <option value="price-low">Price: Low to High</option>
             <option value="price-high">Price: High to Low</option>
           </select>
-          {isAdmin && <button className="btn btn-primary" onClick={() => setShowModal(true)}>Add Product </button>}
+          {isAdmin && <button className="btn btn-action" onClick={() => setShowModal(true)}>Add Product </button>}
         </div>
       </div>
 

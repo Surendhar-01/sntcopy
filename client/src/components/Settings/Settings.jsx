@@ -197,6 +197,11 @@ export default function Settings({ db, erp }) {
   };
 
   return (
+    <>
+      <div className="page-header">
+        <h1 className="page-title">Settings & Staff</h1>
+        <p className="page-description">Manage staff credentials and store details.</p>
+      </div>
     <div className="grid grid-2 settings-page">
       <div className="settings-column">
         <div className="card mb-4 settings-top-card settings-shop-card">
@@ -250,11 +255,11 @@ export default function Settings({ db, erp }) {
               <div className="section-title" style={{ marginBottom: 6 }}>User Accounts</div>
               <div className="text-muted text-sm">{db.accounts.length} account{db.accounts.length === 1 ? '' : 's'} configured</div>
             </div>
-            <button className="btn btn-primary btn-sm" onClick={() => setShowStaffModal(true)}>Add Account</button>
+            <button className="btn btn-action btn-sm" onClick={() => setShowStaffModal(true)}>Add Account</button>
           </div>
 
           <div className="table-wrap mb-3 settings-staff-table-wrap">
-            <table className="settings-staff-table">
+            <table className="data-table" style={{ minWidth: '100%' }}>
               <thead>
                 <tr>
                   <th>User</th>
@@ -324,6 +329,7 @@ export default function Settings({ db, erp }) {
             <div className="form-group mb-3">
               <label>Username</label>
               <input
+                autoComplete="off"
                 placeholder="Enter username"
                 value={newStaff.user}
                 onChange={event => setNewStaff(prev => ({ ...prev, user: event.target.value }))}
@@ -333,6 +339,7 @@ export default function Settings({ db, erp }) {
               <label>Password</label>
               <input
                 type="password"
+                autoComplete="new-password"
                 placeholder="Enter password"
                 value={newStaff.pass}
                 onChange={event => setNewStaff(prev => ({ ...prev, pass: event.target.value }))}
@@ -397,5 +404,6 @@ export default function Settings({ db, erp }) {
         </div>
       )}
     </div>
+    </>
   );
 }

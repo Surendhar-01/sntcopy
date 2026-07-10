@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import ClearConfirmModal from './ClearConfirmModal';
 import { useTheme } from '../context/useTheme';
 import './Topbar.css';
@@ -43,8 +43,19 @@ const THEME_BUTTONS = [
   }
 ];
 
-export default function Topbar({ title, user, erp, session, setUser, setSession }) {
-  const normalizedTitle = title.replace('-', ' ');
+export default function Topbar({ user, erp, session, setUser, setSession, onLogout }) {
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
   const { effectiveTheme, setTheme, theme } = useTheme();
   const [currentTime, setCurrentTime] = useState(Date.now());
   const [isEndingShift, setIsEndingShift] = useState(false);
@@ -60,6 +71,25 @@ export default function Topbar({ title, user, erp, session, setUser, setSession 
 
     return () => window.clearInterval(intervalId);
   }, []);
+
+  useEffect(() => {
+    if (!shiftActive || !user?.loginTime) return;
+    const lowerRole = user?.role?.toLowerCase();
+    if (lowerRole === 'admin') return;
+
+    const loginTimestamp = new Date(user.loginTime).getTime();
+    if (Number.isNaN(loginTimestamp)) return;
+
+    const elapsedMs = currentTime - loginTimestamp;
+    const twelveHoursMs = 12 * 60 * 60 * 1000;
+    if (elapsedMs >= twelveHoursMs) {
+      setShiftActive(false);
+      if (onLogout) {
+        onLogout();
+      }
+      alert('Your 12-hour shift has expired. You have been logged out.');
+    }
+  }, [currentTime, shiftActive, user?.loginTime, user?.role, onLogout]);
 
   const formatShiftDuration = () => {
     if (!shiftActive) {
@@ -77,11 +107,22 @@ export default function Topbar({ title, user, erp, session, setUser, setSession 
     }
 
     const elapsedSeconds = Math.max(0, Math.floor((currentTime - loginTimestamp) / 1000));
-    const hours = String(Math.floor(elapsedSeconds / 3600)).padStart(2, '0');
-    const minutes = String(Math.floor((elapsedSeconds % 3600) / 60)).padStart(2, '0');
-    const seconds = String(elapsedSeconds % 60).padStart(2, '0');
+    const lowerRole = user?.role?.toLowerCase();
 
-    return `${hours}:${minutes}:${seconds}`;
+    if (lowerRole === 'admin') {
+      const hours = String(Math.floor(elapsedSeconds / 3600)).padStart(2, '0');
+      const minutes = String(Math.floor((elapsedSeconds % 3600) / 60)).padStart(2, '0');
+      const seconds = String(elapsedSeconds % 60).padStart(2, '0');
+      return `${hours}:${minutes}:${seconds}`;
+    } else {
+      // Countdown from 12 hours (43200 seconds)
+      const totalShiftSeconds = 12 * 3600;
+      const remainingSeconds = Math.max(0, totalShiftSeconds - elapsedSeconds);
+      const hours = String(Math.floor(remainingSeconds / 3600)).padStart(2, '0');
+      const minutes = String(Math.floor((remainingSeconds % 3600) / 60)).padStart(2, '0');
+      const seconds = String(remainingSeconds % 60).padStart(2, '0');
+      return `${hours}:${minutes}:${seconds}`;
+    }
   };
 
   const startNextShift = async () => {
@@ -152,9 +193,17 @@ export default function Topbar({ title, user, erp, session, setUser, setSession 
 
       if (response?.promptNextShift) {
         setShowNextShiftPrompt(true);
+      } else {
+        const lowerRole = user?.role?.toLowerCase();
+        if (lowerRole === 'manager') {
+          if (onLogout) {
+            onLogout();
+          }
+        }
       }
     } catch (error) {
       alert(error.message || 'Failed to close shift');
+      setShiftActive(true);
     } finally {
       setIsEndingShift(false);
     }
@@ -172,11 +221,31 @@ export default function Topbar({ title, user, erp, session, setUser, setSession 
   const primaryButtonLabel = canStartNextShift ? 'Next Shift' : 'End Shift';
   const isBusy = isEndingShift || isStartingShift;
 
+  const showShiftWrap = ['admin', 'manager', 'staff'].includes(user?.role?.toLowerCase());
+
   return (
     <>
       <div className="topbar">
-        <div className="topbar-title gold-text">
-          {normalizedTitle}
+        {showShiftWrap && (
+          <div className="shift-action-wrap">
+            <span className="shift-duration">{formatShiftDuration()}</span>
+            <button className="overall-report-btn" onClick={handlePrimaryAction} disabled={isBusy}>
+              <span>
+                {isEndingShift ? 'Closing...' : isStartingShift ? 'Starting...' : primaryButtonLabel}
+              </span>
+              <span className="icon" style={{ display: 'flex', alignItems: 'center' }}>
+                {canStartNextShift ? '\u{23ED}' : (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/>
+                    <path d="M20 3a2 2 0 0 0-1.437 1.437L17 10l-1.563-5.563A2 2 0 0 0 14 3l3 1.5L20 3z" />
+                  </svg>
+                )}
+              </span>
+            </button>
+          </div>
+        )}
+        <div className="topbar-project-title">
+          Sri Nikil Trading Dashboard
         </div>
 
         <div className="topbar-right">
@@ -201,21 +270,31 @@ export default function Topbar({ title, user, erp, session, setUser, setSession 
             })}
           </div>
 
-          {user?.role?.toLowerCase() === 'admin' && (
-            <div className="shift-action-wrap">
-              <button className="overall-report-btn" onClick={handlePrimaryAction} disabled={isBusy}>
-                <span>
-                  {isEndingShift ? 'Closing...' : isStartingShift ? 'Starting...' : primaryButtonLabel}
-                </span>
-                <span className="icon">{canStartNextShift ? '\u{23ED}' : '\u{1F4CA}'}</span>
-              </button>
-              <span className="shift-duration">{formatShiftDuration()}</span>
-            </div>
-          )}
 
-          <div className="user-pill">
-            <div className="dot"></div>
-            <span>{user?.role ? `${user.role} User` : 'User'}</span>
+
+          <div className="avatar-dropdown" ref={dropdownRef}>
+            <button className="avatar-btn" onClick={() => setDropdownOpen(!dropdownOpen)}>
+              <div className="avatar-circle">
+                {user?.user ? user.user.charAt(0).toUpperCase() : 'U'}
+              </div>
+              <span className="avatar-name">{user?.user || 'User'}</span>
+              <svg className="avatar-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
+            
+            {dropdownOpen && (
+              <div className="avatar-menu">
+                <button className="avatar-menu-item" onClick={() => { setDropdownOpen(false); if (onLogout) onLogout(); }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '16px', height: '16px', color: 'var(--red)', opacity: 0.8 }}>
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                    <polyline points="16 17 21 12 16 7"></polyline>
+                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                  </svg>
+                  <span>Logout</span>
+                </button>
+              </div>
+            )}
           </div>
 
         </div>
@@ -231,6 +310,9 @@ export default function Topbar({ title, user, erp, session, setUser, setSession 
         onClose={() => {
           if (!isStartingShift) {
             setShowNextShiftPrompt(false);
+            if (onLogout) {
+              onLogout();
+            }
           }
         }}
       />

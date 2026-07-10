@@ -88,7 +88,7 @@ export default function Reports({ db, user }) {
         : `MySalesReport_${user?.user}${dateSuffix}_${today}.csv`;
     } else if (type === 'stock') {
       csv = 'Product,Category,Unit,Price,Opening Stock,Sold,Current Stock,Status\n';
-      csv += (db.products || []).map((product) => `${product.name},${product.cat},${product.unit},${product.price},${(product.stock || 0) + (product.sold || 0)},${product.sold || 0},${product.stock},${product.stock === 0 ? 'Out of Stock' : product.stock <= 5 ? 'Low Stock' : 'OK'}`).join('\n');
+      csv += (db.products || []).map((product) => `${product.name},${product.cat},${product.unit},${product.price},${product.opening_stock ?? ((product.stock || 0) + (product.sold || 0))},${product.sold || 0},${product.stock},${product.stock === 0 ? 'Out of Stock' : product.stock <= 5 ? 'Low Stock' : 'OK'}`).join('\n');
       filename = `StockReport_${today}.csv`;
     } else if (type === 'price') {
       csv = 'Date,Product,Old Price,New Price,Changed By\n';
@@ -116,6 +116,11 @@ export default function Reports({ db, user }) {
   };
 
   return (
+    <>
+      <div className="page-header">
+        <h1 className="page-title">Reports & Analytics</h1>
+        <p className="page-description">Generate comprehensive sales and business reports.</p>
+      </div>
     <div className="reports-page-wrap">
       <div className="card reports-filter-card no-print">
         <div className="reports-filter-head">
@@ -194,5 +199,6 @@ export default function Reports({ db, user }) {
         ) : null}
       </div>
     </div>
+    </>
   );
 }

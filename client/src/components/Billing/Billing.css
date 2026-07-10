@@ -85,6 +85,11 @@
   border-bottom: 0;
 }
 
+.billing-product-row.selected {
+  background: var(--surface-hover);
+  border-left: 4px solid var(--accent);
+}
+
 .billing-product-row:hover { background: var(--surface-hover); }
 
 .billing-product-name {

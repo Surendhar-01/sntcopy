@@ -146,6 +146,7 @@ function normalizeDb(data) {
     price: Number(product.price || 0),
     stock: Number(product.stock || 0),
     sold: Number(product.sold || 0),
+    opening_stock: Number(product.opening_stock ?? (product.stock + product.sold)),
     image: product.image || defaultProducts[index]?.image || 'https://placehold.co/150x150?text=Product'
   }));
 
@@ -267,6 +268,7 @@ export function useERPData() {
   }), [products, bills, customers, refills, priceHistory, loginLogs, accounts, settings]);
 
   const initDone = useRef(false);
+  const pendingRequests = useRef({});
   const lastFetched = useRef({
     products: 0,
     bills: 0,
@@ -290,171 +292,244 @@ export function useERPData() {
     if (!shouldFetch('settings', force)) {
       return settings;
     }
-    try {
-      const data = await apiRequest('/api/settings');
-      const normalized = {
-        ...defaultDb.settings,
-        ...(data || {}),
-        gst: Number(data?.gst ?? defaultDb.settings.gst)
-      };
-      setSettings(normalized);
-      lastFetched.current.settings = Date.now();
-      return normalized;
-    } catch (e) {
-      console.error('Failed to fetch settings:', e);
-      throw e;
+    if (pendingRequests.current.settings) {
+      return pendingRequests.current.settings;
     }
+    const promise = (async () => {
+      try {
+        const data = await apiRequest('/api/settings');
+        const normalized = {
+          ...defaultDb.settings,
+          ...(data || {}),
+          gst: Number(data?.gst ?? defaultDb.settings.gst)
+        };
+        setSettings(normalized);
+        lastFetched.current.settings = Date.now();
+        return normalized;
+      } catch (e) {
+        console.error('Failed to fetch settings:', e);
+        throw e;
+      } finally {
+        delete pendingRequests.current.settings;
+      }
+    })();
+    pendingRequests.current.settings = promise;
+    return promise;
   }, [shouldFetch, settings]);
 
   const fetchProducts = useCallback(async (force = false) => {
     if (!shouldFetch('products', force)) {
       return products;
     }
-    try {
-      const data = await apiRequest('/api/products');
-      const normalized = (Array.isArray(data) ? data : []).map((product, index) => ({
-        ...product,
-        price: Number(product.price || 0),
-        stock: Number(product.stock || 0),
-        sold: Number(product.sold || 0),
-        image: product.image || defaultProducts[index]?.image || 'https://placehold.co/150x150?text=Product'
-      }));
-      setProducts(normalized);
-      lastFetched.current.products = Date.now();
-      return normalized;
-    } catch (e) {
-      console.error('Failed to fetch products:', e);
-      throw e;
+    if (pendingRequests.current.products) {
+      return pendingRequests.current.products;
     }
+    const promise = (async () => {
+      try {
+        const data = await apiRequest('/api/products');
+        const normalized = (Array.isArray(data) ? data : []).map((product, index) => ({
+          ...product,
+          price: Number(product.price || 0),
+          stock: Number(product.stock || 0),
+          sold: Number(product.sold || 0),
+          opening_stock: Number(product.opening_stock ?? (product.stock + product.sold)),
+          image: product.image || defaultProducts[index]?.image || 'https://placehold.co/150x150?text=Product'
+        }));
+        setProducts(normalized);
+        lastFetched.current.products = Date.now();
+        return normalized;
+      } catch (e) {
+        console.error('Failed to fetch products:', e);
+        throw e;
+      } finally {
+        delete pendingRequests.current.products;
+      }
+    })();
+    pendingRequests.current.products = promise;
+    return promise;
   }, [shouldFetch, products]);
 
   const fetchBills = useCallback(async (force = false) => {
     if (!shouldFetch('bills', force)) {
       return bills;
     }
-    try {
-      const data = await apiRequest('/api/bills');
-      const normalized = (Array.isArray(data) ? data : []).map((bill) => ({
-        ...bill,
-        billNo: bill.billNo || bill.bill_no,
-        by: bill.by || bill.by_user,
-        subtotal: Number(bill.subtotal || 0),
-        cgst: Number(bill.cgst || 0),
-        sgst: Number(bill.sgst || 0),
-        grand: Number(bill.grand || 0),
-        items: parseBillItems(bill.items)
-      }));
-      setBills(normalized);
-      lastFetched.current.bills = Date.now();
-      return normalized;
-    } catch (e) {
-      console.error('Failed to fetch bills:', e);
-      throw e;
+    if (pendingRequests.current.bills) {
+      return pendingRequests.current.bills;
     }
+    const promise = (async () => {
+      try {
+        const data = await apiRequest('/api/bills');
+        const normalized = (Array.isArray(data) ? data : []).map((bill) => ({
+          ...bill,
+          billNo: bill.billNo || bill.bill_no,
+          by: bill.by || bill.by_user,
+          subtotal: Number(bill.subtotal || 0),
+          cgst: Number(bill.cgst || 0),
+          sgst: Number(bill.sgst || 0),
+          grand: Number(bill.grand || 0),
+          items: parseBillItems(bill.items)
+        }));
+        setBills(normalized);
+        lastFetched.current.bills = Date.now();
+        return normalized;
+      } catch (e) {
+        console.error('Failed to fetch bills:', e);
+        throw e;
+      } finally {
+        delete pendingRequests.current.bills;
+      }
+    })();
+    pendingRequests.current.bills = promise;
+    return promise;
   }, [shouldFetch, bills]);
 
   const fetchCustomers = useCallback(async (force = false) => {
     if (!shouldFetch('customers', force)) {
       return customers;
     }
-    try {
-      const data = await apiRequest('/api/customers');
-      const normalized = (Array.isArray(data) ? data : []).map((customer) => ({
-        ...customer,
-        visits: Number(customer.visits || 0),
-        total: Number(customer.total || 0),
-        firstVisit: customer.firstVisit || customer.lastVisit || null,
-        lastVisit: customer.lastVisit || customer.firstVisit || null
-      }));
-      setCustomers(normalized);
-      lastFetched.current.customers = Date.now();
-      return normalized;
-    } catch (e) {
-      console.error('Failed to fetch customers:', e);
-      throw e;
+    if (pendingRequests.current.customers) {
+      return pendingRequests.current.customers;
     }
+    const promise = (async () => {
+      try {
+        const data = await apiRequest('/api/customers');
+        const normalized = (Array.isArray(data) ? data : []).map((customer) => ({
+          ...customer,
+          visits: Number(customer.visits || 0),
+          total: Number(customer.total || 0),
+          firstVisit: customer.firstVisit || customer.lastVisit || null,
+          lastVisit: customer.lastVisit || customer.firstVisit || null
+        }));
+        setCustomers(normalized);
+        lastFetched.current.customers = Date.now();
+        return normalized;
+      } catch (e) {
+        console.error('Failed to fetch customers:', e);
+        throw e;
+      } finally {
+        delete pendingRequests.current.customers;
+      }
+    })();
+    pendingRequests.current.customers = promise;
+    return promise;
   }, [shouldFetch, customers]);
 
   const fetchRefills = useCallback(async (force = false) => {
     if (!shouldFetch('refills', force)) {
       return refills;
     }
-    try {
-      const data = await apiRequest('/api/refills');
-      const normalized = (Array.isArray(data) ? data : []).map((refill) => ({
-        ...refill,
-        qty: Number(refill.qty || 0),
-        by: refill.by || refill.by_user
-      }));
-      setRefills(normalized);
-      lastFetched.current.refills = Date.now();
-      return normalized;
-    } catch (e) {
-      console.error('Failed to fetch refills:', e);
-      throw e;
+    if (pendingRequests.current.refills) {
+      return pendingRequests.current.refills;
     }
+    const promise = (async () => {
+      try {
+        const data = await apiRequest('/api/refills');
+        const normalized = (Array.isArray(data) ? data : []).map((refill) => ({
+          ...refill,
+          qty: Number(refill.qty || 0),
+          by: refill.by || refill.by_user
+        }));
+        setRefills(normalized);
+        lastFetched.current.refills = Date.now();
+        return normalized;
+      } catch (e) {
+        console.error('Failed to fetch refills:', e);
+        throw e;
+      } finally {
+        delete pendingRequests.current.refills;
+      }
+    })();
+    pendingRequests.current.refills = promise;
+    return promise;
   }, [shouldFetch, refills]);
 
   const fetchPriceHistory = useCallback(async (force = false) => {
     if (!shouldFetch('priceHistory', force)) {
       return priceHistory;
     }
-    try {
-      const data = await apiRequest('/api/price-history');
-      const normalized = (Array.isArray(data) ? data : []).map((history) => ({
-        ...history,
-        old: Number(history.old ?? history.old_price ?? 0),
-        new: Number(history.new ?? history.new_price ?? 0),
-        by: history.by || history.by_user
-      }));
-      setPriceHistory(normalized);
-      lastFetched.current.priceHistory = Date.now();
-      return normalized;
-    } catch (e) {
-      console.error('Failed to fetch price history:', e);
-      throw e;
+    if (pendingRequests.current.priceHistory) {
+      return pendingRequests.current.priceHistory;
     }
+    const promise = (async () => {
+      try {
+        const data = await apiRequest('/api/price-history');
+        const normalized = (Array.isArray(data) ? data : []).map((history) => ({
+          ...history,
+          old: Number(history.old ?? history.old_price ?? 0),
+          new: Number(history.new ?? history.new_price ?? 0),
+          by: history.by || history.by_user
+        }));
+        setPriceHistory(normalized);
+        lastFetched.current.priceHistory = Date.now();
+        return normalized;
+      } catch (e) {
+        console.error('Failed to fetch price history:', e);
+        throw e;
+      } finally {
+        delete pendingRequests.current.priceHistory;
+      }
+    })();
+    pendingRequests.current.priceHistory = promise;
+    return promise;
   }, [shouldFetch, priceHistory]);
 
   const fetchLoginLogs = useCallback(async (force = false) => {
     if (!shouldFetch('loginLogs', force)) {
       return loginLogs;
     }
-    try {
-      const data = await apiRequest('/api/login-logs');
-      const normalized = (Array.isArray(data) ? data : []).map((log) => ({
-        ...log,
-        user: log.user || log.user_name,
-        loginTime: log.loginTime || log.login_time,
-        logoutTime: log.logoutTime || log.logout_time
-      }));
-      setLoginLogs(normalized);
-      lastFetched.current.loginLogs = Date.now();
-      return normalized;
-    } catch (e) {
-      console.error('Failed to fetch login logs:', e);
-      throw e;
+    if (pendingRequests.current.loginLogs) {
+      return pendingRequests.current.loginLogs;
     }
+    const promise = (async () => {
+      try {
+        const data = await apiRequest('/api/login-logs');
+        const normalized = (Array.isArray(data) ? data : []).map((log) => ({
+          ...log,
+          user: log.user || log.user_name,
+          loginTime: log.loginTime || log.login_time,
+          logoutTime: log.logoutTime || log.logout_time
+        }));
+        setLoginLogs(normalized);
+        lastFetched.current.loginLogs = Date.now();
+        return normalized;
+      } catch (e) {
+        console.error('Failed to fetch login logs:', e);
+        throw e;
+      } finally {
+        delete pendingRequests.current.loginLogs;
+      }
+    })();
+    pendingRequests.current.loginLogs = promise;
+    return promise;
   }, [shouldFetch, loginLogs]);
 
   const fetchAccounts = useCallback(async (force = false) => {
     if (!shouldFetch('accounts', force)) {
       return accounts;
     }
-    try {
-      const data = await apiRequest('/api/accounts');
-      const normalized = (Array.isArray(data) ? data : []).filter((account) => account && account.user).map((account) => ({
-        ...account,
-        pass: account.pass || '',
-        role: account.role || (account.user?.toLowerCase() === 'admin' ? 'Admin' : 'Staff')
-      }));
-      setAccounts(normalized);
-      lastFetched.current.accounts = Date.now();
-      return normalized;
-    } catch (e) {
-      console.error('Failed to fetch accounts:', e);
-      throw e;
+    if (pendingRequests.current.accounts) {
+      return pendingRequests.current.accounts;
     }
+    const promise = (async () => {
+      try {
+        const data = await apiRequest('/api/accounts');
+        const normalized = (Array.isArray(data) ? data : []).filter((account) => account && account.user).map((account) => ({
+          ...account,
+          pass: account.pass || '',
+          role: account.role || (account.user?.toLowerCase() === 'admin' ? 'Admin' : 'Staff')
+        }));
+        setAccounts(normalized);
+        lastFetched.current.accounts = Date.now();
+        return normalized;
+      } catch (e) {
+        console.error('Failed to fetch accounts:', e);
+        throw e;
+      } finally {
+        delete pendingRequests.current.accounts;
+      }
+    })();
+    pendingRequests.current.accounts = promise;
+    return promise;
   }, [shouldFetch, accounts]);
 
   const refreshData = useCallback(async ({ showLoading = false } = {}) => {
@@ -462,7 +537,7 @@ export function useERPData() {
       setLoading(true);
     }
     try {
-      const results = await Promise.all([
+      await Promise.all([
         fetchProducts(true).catch(() => {}),
         fetchBills(true).catch(() => {}),
         fetchCustomers(true).catch(() => {}),
@@ -497,7 +572,7 @@ export function useERPData() {
           fetchBills(true).catch(() => {})
         ]);
         setError('');
-      } catch (err) {
+      } catch {
         setError('Backend data unavailable. Showing local data.');
       } finally {
         setLoading(false);

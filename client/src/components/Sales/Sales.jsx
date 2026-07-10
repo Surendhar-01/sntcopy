@@ -49,20 +49,23 @@ export default function Sales({ db, fetchBills, user }) {
   const totalSalesAmount = filteredBills.reduce((sum, bill) => sum + (bill.grand || 0), 0);
 
   return (
-    <div className="card sales-page">
-      <div className="flex justify-between items-center mb-1 sales-header-row">
-        <div className="section-title sales-title" style={{ margin: 0, border: 'none' }}>
-          {'\u{1F4CB}'} {canManageAdminPages ? 'Sales History (All Bills)' : 'My Sales History'}
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="sales-stats text-sm">
-            <span className="text-muted">Total Bills: </span>
+    <>
+      <div className="page-header">
+        <h1 className="page-title">Sales</h1>
+        <p className="page-description">View {canManageAdminPages ? 'all sales history and details.' : 'your sales history and details.'}</p>
+      </div>
+      <div className="card sales-page">
+        <div className="flex justify-between items-center mb-1 sales-header-row">
+          <div className="section-title sales-title" style={{ margin: 0, border: 'none' }}>
+            {'\u{1F4CB}'} {canManageAdminPages ? 'Sales History (All Bills)' : 'My Sales History'}
+          </div>
+          <div className="sales-stats text-sm flex items-center bg-card-bg border border-border-color rounded-lg px-4 py-2" style={{ gap: '8px' }}>
+            <span className="text-muted">Total Bills:</span>
             <b className="text-accent">{totalSalesCount}</b>
-            <span className="text-muted ml-3"> | Amount: </span>
+            <span className="text-muted ml-3">| Amount:</span>
             <b className="text-accent">Rs {totalSalesAmount.toFixed(2)}</b>
           </div>
         </div>
-      </div>
 
       <div className="sales-controls flex flex-wrap gap-3 mb-4 no-print">
         <div className="control-group flex-1" style={{ minWidth: '200px' }}>
@@ -109,7 +112,7 @@ export default function Sales({ db, fetchBills, user }) {
       </div>
 
       <div className="table-wrap sales-table">
-        <table>
+        <table className="data-table">
           <thead>
             <tr><th>Bill No</th><th>Date</th><th>Customer</th><th>Amount</th><th>Method</th><th>Issued By</th></tr>
           </thead>
@@ -134,7 +137,7 @@ export default function Sales({ db, fetchBills, user }) {
           </tbody>
         </table>
       </div>
-
     </div>
+    </>
   );
 }

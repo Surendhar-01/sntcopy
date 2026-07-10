@@ -55,6 +55,11 @@ export default function Customers({ db, fetchCustomers }) {
   );
 
   return (
+    <>
+      <div className="page-header">
+        <h1 className="page-title">Customers</h1>
+        <p className="page-description">View customer purchase history and details.</p>
+      </div>
     <div className="card customers-page">
       <div className="flex justify-between items-center mb-1 customers-header">
         <div className="section-title customers-title" style={{ margin: 0, border: 'none' }}>
@@ -113,7 +118,7 @@ export default function Customers({ db, fetchCustomers }) {
       </div>
 
       <div className="table-wrap customers-table">
-        <table>
+        <table className="data-table">
           <thead>
             <tr><th>Name</th><th>Phone</th><th>Visits</th><th>Total Purchases</th><th>Last Visit</th><th>Type</th></tr>
           </thead>
@@ -139,5 +144,6 @@ export default function Customers({ db, fetchCustomers }) {
         </table>
       </div>
     </div>
+    </>
   );
 }

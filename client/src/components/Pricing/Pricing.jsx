@@ -66,14 +66,22 @@ export default function Pricing({ db, erp, user }) {
   };
 
   return (
+    <>
+      <div className="page-header">
+        <h1 className="page-title">Pricing Control</h1>
+        <p className="page-description">Manage product rates and track historical price variations.</p>
+      </div>
     <div className="pricing-page">
       <div className="card mb-4 pricing-card">
-        <div className="section-title">Price Control</div>
-        <div className="table-wrap">
-          <table>
+        <div className="pricing-header mb-3">
+          <div className="section-title pricing-title">Price Control</div>
+        </div>
+        <div className="table-wrap" style={{ maxHeight: '560px', overflowY: 'auto' }}>
+          <table className="data-table">
             <thead>
               <tr>
-                <th>Product</th>
+                <th style={{ width: '15%' }}>ID</th>
+                <th style={{ width: '30%' }}>Product</th>
                 <th>Previous</th>
                 <th>Current</th>
                 <th>Action</th>
@@ -86,11 +94,12 @@ export default function Pricing({ db, erp, user }) {
 
                 return (
                   <tr key={product.id}>
+                    <td className="text-muted text-xs">{product.code || product.id}</td>
                     <td><b>{product.name}</b></td>
                     <td className="text-muted">Rs {previous.toFixed(2)}</td>
                     <td className="fw-bold text-accent">Rs {product.price.toFixed(2)}</td>
                     <td>
-                      <button className="btn btn-sm btn-primary" onClick={() => openPriceModal(product)}>Update</button>
+                      <button className="btn btn-sm btn-action" onClick={() => openPriceModal(product)}>Update</button>
                     </td>
                   </tr>
                 );
@@ -101,25 +110,26 @@ export default function Pricing({ db, erp, user }) {
       </div>
 
       <div className="card pricing-card">
-        <div className="flex justify-between items-center mb-3 pricing-log-header">
-          <div className="section-title pricing-inline-title">Price Change Log</div>
+        <div className="flex justify-between items-center mb-3 pricing-header">
+          <div className="section-title pricing-title">Price Change Log</div>
           <button
-            className="btn btn-danger btn-sm"
+            className="btn btn-clear-outline btn-sm"
             type="button"
             onClick={() => setShowClearConfirm(true)}
             disabled={!db.priceHistory.length || isClearing}
           >
-            {isClearing ? 'Clearing...' : 'Clear All'}
+            <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" strokeWidth="2" fill="none" style={{ marginTop: '-1px' }}><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            {isClearing ? 'Clearing...' : 'Clear'}
           </button>
         </div>
 
-        <div className="table-wrap">
-          <table>
+        <div className="table-wrap" style={{ maxHeight: '500px', overflowY: 'auto' }}>
+          <table className="data-table">
             <thead>
               <tr>
-                <th>Date</th>
-                <th>Product</th>
-                <th>Old</th>
+                <th style={{ width: '15%' }}>Date</th>
+                <th style={{ width: '25%' }}>Product</th>
+                <th style={{ width: '15%' }}>Old</th>
                 <th>New</th>
                 <th>By</th>
                 <th>Action</th>
@@ -204,5 +214,6 @@ export default function Pricing({ db, erp, user }) {
         onClose={() => setShowClearConfirm(false)}
       />
     </div>
+    </>
   );
 }

@@ -7,12 +7,11 @@
   border-color: #e6ebf3;
 }
 
-.pricing-log-header {
-  padding-bottom: 6px;
-  border-bottom: 1px solid #eef2f7;
+.pricing-header {
+  padding-bottom: 8px;
 }
 
-.pricing-inline-title {
+.pricing-title {
   margin-bottom: 0;
 }
 

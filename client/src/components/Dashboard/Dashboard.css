@@ -1,7 +1,8 @@
 .dashboard-summary-card {
-  min-height: 116px;
-  border-radius: 18px;
+  min-height: 86px;
+  border-radius: 0px;
   box-shadow: 0 14px 32px rgba(15, 23, 42, 0.08);
+  padding: 12px 20px;
 }
 
 .dashboard-summary-card .stat-label {
@@ -12,46 +13,46 @@
 }
 
 .dashboard-summary-card .stat-value {
-  font-size: 2.25rem;
+  font-size: 1.6rem;
   letter-spacing: -0.03em;
-  margin-top: 6px;
+  margin-top: 4px;
   line-height: 1.1;
   color: var(--text);
 }
 
 .dashboard-summary-card .stat-sub {
-  font-size: 0.82rem;
+  font-size: 0.75rem;
   color: var(--text3);
-  margin-top: 10px;
+  margin-top: 6px;
 }
 
 .dashboard-summary-card .dashboard-text-stat {
-  font-size: 1.35rem;
+  font-size: 1.1rem;
   line-height: 1.2;
-  max-width: calc(100% - 70px);
+  max-width: calc(100% - 60px);
 }
 
 .dashboard-summary-card .stat-icon {
-  right: 18px;
+  right: 16px;
   top: 50%;
   transform: translateY(-50%);
-  width: 58px;
-  height: 58px;
-  border-radius: 18px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(180deg, rgba(248, 250, 252, 0.95) 0%, rgba(226, 232, 240, 0.85) 100%);
-  color: #6b7280;
+  background: #8692a6;
+  color: #111827;
   opacity: 1;
-  font-size: 1.45rem;
+  font-size: 1.2rem;
   font-weight: 600;
-  box-shadow: inset 0 0 0 1px rgba(220, 230, 242, 0.95), 0 8px 18px rgba(148, 163, 184, 0.12);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
 }
 
 .dashboard-summary-card .stat-icon svg {
-  width: 28px;
-  height: 28px;
+  width: 22px;
+  height: 22px;
   stroke: currentColor;
   stroke-width: 1.8;
   fill: none;
@@ -60,34 +61,34 @@
 }
 
 .dashboard-summary-card .dashboard-currency-icon {
-  font-size: 2rem;
+  font-size: 1.5rem;
   font-weight: 700;
   line-height: 1;
 }
 
 .dashboard-summary-card.orange .stat-icon {
-  background: linear-gradient(180deg, #fff7ed 0%, #ffedd5 100%);
-  color: #f59e0b;
+  background: #d2c27c;
+  color: #111827;
 }
 
 .dashboard-summary-card.green .stat-icon {
-  background: linear-gradient(180deg, #f0fdf4 0%, #dcfce7 100%);
-  color: #22c55e;
+  background: #86efac;
+  color: #111827;
 }
 
 .dashboard-summary-card.blue .stat-icon {
-  background: linear-gradient(180deg, #eff6ff 0%, #dbeafe 100%);
-  color: #3b82f6;
+  background: #82d2f7;
+  color: #111827;
 }
 
 .dashboard-summary-card.red .stat-icon {
-  background: linear-gradient(180deg, #fef2f2 0%, #fee2e2 100%);
-  color: #ef4444;
+  background: #ef97a1;
+  color: #111827;
 }
 
 .dashboard-summary-card.purple .stat-icon {
-  background: linear-gradient(180deg, #f5f3ff 0%, #ede9fe 100%);
-  color: #8b5cf6;
+  background: #c4b5fd;
+  color: #111827;
 }
 
 /* Chart wrapper to add horizontal padding so charts don't touch card edges */
@@ -99,3 +100,11 @@
   display: block !important;
   max-width: 100% !important;
 }
+
+@media (max-width: 768px) {
+  .grid.dashboard-cards-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+

@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useMemo, useState } from 'react';
+import React, { memo, useCallback, useMemo, useState, useRef, useEffect } from 'react';
 import { sidebarMenu } from '../config/sidebarMenu';
 import { useSidebar } from '../context/useSidebar';
 import { hasAdminAccess } from '../utils/roles';
@@ -127,8 +127,8 @@ function SidebarIcon({ name }) {
       );
     case 'pin':
       return (
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M7 3h10l1 5-5 5v8h-2v-8L6 8l1-5Z" />
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
+          <path stroke="none" d="M16 12V4h1V2H7v2h1v8l-2 2v2h5v6h2v-6h5v-2l-2-2z" />
         </svg>
       );
     case 'drawer':
@@ -190,26 +190,11 @@ const SidebarSection = memo(function SidebarSection({
   currentPage,
   isCollapsed,
   onNavigate,
-  openSectionIds,
-  section,
-  toggleSection
+  section
 }) {
-  const isActiveSection = section.children.some((item) => item.id === currentPage);
-  const isOpen = isCollapsed ? true : openSectionIds.includes(section.id);
-
   return (
     <div className="nav-section">
-      <button
-        className={`nav-group-label ${isActiveSection ? 'active' : ''}`}
-        type="button"
-        onClick={() => toggleSection(section.id)}
-        title={isCollapsed ? section.label : undefined}
-        aria-expanded={isOpen}
-      >
-        <span className="nav-group-text">{section.label}</span>
-        <span className="nav-group-chevron"><SidebarIcon name="chevron" /></span>
-      </button>
-      <div className={`nav-section-items ${isOpen ? 'open' : ''}`}>
+      <div className="nav-section-items open" style={{ maxHeight: 'none', opacity: 1, visibility: 'visible', paddingBottom: '4px' }}>
         {section.children.map((item) => (
           <NavItem
             key={item.id}
@@ -225,6 +210,19 @@ const SidebarSection = memo(function SidebarSection({
 });
 
 export default function Sidebar({ currentPage, setCurrentPage, user, onLogout }) {
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+  
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const {
     closeMobileSidebar,
     handleMouseEnter,
@@ -245,27 +243,6 @@ export default function Sidebar({ currentPage, setCurrentPage, user, onLogout })
     : 'staff';
 
   const menu = useMemo(() => filterMenuForUser(sidebarMenu, user), [user]);
-  const activeSectionIds = useMemo(() => (
-    menu
-      .filter((section) => section.children.some((item) => item.id === currentPage))
-      .map((section) => section.id)
-  ), [currentPage, menu]);
-  const [closedSectionIds, setClosedSectionIds] = useState([]);
-
-  const openSectionIds = useMemo(() => (
-    menu
-      .map((section) => section.id)
-      .filter((sectionId) => !closedSectionIds.includes(sectionId) || activeSectionIds.includes(sectionId))
-  ), [activeSectionIds, closedSectionIds, menu]);
-
-  const toggleSection = useCallback((sectionId) => {
-    setClosedSectionIds((current) => (
-      current.includes(sectionId)
-        ? current.filter((id) => id !== sectionId)
-        : [...current, sectionId]
-    ));
-  }, []);
-
   const handleNavigate = useCallback((pageId) => {
     setCurrentPage(pageId);
     if (isMobile) {
@@ -308,7 +285,7 @@ export default function Sidebar({ currentPage, setCurrentPage, user, onLogout })
           <div className="brand-icon">
             <img src="/logo.svg" alt="Sri Nikil logo" />
           </div>
-          <div className="brand-copy">
+          <div className="brand-copy" style={{ display: 'none' }}>
             <span className="shop-name">Sri Nikil</span>
             <span className="brand-subtitle">Tradings</span>
           </div>
@@ -323,7 +300,7 @@ export default function Sidebar({ currentPage, setCurrentPage, user, onLogout })
               <SidebarIcon name="pin" />
             </button>
           )}
-          <div className="sidebar-status">
+          <div className="sidebar-status" style={{ display: 'none' }}>
             <div className="user-role">{role.toUpperCase()}</div>
           </div>
         </div>
@@ -335,17 +312,37 @@ export default function Sidebar({ currentPage, setCurrentPage, user, onLogout })
               currentPage={currentPage}
               isCollapsed={isCollapsed}
               onNavigate={handleNavigate}
-              openSectionIds={openSectionIds}
               section={section}
-              toggleSection={toggleSection}
             />
           ))}
         </nav>
 
-        <div className="sidebar-footer">
-          <button className="btn btn-secondary btn-full btn-sm sidebar-logout" onClick={handleLogout}>
-            <span className="logout-label">Logout</span>
+        <div className="sidebar-footer" ref={dropdownRef}>
+          <button className="sidebar-user-btn" onClick={() => setDropdownOpen(!dropdownOpen)}>
+            <div className="sidebar-avatar">
+              {user?.user ? user.user.charAt(0).toUpperCase() : 'U'}
+            </div>
+            <div className="sidebar-user-info">
+              <span className="sidebar-username">{user?.user || 'User'}</span>
+              <span className="sidebar-userrole">{role.toLowerCase() === 'admin' ? 'Full Access' : role}</span>
+            </div>
+            <svg className="sidebar-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
           </button>
+
+          {dropdownOpen && (
+            <div className="sidebar-dropdown-menu">
+              <button className="sidebar-logout-action" onClick={handleLogout}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '18px', height: '18px', color: '#ff8a8a', opacity: 0.9 }}>
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                  <polyline points="16 17 21 12 16 7"></polyline>
+                  <line x1="21" y1="12" x2="9" y2="12"></line>
+                </svg>
+                <span>Logout</span>
+              </button>
+            </div>
+          )}
         </div>
       </aside>
     </>

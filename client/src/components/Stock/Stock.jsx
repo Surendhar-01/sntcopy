@@ -66,17 +66,26 @@ export default function Stock({ db, erp, user }) {
   };
 
   return (
+    <>
+      <div className="page-header">
+        <h1 className="page-title">Stock & Inventory</h1>
+        <p className="page-description">Monitor product availability, sold units, and manage refills.</p>
+      </div>
     <div className="stock-page">
       <div className="card mb-4 stock-card">
-        <div className="section-title">Stock Management</div>
-        <div className="table-wrap">
-          <table>
+        <div className="stock-header mb-3">
+          <div className="section-title stock-title">Stock Management</div>
+        </div>
+        <div className="table-wrap" style={{ maxHeight: '560px', overflowY: 'auto' }}>
+          <table className="data-table">
             <thead>
               <tr>
-                <th>Product</th>
+                <th style={{width: '10%'}}>ID</th>
+                <th style={{width: '20%'}}>Product</th>
                 <th>Opening Stock</th>
                 <th>Sold</th>
                 <th>Current Stock</th>
+                <th>Stock Value</th>
                 <th>Status</th>
                 <th>Action</th>
               </tr>
@@ -84,17 +93,19 @@ export default function Stock({ db, erp, user }) {
             <tbody>
               {db.products.map((product) => (
                 <tr key={product.id}>
+                  <td className="text-muted text-xs">{product.code || product.id}</td>
                   <td><b>{product.name}</b></td>
-                  <td>{product.stock + (product.sold || 0)}</td>
+                  <td>{product.opening_stock ?? (product.stock + (product.sold || 0))}</td>
                   <td className="text-red">{product.sold || 0}</td>
                   <td className="fw-bold">{product.stock}</td>
+                  <td className="text-accent fw-bold">Rs {(product.price * product.stock).toFixed(2)}</td>
                   <td>
                     {product.stock <= 5
                       ? <span className="badge badge-red">Refill Due</span>
                       : <span className="badge badge-green">Healthy</span>}
                   </td>
                   <td>
-                    <button className="btn btn-sm btn-secondary" onClick={() => setRefillProduct(product.name)}>Refill</button>
+                    <button className="btn btn-sm btn-action" onClick={() => setRefillProduct(product.name)}>Refill</button>
                   </td>
                 </tr>
               ))}
@@ -104,19 +115,20 @@ export default function Stock({ db, erp, user }) {
       </div>
 
       <div className="card stock-card">
-        <div className="flex justify-between items-center mb-3 stock-history-header">
-          <div className="section-title stock-inline-title">Refill History</div>
+        <div className="flex justify-between items-center mb-3 stock-header">
+          <div className="section-title stock-title">Refill History</div>
           <button
-            className="btn btn-danger btn-sm"
+            className="btn btn-clear-outline btn-sm"
             type="button"
             onClick={() => setShowClearConfirm(true)}
             disabled={!db.refills.length || isClearing}
           >
-            {isClearing ? 'Clearing...' : 'Clear All'}
+            <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" strokeWidth="2" fill="none" style={{ marginTop: '-1px' }}><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            {isClearing ? 'Clearing...' : 'Clear'}
           </button>
         </div>
-        <div className="table-wrap">
-          <table>
+        <div className="table-wrap" style={{ maxHeight: '560px', overflowY: 'auto' }}>
+          <table className="data-table">
             <thead>
               <tr>
                 <th>Date</th>
@@ -202,5 +214,6 @@ export default function Stock({ db, erp, user }) {
       />
 
     </div>
+    </>
   );
 }

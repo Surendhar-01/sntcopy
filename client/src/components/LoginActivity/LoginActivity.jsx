@@ -85,18 +85,25 @@ export default function LoginActivity({ db, erp, user }) {
   };
 
   return (
-    <div className="card login-activity-page">
-      <div className="flex items-center justify-between gap-3 mb-3 login-activity-header">
-        <div className="section-title login-activity-title">Login Activity</div>
-        <button
-          className="btn btn-danger btn-sm"
-          type="button"
-          onClick={() => setShowClearConfirm(true)}
-          disabled={!loginLogs.length || isClearing}
-        >
-          {isClearing ? 'Clearing...' : clearLabel}
-        </button>
+    <>
+      <div className="page-header">
+        <h1 className="page-title">Login Activity</h1>
+        <p className="page-description">Monitor staff access, session duration, and recent login events.</p>
       </div>
+
+      <div className="card login-activity-page">
+        <div className="flex justify-between items-center mb-4">
+          <div className="section-title" style={{ marginBottom: 0 }}>Recent Logins</div>
+          <button
+            className="btn btn-clear-outline btn-sm"
+            type="button"
+            onClick={() => setShowClearConfirm(true)}
+            disabled={!loginLogs.length || isClearing}
+          >
+            <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" strokeWidth="2" fill="none" style={{ marginTop: '-1px' }}><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            {isClearing ? 'Clearing...' : clearLabel}
+          </button>
+        </div>
 
       {loginLogs.length === 0 ? (
         <div className="empty-state login-activity-empty">
@@ -105,7 +112,7 @@ export default function LoginActivity({ db, erp, user }) {
         </div>
       ) : (
         <div className="table-wrap login-activity-table-wrap">
-          <table>
+          <table className="data-table">
             <thead>
               <tr><th>User</th><th>Role</th><th>Login</th><th>Logout</th><th>Duration</th><th>Status</th><th>Action</th></tr>
             </thead>
@@ -151,5 +158,6 @@ export default function LoginActivity({ db, erp, user }) {
         onClose={() => setShowClearConfirm(false)}
       />
     </div>
+    </>
   );
 }

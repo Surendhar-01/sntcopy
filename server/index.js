@@ -13,6 +13,7 @@ const express = require('express');
 const mysql = require('mysql2/promise');
 const cors = require('cors');
 const nodemailer = require('nodemailer');
+const { generateShiftExcelReport } = require('./utils/excelReportGenerator');
 
 const app = express();
 const port = process.env.PORT || 5001;
@@ -104,18 +105,9 @@ function toMysqlDateTime(value) {
   return parsed.toLocaleString('sv').replace('T', ' ').slice(0, 19);
 }
 
-function formatCurrency(value) {
-  return `Rs ${Number(value || 0).toFixed(2)}`;
-}
 
-function escapeHtml(value) {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
+
+
 
 function parseItems(rawItems) {
   if (Array.isArray(rawItems)) {
@@ -134,19 +126,7 @@ function parseItems(rawItems) {
   return [];
 }
 
-function buildCsv(headers, rows) {
-  const escapeCsvValue = (value) => {
-    const normalized = value == null ? '' : String(value);
-    if (/[",\n]/.test(normalized)) {
-      return `"${normalized.replace(/"/g, '""')}"`;
-    }
-    return normalized;
-  };
 
-  return [headers, ...rows]
-    .map((row) => row.map(escapeCsvValue).join(','))
-    .join('\n');
-}
 
 function getPaymentBreakdown(bills) {
   return bills.reduce((accumulator, bill) => {
@@ -189,124 +169,7 @@ function getRemainingStockSummary(productRows, soldByProductId, refillByProductN
   };
 }
 
-function buildShiftReportHtml({ report, shopName, recipientEmail }) {
-  const paymentRows = Object.entries(report.paymentBreakdown)
-    .map(([method, amount]) => `
-      <tr>
-        <td style="padding:8px 10px;border:1px solid #d6dbe7;">${escapeHtml(method)}</td>
-        <td style="padding:8px 10px;border:1px solid #d6dbe7;text-align:right;">${escapeHtml(formatCurrency(amount))}</td>
-      </tr>
-    `)
-    .join('');
 
-  const stockRows = report.remainingStockSummary.products
-    .filter((product) => product.status !== 'Healthy' || product.soldInShift > 0)
-    .slice(0, 12)
-    .map((product) => `
-      <tr>
-        <td style="padding:8px 10px;border:1px solid #d6dbe7;">${escapeHtml(product.name)}</td>
-        <td style="padding:8px 10px;border:1px solid #d6dbe7;text-align:center;">${escapeHtml(product.soldInShift)}</td>
-        <td style="padding:8px 10px;border:1px solid #d6dbe7;text-align:center;">${escapeHtml(product.currentStock)}</td>
-        <td style="padding:8px 10px;border:1px solid #d6dbe7;text-align:center;">${escapeHtml(product.status)}</td>
-      </tr>
-    `)
-    .join('');
-
-  return `
-    <div style="font-family:Arial,sans-serif;background:#f5f7fb;padding:24px;color:#162033;">
-      <div style="max-width:860px;margin:0 auto;background:#ffffff;border:1px solid #dce3f0;border-radius:16px;overflow:hidden;">
-        <div style="padding:24px 28px;background:linear-gradient(135deg,#1d4ed8,#4f46e5);color:#ffffff;">
-          <div style="font-size:12px;letter-spacing:1.4px;text-transform:uppercase;opacity:0.88;">Shift Sales Report</div>
-          <h1 style="margin:8px 0 0;font-size:28px;">${escapeHtml(shopName)}</h1>
-          <p style="margin:8px 0 0;font-size:14px;opacity:0.92;">Automatically generated and emailed to ${escapeHtml(recipientEmail)}</p>
-        </div>
-        <div style="padding:24px 28px;">
-          <table style="width:100%;border-collapse:collapse;margin-bottom:20px;">
-            <tr>
-              <td style="padding:8px 0;"><strong>Staff</strong></td>
-              <td style="padding:8px 0;">${escapeHtml(report.user)}</td>
-              <td style="padding:8px 0;"><strong>Role</strong></td>
-              <td style="padding:8px 0;">${escapeHtml(report.role)}</td>
-            </tr>
-            <tr>
-              <td style="padding:8px 0;"><strong>Shift Start</strong></td>
-              <td style="padding:8px 0;">${escapeHtml(report.shiftStartDisplay)}</td>
-              <td style="padding:8px 0;"><strong>Shift End</strong></td>
-              <td style="padding:8px 0;">${escapeHtml(report.shiftEndDisplay)}</td>
-            </tr>
-          </table>
-
-          <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:24px;">
-            <div style="padding:14px;border:1px solid #dce3f0;border-radius:12px;background:#f8fbff;">
-              <div style="font-size:12px;color:#64748b;">Bills</div>
-              <div style="font-size:22px;font-weight:700;">${escapeHtml(report.billsCount)}</div>
-            </div>
-            <div style="padding:14px;border:1px solid #dce3f0;border-radius:12px;background:#f8fbff;">
-              <div style="font-size:12px;color:#64748b;">Items Sold</div>
-              <div style="font-size:22px;font-weight:700;">${escapeHtml(report.totalItemsSold)}</div>
-            </div>
-            <div style="padding:14px;border:1px solid #dce3f0;border-radius:12px;background:#f8fbff;">
-              <div style="font-size:12px;color:#64748b;">Total Sales</div>
-              <div style="font-size:22px;font-weight:700;">${escapeHtml(formatCurrency(report.totalSalesAmount))}</div>
-            </div>
-            <div style="padding:14px;border:1px solid #dce3f0;border-radius:12px;background:#f8fbff;">
-              <div style="font-size:12px;color:#64748b;">Low / Out</div>
-              <div style="font-size:22px;font-weight:700;">${escapeHtml(`${report.remainingStockSummary.totals.lowStockCount} / ${report.remainingStockSummary.totals.outOfStockCount}`)}</div>
-            </div>
-          </div>
-
-          <h2 style="font-size:18px;margin:0 0 10px;">Payment Breakdown</h2>
-          <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
-            <thead>
-              <tr style="background:#eef2ff;">
-                <th style="padding:10px;border:1px solid #d6dbe7;text-align:left;">Mode</th>
-                <th style="padding:10px;border:1px solid #d6dbe7;text-align:right;">Amount</th>
-              </tr>
-            </thead>
-            <tbody>${paymentRows || '<tr><td colspan="2" style="padding:10px;border:1px solid #d6dbe7;">No payments recorded in this shift.</td></tr>'}</tbody>
-          </table>
-
-          <h2 style="font-size:18px;margin:0 0 10px;">Remaining Stock Summary</h2>
-          <table style="width:100%;border-collapse:collapse;">
-            <thead>
-              <tr style="background:#eef2ff;">
-                <th style="padding:10px;border:1px solid #d6dbe7;text-align:left;">Product</th>
-                <th style="padding:10px;border:1px solid #d6dbe7;text-align:center;">Sold</th>
-                <th style="padding:10px;border:1px solid #d6dbe7;text-align:center;">Stock Left</th>
-                <th style="padding:10px;border:1px solid #d6dbe7;text-align:center;">Status</th>
-              </tr>
-            </thead>
-            <tbody>${stockRows || '<tr><td colspan="4" style="padding:10px;border:1px solid #d6dbe7;">All tracked products are healthy for this shift.</td></tr>'}</tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-function buildShiftReportText(report) {
-  const payments = Object.entries(report.paymentBreakdown)
-    .map(([method, amount]) => `${method}: ${formatCurrency(amount)}`)
-    .join('\n');
-
-  return [
-    `Shift Sales Report - ${report.user}`,
-    `Role: ${report.role}`,
-    `Shift Start: ${report.shiftStartDisplay}`,
-    `Shift End: ${report.shiftEndDisplay}`,
-    `Bills Count: ${report.billsCount}`,
-    `Total Items Sold: ${report.totalItemsSold}`,
-    `Total Sales Amount: ${formatCurrency(report.totalSalesAmount)}`,
-    '',
-    'Payment Breakdown:',
-    payments || 'No payments recorded',
-    '',
-    'Remaining Stock Summary:',
-    `Healthy: ${report.remainingStockSummary.totals.healthyCount}`,
-    `Low Stock: ${report.remainingStockSummary.totals.lowStockCount}`,
-    `Out of Stock: ${report.remainingStockSummary.totals.outOfStockCount}`
-  ].join('\n');
-}
 
 function getSmtpConfig() {
   refreshRuntimeMailEnv();
@@ -1488,40 +1351,7 @@ app.post('/api/shifts/end', async (req, res) => {
 
     const remainingStockSummary = getRemainingStockSummary(productRows, soldByProductId, refillByProductName);
 
-    const stockCsv = buildCsv(
-      ['Product', 'Category', 'Unit', 'Price', 'Estimated Opening Stock', 'Sold In Shift', 'Refilled In Shift', 'Current Stock', 'Status'],
-      remainingStockSummary.products.map((product) => [
-        product.name,
-        product.category,
-        product.unit,
-        product.price.toFixed(2),
-        product.estimatedOpeningStock,
-        product.soldInShift,
-        product.refilledInShift,
-        product.currentStock,
-        product.status
-      ])
-    );
 
-    const salesCsv = buildCsv(
-      ['Bill No', 'Date', 'Customer', 'Phone', 'Payment', 'Items', 'Subtotal', 'CGST', 'SGST', 'Grand Total', 'Issued By'],
-      billRows.map((bill) => {
-        const items = parseItems(bill.items);
-        return [
-          bill.billNo,
-          new Date(bill.date).toLocaleString(),
-          bill.customer || '',
-          bill.phone || '',
-          bill.payment || '',
-          Array.isArray(items) ? items.length : 0,
-          Number(bill.subtotal || 0).toFixed(2),
-          Number(bill.cgst || 0).toFixed(2),
-          Number(bill.sgst || 0).toFixed(2),
-          Number(bill.grand || 0).toFixed(2),
-          bill.by_user || shiftUser
-        ];
-      })
-    );
 
     const totalShiftSales = billRows.reduce((sum, bill) => sum + Number(bill.grand || 0), 0);
     const paymentBreakdown = getPaymentBreakdown(billRows);
@@ -1539,10 +1369,11 @@ app.post('/api/shifts/end', async (req, res) => {
       remainingStockSummary
     };
 
-    const subject = `Shift Sales Report | ${shopName} | ${shiftUser} | ${shiftEnd.toLocaleDateString('en-GB')}`;
-    const html = buildShiftReportHtml({ report, shopName, recipientEmail });
-    const text = buildShiftReportText(report);
-    const reportFileSuffix = shiftEnd.toISOString().slice(0, 19).replace(/[:T]/g, '-');
+    const friendlyDate = shiftEnd.toLocaleDateString('en-GB');
+    const subject = `Shift Report \u2013 ${shopName} \u2013 ${friendlyDate}`;
+    
+    const text = `Hello,\n\nPlease find the attached Shift Report for the completed shift.\n\nRegards,\n${shopName}`;
+
 
     let emailStatus = 'skipped';
     let emailError = null;
@@ -1551,23 +1382,18 @@ app.post('/api/shifts/end', async (req, res) => {
     // Trigger email ONLY if admin is ending shift
     if (normalizedRole === 'admin') {
       try {
+        const excelBuffer = await generateShiftExcelReport(report, billRows, remainingStockSummary);
+        
         await sendShiftReportEmail({
           recipient: recipientEmail,
           subject,
           text,
-          html,
+          html: '', // No HTML requested
           attachments: [
             {
-              filename: `shift_report_${shiftUser}_${reportFileSuffix}.html`,
-              content: html
-            },
-            {
-              filename: `sales_shift_${shiftUser}_${reportFileSuffix}.csv`,
-              content: salesCsv
-            },
-            {
-              filename: `stock_shift_${shiftUser}_${reportFileSuffix}.csv`,
-              content: stockCsv
+              filename: `Shift_Report_${shopName.replace(/\s+/g, '_')}_${friendlyDate.replace(/\//g, '-')}.xlsx`,
+              content: excelBuffer,
+              contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
             }
           ]
         });

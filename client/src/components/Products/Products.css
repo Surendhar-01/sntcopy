@@ -1,9 +1,9 @@
 .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
-.flipkart-card { background: var(--card); border-radius: 20px; overflow: hidden; position: relative; transition: box-shadow 0.2s, transform 0.2s; border: 1px solid var(--border); box-shadow: 0 2px 8px rgba(0,0,0,0.06); display: flex; flex-direction: column; }
+.flipkart-card { background: var(--card); border-radius: 0px; overflow: hidden; position: relative; transition: box-shadow 0.2s, transform 0.2s; border: 1px solid var(--border); box-shadow: 0 2px 8px rgba(0,0,0,0.06); display: flex; flex-direction: column; }
 .flipkart-card:hover { box-shadow: 0 8px 20px rgba(0,0,0,0.12); transform: translateY(-2px); cursor: pointer; }
 .fc-image-box { height: 160px; background: var(--bg3); display: flex; align-items: center; justify-content: center; position: relative; padding: 20px; }
 .fc-category-icon { font-size: 4rem; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1)); }
-.fc-badge { position: absolute; top: 10px; left: 10px; font-size: 0.7rem; padding: 3px 8px; border-radius: 6px; font-weight: 600; color: #fff; z-index: 10; }
+.fc-badge { position: absolute; top: 10px; left: 10px; font-size: 0.7rem; padding: 3px 8px; border-radius: 0px; font-weight: 600; color: #fff; z-index: 10; }
 .fc-badge.orange { background: #f97316; }
 .fc-badge.red { background: #ef4444; }
 .fc-details { padding: 14px; display: flex; flex-direction: column; flex: 1; }
@@ -14,7 +14,7 @@
 .fc-mrp { font-size: 0.8rem; color: var(--text2); text-decoration: line-through; }
 .fc-discount { font-size: 0.8rem; color: var(--green); font-weight: 600; }
 .fc-meta { display: flex; justify-content: space-between; margin-bottom: 12px; }
-.fc-delete-btn { margin-top: auto; padding: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--red); font-weight: 600; font-size: 0.85rem; cursor: pointer; border-radius: 8px; transition: background 0.2s; }
+.fc-delete-btn { margin-top: auto; padding: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--red); font-weight: 600; font-size: 0.85rem; cursor: pointer; border-radius: 0px; transition: background 0.2s; }
 .fc-delete-btn:hover { background: var(--surface-hover); border-color: var(--accent); }
 
 .product-catalog-controls {
@@ -25,7 +25,7 @@
 
 .search-box input {
   padding: 10px 18px;
-  border-radius: 12px;
+  border-radius: 0px;
   border: 1px solid var(--border);
   background: var(--input-bg);
   font-size: 0.95rem;
@@ -38,12 +38,11 @@
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.15), 0 2px 4px rgba(0,0,0,0.02) inset;
-  width: 340px;
 }
 
 .sort-select {
   padding: 10px 16px;
-  border-radius: 12px;
+  border-radius: 0px;
   border: 1px solid var(--border);
   background: var(--input-bg);
   font-size: 0.95rem;
@@ -96,5 +95,37 @@
   .product-catalog-controls .sort-select {
     min-width: 0 !important;
     width: 100% !important;
+  }
+
+  .product-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  
+  .fc-image-box {
+    height: 120px;
+    padding: 10px;
+  }
+  
+  .fc-category-icon {
+    font-size: 2.5rem;
+  }
+  
+  .fc-details {
+    padding: 10px;
+  }
+  
+  .fc-title {
+    font-size: 0.8rem;
+    min-height: 32px;
+  }
+  
+  .fc-price {
+    font-size: 1.05rem;
+  }
+  
+  .fc-delete-btn {
+    padding: 6px;
+    font-size: 0.75rem;
   }
 }

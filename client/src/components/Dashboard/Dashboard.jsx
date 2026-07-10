@@ -12,7 +12,7 @@ import {
   Legend,
   Filler
 } from 'chart.js';
-import { Line, Bar } from 'react-chartjs-2';
+import { Line, Bar, Pie } from 'react-chartjs-2';
 import './Dashboard.css';
 import { hasAdminAccess } from '../../utils/roles';
 
@@ -193,8 +193,6 @@ export default function Dashboard({ db, user }) {
   const {
     todayBills,
     weeklyBills,
-    monthlyBills,
-    yearlyBills,
     todaySales,
     weeklyRevenue,
     monthlyRevenue,
@@ -211,10 +209,11 @@ export default function Dashboard({ db, user }) {
       {
         label: 'Sales (\u20B9)',
         data: [12000, 15000, 8000, 19000, 22000, 17000, todaySales],
-        borderColor: '#f97316',
-        backgroundColor: 'rgba(249, 115, 22, 0.1)',
+        borderColor: '#6ee7b7',
+        backgroundColor: 'rgba(110, 231, 183, 0.1)',
         fill: true,
-        tension: 0.4
+        tension: 0.4,
+        pointBackgroundColor: '#6ee7b7'
       }
     ]
   }), [todaySales]);
@@ -230,9 +229,25 @@ export default function Dashboard({ db, user }) {
     ]
   }), [topSellingProducts]);
 
+  const sharedAnimationConfig = useMemo(() => ({
+    duration: 1600,
+    easing: 'easeOutQuart',
+    delay: (context) => {
+      if (context.type === 'data' && context.mode === 'default') {
+        return context.dataIndex * 100;
+      }
+      return 0;
+    }
+  }), []);
+
+
   return (
     <div>
-      <div className={`grid ${canManageAdminPages ? 'grid-4' : 'grid-3'} mb-4`}>
+      <div className="page-header">
+        <h1 className="page-title">Dashboard</h1>
+        <p className="page-description">Overview of your business metrics and performance.</p>
+      </div>
+      <div className={`grid dashboard-cards-grid ${canManageAdminPages ? 'grid-4' : 'grid-3'} mb-4`}>
         <div className="stat-card dashboard-summary-card orange" onClick={() => setShowTodaySalesPopup(true)} style={{ cursor: 'pointer' }}>
           <div className="stat-label">Today Sales</div>
           <div className="stat-value">{formatCurrency(todaySales)}</div>
@@ -262,7 +277,7 @@ export default function Dashboard({ db, user }) {
       </div>
 
       {!canManageAdminPages && (
-        <div className="grid grid-2 mb-4">
+        <div className="grid dashboard-cards-grid grid-2 mb-4">
           <div className="stat-card dashboard-summary-card red" onClick={() => setShowLowStockPopup(true)} style={{ cursor: 'pointer' }}>
             <div className="stat-label">Low Stock Items</div>
             <div className="stat-value">{lowStock.length}</div>
@@ -279,7 +294,7 @@ export default function Dashboard({ db, user }) {
       )}
 
       {isAdmin ? (
-        <div className="grid grid-4 mb-4">
+        <div className="grid dashboard-cards-grid grid-4 mb-4">
           <div className="stat-card dashboard-summary-card purple">
             <div className="stat-label">Weekly Revenue</div>
             <div className="stat-value">{formatCurrency(weeklyRevenue)}</div>
@@ -309,23 +324,65 @@ export default function Dashboard({ db, user }) {
 
       <div
         className="grid mb-4"
-        style={{ gridTemplateColumns: showSalesTrend ? 'repeat(2, 1fr)' : '1fr' }}
+        style={{ gridTemplateColumns: (showSalesTrend || isManager) ? 'repeat(2, 1fr)' : '1fr' }}
       >
         {showSalesTrend ? (
           <div className="card">
-            <div className="section-title">Sales Trend</div>
+            <div className="section-title">Online Trend</div>
             <div className="chart-wrap" style={{ height: '220px' }}>
-              <Line data={salesTrendData} options={{ maintainAspectRatio: false, plugins: { legend: { display: false } } }} />
+              <Line data={salesTrendData} options={{ maintainAspectRatio: false, animation: sharedAnimationConfig, plugins: { legend: { display: false } } }} />
+            </div>
+          </div>
+        ) : isManager ? (
+          <div className="card">
+            <div className="section-title">Product Share</div>
+            <div className="chart-wrap" style={{ height: '220px' }}>
+              {topSellingProducts.length > 0 ? (
+                <Pie 
+                  data={topProductsData} 
+                  options={{ 
+                    maintainAspectRatio: false, 
+                    animation: sharedAnimationConfig,
+                    plugins: { 
+                      legend: { position: 'right', labels: { color: 'inherit' } } 
+                    } 
+                  }} 
+                />
+              ) : (
+                <div className="empty-state">No sold products yet</div>
+              )}
             </div>
           </div>
         ) : null}
         <div className="card">
-          <div className="section-title">Top Products</div>
-          <div className="chart-wrap" style={{ height: '220px' }}>
-            {topSellingProducts.length > 0 ? (
-              <Bar data={topProductsData} options={{ maintainAspectRatio: false, plugins: { legend: { display: false } } }} />
-            ) : (
-              <div className="empty-state">No sold products yet</div>
+          <div className="section-title">Top Product Trend</div>
+          <div className="top-performers-list" style={{ minHeight: '220px', display: 'flex', flexDirection: 'column', gap: '20px', paddingTop: '12px' }}>
+            {topSellingProducts.slice(0, 5).map((product, index) => {
+              const maxSold = topSellingProducts[0]?.sold || 1;
+              const percentage = Math.round((product.sold / maxSold) * 100);
+              
+              return (
+                <div key={product.id || index} className="performer-item" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                  <div className="performer-rank" style={{ width: '30px', height: '30px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '600', fontSize: '0.85rem', color: '#fff', flexShrink: 0 }}>
+                    {index + 1}
+                  </div>
+                  <div className="performer-details" style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.85rem', fontWeight: '600', color: '#f8fafc' }}>
+                      <span style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>{getProductLabel(product)}</span>
+                      <span style={{ color: '#6ee7b7' }}>
+                        <span style={{ color: 'rgba(255,255,255,0.5)', marginRight: '12px', fontSize: '0.8rem' }}>{product.sold}/{maxSold}</span>
+                        {percentage}%
+                      </span>
+                    </div>
+                    <div className="progress-bg" style={{ height: '4px', background: 'rgba(255,255,255,0.1)', borderRadius: '2px', overflow: 'hidden' }}>
+                      <div className="progress-fill" style={{ height: '100%', background: '#6ee7b7', width: `${percentage}%`, borderRadius: '2px', transition: 'width 1s ease-out' }}></div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+            {topSellingProducts.length === 0 && (
+              <div className="empty-state" style={{ margin: 'auto' }}>No sold products yet</div>
             )}
           </div>
         </div>
@@ -334,8 +391,8 @@ export default function Dashboard({ db, user }) {
       {canManageAdminPages && (
         <div className="card">
           <div className="section-title">Recent Transactions</div>
-          <div className="table-wrap">
-            <table>
+          <div className="table-wrap" style={{ border: 'none', background: 'transparent' }}>
+            <table className="data-table">
               <thead>
                 <tr>
                   <th>Bill No</th>
@@ -374,7 +431,7 @@ export default function Dashboard({ db, user }) {
               <button className="modal-close" onClick={() => setShowLowStockPopup(false)}>✕</button>
             </div>
             <div className="table-wrap" style={{ maxHeight: '300px', overflowY: 'auto' }}>
-              <table>
+              <table className="data-table">
                 <thead>
                   <tr>
                     <th>Code</th>
@@ -413,7 +470,7 @@ export default function Dashboard({ db, user }) {
               <button className="modal-close" onClick={() => setShowTodaySalesPopup(false)}>✕</button>
             </div>
             <div className="table-wrap" style={{ maxHeight: '300px', overflowY: 'auto' }}>
-              <table>
+              <table className="data-table">
                 <thead>
                   <tr>
                     <th>Bill No</th>
