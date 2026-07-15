@@ -3,7 +3,7 @@
 -- 2026-07-08T09:48:23.006Z
 
 CREATE DATABASE IF NOT EXISTS `sridb`;
-USE `sridb`;
+USE `defaultdb`;
 
 SET FOREIGN_KEY_CHECKS=0;
 
@@ -67,41 +67,43 @@ CREATE TABLE `products` (
 ) ENGINE=InnoDB AUTO_INCREMENT=35 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- Data for products
-INSERT INTO `products` (`id`, `name`, `code`, `cat`, `unit`, `price`, `stock`, `sold`, `image`, `created_at`) VALUES (1, 'Groundnut Oil (Refined) 15kg Tin', 'GNR-15K', 'Groundnut', 'tins', '2920.00', 19, 1, NULL, '2026-05-01 14:09:55');
-INSERT INTO `products` (`id`, `name`, `code`, `cat`, `unit`, `price`, `stock`, `sold`, `image`, `created_at`) VALUES (2, 'Groundnut Oil (Refined) 5L Can', 'GNR-05C', 'Groundnut', 'cans', '930.00', 10, 0, NULL, '2026-05-01 14:09:55');
-INSERT INTO `products` (`id`, `name`, `code`, `cat`, `unit`, `price`, `stock`, `sold`, `image`, `created_at`) VALUES (3, 'Groundnut Oil (Refined) 2L Can', 'GNR-02C', 'Groundnut', 'cans', '383.00', 15, 0, NULL, '2026-05-01 14:09:55');
-INSERT INTO `products` (`id`, `name`, `code`, `cat`, `unit`, `price`, `stock`, `sold`, `image`, `created_at`) VALUES (4, 'Groundnut Oil (Refined) 1L Bottle', 'GNR-01B', 'Groundnut', 'bottles', '188.00', 30, 0, NULL, '2026-05-01 14:09:55');
-INSERT INTO `products` (`id`, `name`, `code`, `cat`, `unit`, `price`, `stock`, `sold`, `image`, `created_at`) VALUES (5, 'Groundnut Oil (Refined) 1L Packet', 'GNR-01P', 'Groundnut', 'pkts', '184.00', 50, 0, NULL, '2026-05-01 14:09:55');
-INSERT INTO `products` (`id`, `name`, `code`, `cat`, `unit`, `price`, `stock`, `sold`, `image`, `created_at`) VALUES (6, 'Groundnut Oil (Refined) 1/2L Packet', 'GNR-HFP', 'Groundnut', 'pkts', '92.00', 15, 0, NULL, '2026-05-01 14:09:55');
-INSERT INTO `products` (`id`, `name`, `code`, `cat`, `unit`, `price`, `stock`, `sold`, `image`, `created_at`) VALUES (7, 'Groundnut Oil (Pure) 15kg Tin', 'GNP-15K', 'Groundnut', 'tins', '3000.00', 10, 1, NULL, '2026-05-01 14:09:55');
-INSERT INTO `products` (`id`, `name`, `code`, `cat`, `unit`, `price`, `stock`, `sold`, `image`, `created_at`) VALUES (8, 'Groundnut Oil (Pure) 5L Can', 'GNP-05C', 'Groundnut', 'cans', '955.00', 10, 0, NULL, '2026-05-01 14:09:55');
-INSERT INTO `products` (`id`, `name`, `code`, `cat`, `unit`, `price`, `stock`, `sold`, `image`, `created_at`) VALUES (9, 'Groundnut Oil (Pure) 1L Packet', 'GNP-01P', 'Groundnut', 'pkts', '193.00', 40, 0, NULL, '2026-05-01 14:09:55');
-INSERT INTO `products` (`id`, `name`, `code`, `cat`, `unit`, `price`, `stock`, `sold`, `image`, `created_at`) VALUES (10, 'Sunflower Oil (Refined) 15kg Tin', 'SFR-15K', 'Sunflower', 'tins', '2950.00', 15, 0, NULL, '2026-05-01 14:09:55');
-INSERT INTO `products` (`id`, `name`, `code`, `cat`, `unit`, `price`, `stock`, `sold`, `image`, `created_at`) VALUES (11, 'Sunflower Oil (Refined) 5L Can', 'SFR-05C', 'Sunflower', 'cans', '940.00', 15, 0, NULL, '2026-05-01 14:09:55');
-INSERT INTO `products` (`id`, `name`, `code`, `cat`, `unit`, `price`, `stock`, `sold`, `image`, `created_at`) VALUES (12, 'Sunflower Oil (Refined) 1L Packet', 'SFR-01P', 'Sunflower', 'pkts', '186.00', 85, 2, NULL, '2026-05-01 14:09:55');
-INSERT INTO `products` (`id`, `name`, `code`, `cat`, `unit`, `price`, `stock`, `sold`, `image`, `created_at`) VALUES (13, 'Palm Oil 15kg Tin', 'PAL-15K', 'Palm', 'tins', '2445.00', 24, 0, NULL, '2026-05-01 14:09:55');
-INSERT INTO `products` (`id`, `name`, `code`, `cat`, `unit`, `price`, `stock`, `sold`, `image`, `created_at`) VALUES (14, 'Palm Oil 5L Can', 'PAL-05C', 'Palm', 'cans', '780.00', 20, 0, NULL, '2026-05-01 14:09:55');
-INSERT INTO `products` (`id`, `name`, `code`, `cat`, `unit`, `price`, `stock`, `sold`, `image`, `created_at`) VALUES (15, 'Palm Oil 1L Packet', 'PAL-01P', 'Palm', 'pkts', '154.00', 60, 0, NULL, '2026-05-01 14:09:55');
-INSERT INTO `products` (`id`, `name`, `code`, `cat`, `unit`, `price`, `stock`, `sold`, `image`, `created_at`) VALUES (16, 'Vanaspati 15kg Tin', 'VAN-15K', 'Vanaspati', 'tins', '2700.00', 10, 0, NULL, '2026-05-01 14:09:55');
-INSERT INTO `products` (`id`, `name`, `code`, `cat`, `unit`, `price`, `stock`, `sold`, `image`, `created_at`) VALUES (17, 'Sesame Oil (Mayil) 1L Packet', 'SEM-01P', 'Sesame', 'pkts', '320.00', 20, 0, NULL, '2026-05-01 14:09:55');
-INSERT INTO `products` (`id`, `name`, `code`, `cat`, `unit`, `price`, `stock`, `sold`, `image`, `created_at`) VALUES (18, 'Sesame Oil (Mayil) 1/2L Packet', 'SEM-HFP', 'Sesame', 'pkts', '160.00', 25, 0, NULL, '2026-05-01 14:09:55');
-INSERT INTO `products` (`id`, `name`, `code`, `cat`, `unit`, `price`, `stock`, `sold`, `image`, `created_at`) VALUES (19, 'Sesame Oil (Mukil) 15kg Tin', 'SEU-15K', 'Sesame', 'tins', '4050.00', 10, 0, NULL, '2026-05-01 14:09:55');
-INSERT INTO `products` (`id`, `name`, `code`, `cat`, `unit`, `price`, `stock`, `sold`, `image`, `created_at`) VALUES (20, 'Sesame Oil (Karmegam Premium) 15kg Tin', 'SEK-15K', 'Sesame', 'tins', '4560.00', 15, 0, NULL, '2026-05-01 14:09:55');
-INSERT INTO `products` (`id`, `name`, `code`, `cat`, `unit`, `price`, `stock`, `sold`, `image`, `created_at`) VALUES (21, 'Sesame Oil (Karmegam) 5L Can', 'SEK-05C', 'Sesame', 'cans', '1575.00', 10, 0, NULL, '2026-05-01 14:09:55');
-INSERT INTO `products` (`id`, `name`, `code`, `cat`, `unit`, `price`, `stock`, `sold`, `image`, `created_at`) VALUES (22, 'Sesame Oil (Karmegam) 1L Bottle', 'SEK-01B', 'Sesame', 'bottles', '340.00', 15, 0, NULL, '2026-05-01 14:09:55');
-INSERT INTO `products` (`id`, `name`, `code`, `cat`, `unit`, `price`, `stock`, `sold`, `image`, `created_at`) VALUES (23, 'Sesame Oil (Karmegam) 1L Packet', 'SEK-01P', 'Sesame', 'pkts', '330.00', 30, 0, NULL, '2026-05-01 14:09:55');
-INSERT INTO `products` (`id`, `name`, `code`, `cat`, `unit`, `price`, `stock`, `sold`, `image`, `created_at`) VALUES (24, 'Sesame Oil (Karmegam) 1/2L Bottle', 'SEK-HFB', 'Sesame', 'bottles', '170.00', 20, 0, NULL, '2026-05-01 14:09:55');
-INSERT INTO `products` (`id`, `name`, `code`, `cat`, `unit`, `price`, `stock`, `sold`, `image`, `created_at`) VALUES (25, 'Sesame Oil (Karmegam) 1/2L Packet', 'SEK-HFP', 'Sesame', 'pkts', '165.00', 25, 0, NULL, '2026-05-01 14:09:55');
-INSERT INTO `products` (`id`, `name`, `code`, `cat`, `unit`, `price`, `stock`, `sold`, `image`, `created_at`) VALUES (26, 'Sesame Oil (Karmegam) 200ml Bottle', 'SEK-200B', 'Sesame', 'bottles', '70.00', 15, 0, NULL, '2026-05-01 14:09:55');
-INSERT INTO `products` (`id`, `name`, `code`, `cat`, `unit`, `price`, `stock`, `sold`, `image`, `created_at`) VALUES (27, 'Castor Oil 1L Bottle', 'CAS-01B', 'Castor', 'bottles', '220.00', 9, 1, NULL, '2026-05-01 14:09:55');
-INSERT INTO `products` (`id`, `name`, `code`, `cat`, `unit`, `price`, `stock`, `sold`, `image`, `created_at`) VALUES (28, 'Castor Oil 1/2L Bottle', 'CAS-HFB', 'Castor', 'bottles', '110.00', 9, 6, NULL, '2026-05-01 14:09:55');
-INSERT INTO `products` (`id`, `name`, `code`, `cat`, `unit`, `price`, `stock`, `sold`, `image`, `created_at`) VALUES (29, 'Coconut Oil 1L Packet', 'CON-01P', 'Coconut', 'pkts', '370.00', 30, 0, NULL, '2026-05-01 14:09:55');
-INSERT INTO `products` (`id`, `name`, `code`, `cat`, `unit`, `price`, `stock`, `sold`, `image`, `created_at`) VALUES (30, 'Coconut Oil 1L Bottle', 'CON-01B', 'Coconut', 'bottles', '370.00', 20, 0, NULL, '2026-05-01 14:09:55');
-INSERT INTO `products` (`id`, `name`, `code`, `cat`, `unit`, `price`, `stock`, `sold`, `image`, `created_at`) VALUES (31, 'Coconut Oil 1/2L Packet', 'CON-HFP', 'Coconut', 'pkts', '185.00', 25, 0, NULL, '2026-05-01 14:09:55');
-INSERT INTO `products` (`id`, `name`, `code`, `cat`, `unit`, `price`, `stock`, `sold`, `image`, `created_at`) VALUES (32, 'Coconut Oil 1/2L Bottle', 'CON-HFB', 'Coconut', 'bottles', '185.00', 20, 0, NULL, '2026-05-01 14:09:55');
-INSERT INTO `products` (`id`, `name`, `code`, `cat`, `unit`, `price`, `stock`, `sold`, `image`, `created_at`) VALUES (33, 'Coconut Oil 200g Bottle', 'CON-200B', 'Coconut', 'bottles', '100.00', 16, 0, NULL, '2026-05-01 14:09:55');
-INSERT INTO `products` (`id`, `name`, `code`, `cat`, `unit`, `price`, `stock`, `sold`, `image`, `created_at`) VALUES (34, 'Coconut Oil 100g Bottle', 'CON-100B', 'Coconut', 'bottles', '50.00', 20, 2, NULL, '2026-05-01 14:09:55');
-
+INSERT INTO `products`
+(`id`, `name`, `code`, `cat`, `unit`, `price`, `stock`, `sold`, `image`, `created_at`)
+VALUES
+(1, 'Groundnut Oil (Refined) 15kg Tin', 'GNR-15K', 'Groundnut', 'tins', '2920.00', 19, 1, NULL, '2026-05-01 14:09:55'),
+(2, 'Groundnut Oil (Refined) 5L Can', 'GNR-05C', 'Groundnut', 'cans', '930.00', 10, 0, NULL, '2026-05-01 14:09:55'),
+(3, 'Groundnut Oil (Refined) 2L Can', 'GNR-02C', 'Groundnut', 'cans', '383.00', 15, 0, NULL, '2026-05-01 14:09:55'),
+(4, 'Groundnut Oil (Refined) 1L Bottle', 'GNR-01B', 'Groundnut', 'bottles', '188.00', 30, 0, NULL, '2026-05-01 14:09:55'),
+(5, 'Groundnut Oil (Refined) 1L Packet', 'GNR-01P', 'Groundnut', 'pkts', '184.00', 50, 0, NULL, '2026-05-01 14:09:55'),
+(6, 'Groundnut Oil (Refined) 1/2L Packet', 'GNR-HFP', 'Groundnut', 'pkts', '92.00', 15, 0, NULL, '2026-05-01 14:09:55'),
+(7, 'Groundnut Oil (Pure) 15kg Tin', 'GNP-15K', 'Groundnut', 'tins', '3000.00', 10, 1, NULL, '2026-05-01 14:09:55'),
+(8, 'Groundnut Oil (Pure) 5L Can', 'GNP-05C', 'Groundnut', 'cans', '955.00', 10, 0, NULL, '2026-05-01 14:09:55'),
+(9, 'Groundnut Oil (Pure) 1L Packet', 'GNP-01P', 'Groundnut', 'pkts', '193.00', 40, 0, NULL, '2026-05-01 14:09:55'),
+(10, 'Sunflower Oil (Refined) 15kg Tin', 'SFR-15K', 'Sunflower', 'tins', '2950.00', 15, 0, NULL, '2026-05-01 14:09:55'),
+(11, 'Sunflower Oil (Refined) 5L Can', 'SFR-05C', 'Sunflower', 'cans', '940.00', 15, 0, NULL, '2026-05-01 14:09:55'),
+(12, 'Sunflower Oil (Refined) 1L Packet', 'SFR-01P', 'Sunflower', 'pkts', '186.00', 85, 2, NULL, '2026-05-01 14:09:55'),
+(13, 'Palm Oil 15kg Tin', 'PAL-15K', 'Palm', 'tins', '2445.00', 24, 0, NULL, '2026-05-01 14:09:55'),
+(14, 'Palm Oil 5L Can', 'PAL-05C', 'Palm', 'cans', '780.00', 20, 0, NULL, '2026-05-01 14:09:55'),
+(15, 'Palm Oil 1L Packet', 'PAL-01P', 'Palm', 'pkts', '154.00', 60, 0, NULL, '2026-05-01 14:09:55'),
+(16, 'Vanaspati 15kg Tin', 'VAN-15K', 'Vanaspati', 'tins', '2700.00', 10, 0, NULL, '2026-05-01 14:09:55'),
+(17, 'Sesame Oil (Mayil) 1L Packet', 'SEM-01P', 'Sesame', 'pkts', '320.00', 20, 0, NULL, '2026-05-01 14:09:55'),
+(18, 'Sesame Oil (Mayil) 1/2L Packet', 'SEM-HFP', 'Sesame', 'pkts', '160.00', 25, 0, NULL, '2026-05-01 14:09:55'),
+(19, 'Sesame Oil (Mukil) 15kg Tin', 'SEU-15K', 'Sesame', 'tins', '4050.00', 10, 0, NULL, '2026-05-01 14:09:55'),
+(20, 'Sesame Oil (Karmegam Premium) 15kg Tin', 'SEK-15K', 'Sesame', 'tins', '4560.00', 15, 0, NULL, '2026-05-01 14:09:55'),
+(21, 'Sesame Oil (Karmegam) 5L Can', 'SEK-05C', 'Sesame', 'cans', '1575.00', 10, 0, NULL, '2026-05-01 14:09:55'),
+(22, 'Sesame Oil (Karmegam) 1L Bottle', 'SEK-01B', 'Sesame', 'bottles', '340.00', 15, 0, NULL, '2026-05-01 14:09:55'),
+(23, 'Sesame Oil (Karmegam) 1L Packet', 'SEK-01P', 'Sesame', 'pkts', '330.00', 30, 0, NULL, '2026-05-01 14:09:55'),
+(24, 'Sesame Oil (Karmegam) 1/2L Bottle', 'SEK-HFB', 'Sesame', 'bottles', '170.00', 20, 0, NULL, '2026-05-01 14:09:55'),
+(25, 'Sesame Oil (Karmegam) 1/2L Packet', 'SEK-HFP', 'Sesame', 'pkts', '165.00', 25, 0, NULL, '2026-05-01 14:09:55'),
+(26, 'Sesame Oil (Karmegam) 200ml Bottle', 'SEK-200B', 'Sesame', 'bottles', '70.00', 15, 0, NULL, '2026-05-01 14:09:55'),
+(27, 'Castor Oil 1L Bottle', 'CAS-01B', 'Castor', 'bottles', '220.00', 9, 1, NULL, '2026-05-01 14:09:55'),
+(28, 'Castor Oil 1/2L Bottle', 'CAS-HFB', 'Castor', 'bottles', '110.00', 9, 6, NULL, '2026-05-01 14:09:55'),
+(29, 'Coconut Oil 1L Packet', 'CON-01P', 'Coconut', 'pkts', '370.00', 30, 0, NULL, '2026-05-01 14:09:55'),
+(30, 'Coconut Oil 1L Bottle', 'CON-01B', 'Coconut', 'bottles', '370.00', 20, 0, NULL, '2026-05-01 14:09:55'),
+(31, 'Coconut Oil 1/2L Packet', 'CON-HFP', 'Coconut', 'pkts', '185.00', 25, 0, NULL, '2026-05-01 14:09:55'),
+(32, 'Coconut Oil 1/2L Bottle', 'CON-HFB', 'Coconut', 'bottles', '185.00', 20, 0, NULL, '2026-05-01 14:09:55'),
+(33, 'Coconut Oil 200g Bottle', 'CON-200B', 'Coconut', 'bottles', '100.00', 16, 0, NULL, '2026-05-01 14:09:55'),
+(34, 'Coconut Oil 100g Bottle', 'CON-100B', 'Coconut', 'bottles', '50.00', 20, 2, NULL, '2026-05-01 14:09:55');
 -- ---------------------------------------------------------
 -- 4. Table: bills
 -- ---------------------------------------------------------
@@ -124,12 +126,14 @@ CREATE TABLE `bills` (
 ) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- Data for bills
-INSERT INTO `bills` (`id`, `billNo`, `customer`, `phone`, `payment`, `date`, `subtotal`, `cgst`, `sgst`, `grand`, `items`, `by_user`, `created_at`) VALUES (1, 'SNT-1000', 'Surendhar S', '6382411714', 'Cash', '2026-06-23 07:05:29', '95.24', '2.38', '2.38', '100.00', '[{"id":34,"name":"Coconut Oil 100g Bottle","qty":2,"price":50,"total":100}]', 'staff4', '2026-06-23 07:05:30');
-INSERT INTO `bills` (`id`, `billNo`, `customer`, `phone`, `payment`, `date`, `subtotal`, `cgst`, `sgst`, `grand`, `items`, `by_user`, `created_at`) VALUES (2, 'SNT-1001', 'Kavin S', '8072350543', 'Cash', '2026-06-23 07:45:25', '523.81', '13.10', '13.10', '550.00', '[{"id":28,"name":"Castor Oil 1/2L Bottle","qty":5,"price":110,"total":550}]', 'staff1', '2026-06-23 07:45:25');
-INSERT INTO `bills` (`id`, `billNo`, `customer`, `phone`, `payment`, `date`, `subtotal`, `cgst`, `sgst`, `grand`, `items`, `by_user`, `created_at`) VALUES (3, 'SNT-1002', 'Surendhar S', '6382411714', 'Cash', '2026-07-04 05:43:47', '450.47', '15.77', '15.77', '482.00', '[{"id":12,"name":"Sunflower Oil (Refined) 1L Packet","qty":2,"price":186,"total":372},{"id":28,"name":"Castor Oil 1/2L Bottle","qty":1,"price":110,"total":110}]', 'staff2', '2026-07-04 05:43:47');
-INSERT INTO `bills` (`id`, `billNo`, `customer`, `phone`, `payment`, `date`, `subtotal`, `cgst`, `sgst`, `grand`, `items`, `by_user`, `created_at`) VALUES (4, 'SNT-1003', 'Kavin S', '8072350543', 'Card', '2026-07-07 11:49:14', '3009.35', '105.33', '105.33', '3220.00', '[{"id":7,"name":"Groundnut Oil (Pure) 15kg Tin","qty":1,"price":3000,"total":3000},{"id":27,"name":"Castor Oil 1L Bottle","qty":1,"price":220,"total":220}]', 'staff1', '2026-07-07 11:49:15');
-INSERT INTO `bills` (`id`, `billNo`, `customer`, `phone`, `payment`, `date`, `subtotal`, `cgst`, `sgst`, `grand`, `items`, `by_user`, `created_at`) VALUES (5, 'SNT-1004', 'Karthick Kumar P', '1234567890', 'Cash', '2026-07-07 12:15:13', '2728.97', '95.51', '95.51', '2920.00', '[{"id":1,"name":"Groundnut Oil (Refined) 15kg Tin","qty":1,"price":2920,"total":2920}]', 'staff1', '2026-07-07 12:15:14');
-
+INSERT INTO `bills`
+(`id`, `billNo`, `customer`, `phone`, `payment`, `date`, `subtotal`, `cgst`, `sgst`, `grand`, `items`, `by_user`, `created_at`)
+VALUES
+(1, 'SNT-1000', 'Surendhar S', '6382411714', 'Cash', '2026-06-23 07:05:29', '95.24', '2.38', '2.38', '100.00', '[{"id":34,"name":"Coconut Oil 100g Bottle","qty":2,"price":50,"total":100}]', 'staff4', '2026-06-23 07:05:30'),
+(2, 'SNT-1001', 'Kavin S', '8072350543', 'Cash', '2026-06-23 07:45:25', '523.81', '13.10', '13.10', '550.00', '[{"id":28,"name":"Castor Oil 1/2L Bottle","qty":5,"price":110,"total":550}]', 'staff1', '2026-06-23 07:45:25'),
+(3, 'SNT-1002', 'Surendhar S', '6382411714', 'Cash', '2026-07-04 05:43:47', '450.47', '15.77', '15.77', '482.00', '[{"id":12,"name":"Sunflower Oil (Refined) 1L Packet","qty":2,"price":186,"total":372},{"id":28,"name":"Castor Oil 1/2L Bottle","qty":1,"price":110,"total":110}]', 'staff2', '2026-07-04 05:43:47'),
+(4, 'SNT-1003', 'Kavin S', '8072350543', 'Card', '2026-07-07 11:49:14', '3009.35', '105.33', '105.33', '3220.00', '[{"id":7,"name":"Groundnut Oil (Pure) 15kg Tin","qty":1,"price":3000,"total":3000},{"id":27,"name":"Castor Oil 1L Bottle","qty":1,"price":220,"total":220}]', 'staff1', '2026-07-07 11:49:15'),
+(5, 'SNT-1004', 'Karthick Kumar P', '1234567890', 'Cash', '2026-07-07 12:15:13', '2728.97', '95.51', '95.51', '2920.00', '[{"id":1,"name":"Groundnut Oil (Refined) 15kg Tin","qty":1,"price":2920,"total":2920}]', 'staff1', '2026-07-07 12:15:14');
 -- ---------------------------------------------------------
 -- 5. Table: customers
 -- ---------------------------------------------------------
@@ -148,10 +152,12 @@ CREATE TABLE `customers` (
 ) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- Data for customers
-INSERT INTO `customers` (`id`, `name`, `phone`, `visits`, `total`, `firstVisit`, `lastVisit`, `created_at`) VALUES (1, 'Surendhar S', '6382411714', 2, '582.00', '2026-06-23 07:05:29', '2026-07-04 05:43:47', '2026-06-23 07:05:30');
-INSERT INTO `customers` (`id`, `name`, `phone`, `visits`, `total`, `firstVisit`, `lastVisit`, `created_at`) VALUES (2, 'Kavin S', '8072350543', 2, '3770.00', '2026-06-23 07:45:25', '2026-07-07 11:49:14', '2026-06-23 07:45:25');
-INSERT INTO `customers` (`id`, `name`, `phone`, `visits`, `total`, `firstVisit`, `lastVisit`, `created_at`) VALUES (5, 'Karthick Kumar P', '1234567890', 1, '2920.00', '2026-07-07 12:15:13', '2026-07-07 12:15:13', '2026-07-07 12:15:14');
-
+INSERT INTO `customers`
+(`id`, `name`, `phone`, `visits`, `total`, `firstVisit`, `lastVisit`, `created_at`)
+VALUES
+(1, 'Surendhar S', '6382411714', 2, '582.00', '2026-06-23 07:05:29', '2026-07-04 05:43:47', '2026-06-23 07:05:30'),
+(2, 'Kavin S', '8072350543', 2, '3770.00', '2026-06-23 07:45:25', '2026-07-07 11:49:14', '2026-06-23 07:45:25'),
+(5, 'Karthick Kumar P', '1234567890', 1, '2920.00', '2026-07-07 12:15:13', '2026-07-07 12:15:13', '2026-07-07 12:15:14');
 -- ---------------------------------------------------------
 -- 6. Table: sales
 -- ---------------------------------------------------------
@@ -301,3 +307,4 @@ CREATE TABLE `settings` (
 INSERT INTO `settings` (`id`, `gst`, `shop`, `addr`, `gstin`, `fssai`, `phone`, `logo`, `created_at`) VALUES (1, '7.00', 'Sri Nikil Tradings', '058/1, Bhavani Main Road, Opp. Central Warehouse, Erode - 638004', '33AMCPD1118L1ZK', '12424007000946', '94875 81302, 0424 2901803', NULL, '2026-05-01 14:09:54');
 
 SET FOREIGN_KEY_CHECKS=1;
+SHOW TABLES;
