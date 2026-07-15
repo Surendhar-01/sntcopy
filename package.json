@@ -4,9 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "concurrently \"npm run server\" \"npm run dev:client\"",
+    "dev:client": "vite",
     "server": "npm run start:dev --prefix server/nest-backend",
-    "start:all": "concurrently \"npm run server\" \"npm run dev\"",
+    "start:all": "npm run dev",
     "export-db": "node scripts/export_db_from_api.js",
     "build": "vite build",
     "lint": "eslint .",
