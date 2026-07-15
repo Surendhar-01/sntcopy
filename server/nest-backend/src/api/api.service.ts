@@ -282,12 +282,12 @@ export class ApiService {
 
   async clearRefills() {
     await this.db.query('DELETE FROM refills');
-    await this.db.query('UPDATE products SET opening_stock = stock');
+    await this.db.query('UPDATE products SET opening_stock = stock, sold = 0');
     return { success: true };
   }
 
   async syncOpeningStock() {
-    await this.db.query('UPDATE products SET opening_stock = stock');
+    await this.db.query('UPDATE products SET opening_stock = stock, sold = 0');
     return { success: true };
   }
 
@@ -359,9 +359,10 @@ export class ApiService {
 
   async createProduct(body: any) {
     const { code, name, cat, unit, price, stock, image } = body;
+    const initialStock = Number(stock || 0);
     const [result] = await this.db.query(
-      'INSERT INTO products (code, name, cat, unit, price, stock, image, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())',
-      [code, name, cat, unit, price, stock, image],
+      'INSERT INTO products (code, name, cat, unit, price, stock, sold, opening_stock, image, created_at) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, NOW())',
+      [code, name, cat, unit, price, initialStock, initialStock, image],
     );
     return { id: result.insertId };
   }
