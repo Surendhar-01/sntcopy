@@ -16,6 +16,10 @@ import { DatabaseService } from './database.service';
           password: process.env.DB_PASSWORD || process.env.DB_PASS || '',
           database: dbName,
           port: dbPort,
+          ssl:
+            process.env.DB_SSL === 'true'
+              ? { rejectUnauthorized: false }
+              : undefined,
           waitForConnections: true,
           connectionLimit: 10,
           queueLimit: 0,
