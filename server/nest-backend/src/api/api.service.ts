@@ -282,6 +282,12 @@ export class ApiService {
 
   async clearRefills() {
     await this.db.query('DELETE FROM refills');
+    await this.db.query('UPDATE products SET opening_stock = stock');
+    return { success: true };
+  }
+
+  async syncOpeningStock() {
+    await this.db.query('UPDATE products SET opening_stock = stock');
     return { success: true };
   }
 

@@ -46,6 +46,11 @@ export class ApiController {
     return this.apiService.clearRefills();
   }
 
+  @Put('products/opening-stock/sync')
+  syncOpeningStock() {
+    return this.apiService.syncOpeningStock();
+  }
+
   // --- Price History ---
   @Post('price-history')
   createPriceHistory(@Body() body: any) {
