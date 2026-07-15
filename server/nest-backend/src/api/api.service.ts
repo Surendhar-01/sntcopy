@@ -227,13 +227,9 @@ export class ApiService {
         throw new NotFoundException('Product not found for refill');
       }
 
-      const dbProduct = (productRows as any[])[0];
-      const currentStock = Number(dbProduct.stock || 0);
-      const newOpeningStock = currentStock + refillQty;
-
       const [updateResult] = await connection.query(
-        'UPDATE products SET stock = stock + ?, opening_stock = ? WHERE name = ?',
-        [refillQty, newOpeningStock, product],
+        'UPDATE products SET opening_stock = stock + ?, stock = stock + ? WHERE name = ?',
+        [refillQty, refillQty, product],
       );
 
       if ((updateResult as any).affectedRows === 0) {
