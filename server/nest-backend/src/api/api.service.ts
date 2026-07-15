@@ -229,8 +229,7 @@ export class ApiService {
 
       const dbProduct = (productRows as any[])[0];
       const currentStock = Number(dbProduct.stock || 0);
-      const soldValue = Number(dbProduct.sold || 0);
-      const newOpeningStock = currentStock + soldValue;
+      const newOpeningStock = currentStock + refillQty;
 
       const [updateResult] = await connection.query(
         'UPDATE products SET stock = stock + ?, opening_stock = ? WHERE name = ?',
