@@ -32,11 +32,11 @@ function formatCurrency(value) {
 }
 
 function getProductLabel(product) {
-  if (product.code) {
-    return product.code;
+  if (product.name) {
+    return product.name;
   }
 
-  return product.name;
+  return product.code;
 }
 
 function DashboardStatIcon({ icon }) {
@@ -368,7 +368,17 @@ export default function Dashboard({ db, user }) {
                   </div>
                   <div className="performer-details" style={{ flex: 1 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.85rem', fontWeight: '600', color: '#f8fafc' }}>
-                      <span style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>{getProductLabel(product)}</span>
+                      <span
+                        title={getProductLabel(product)}
+                        style={{
+                          maxWidth: '70%',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        {getProductLabel(product)}
+                      </span>
                       <span style={{ color: '#6ee7b7' }}>
                         <span style={{ color: 'rgba(255,255,255,0.5)', marginRight: '12px', fontSize: '0.8rem' }}>{product.sold}/{maxSold}</span>
                         {percentage}%
