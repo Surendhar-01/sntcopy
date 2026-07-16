@@ -1,10 +1,14 @@
 .stock-page {
   display: grid;
   gap: 16px;
+  min-width: 0;
+  width: 100%;
 }
 
 .stock-card {
   border-color: #e7edf4;
+  min-width: 0;
+  width: 100%;
 }
 
 .stock-header {
@@ -17,4 +21,45 @@
 
 .stock-modal {
   width: min(520px, 95vw);
+}
+
+.stock-table-wrap {
+  max-height: 560px;
+  max-width: 100%;
+  width: 100%;
+  overflow: auto;
+  scrollbar-gutter: stable;
+  padding-bottom: 2px;
+}
+
+.stock-data-table {
+  min-width: 1280px;
+}
+
+.refill-history-table {
+  min-width: 760px;
+}
+
+.stock-data-table th,
+.stock-data-table td {
+  white-space: nowrap;
+}
+
+.stock-data-table th:nth-child(2),
+.stock-data-table td:nth-child(2) {
+  min-width: 280px;
+}
+
+.stock-table-wrap::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.stock-table-wrap::-webkit-scrollbar-thumb {
+  background: var(--text3);
+  border-radius: 8px;
+}
+
+.stock-table-wrap::-webkit-scrollbar-track {
+  background: var(--bg3);
 }

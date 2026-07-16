@@ -51,6 +51,10 @@ export default function Reports({ db, user }) {
     })
   ), [db.customers, effectiveStartDate, effectiveEndDate]);
 
+  const getOpeningStock = (product) => {
+    return Number(product.opening_stock || 0);
+  };
+
   const formatDuration = (startTime, endTime) => {
     const start = new Date(startTime);
     const end = new Date(endTime);
@@ -88,7 +92,7 @@ export default function Reports({ db, user }) {
         : `MySalesReport_${user?.user}${dateSuffix}_${today}.csv`;
     } else if (type === 'stock') {
       csv = 'Product,Category,Unit,Price,Opening Stock,Sold,Current Stock,Status\n';
-      csv += (db.products || []).map((product) => `${product.name},${product.cat},${product.unit},${product.price},${product.opening_stock ?? ((product.stock || 0) + (product.sold || 0))},${product.sold || 0},${product.stock},${product.stock === 0 ? 'Out of Stock' : product.stock <= 5 ? 'Low Stock' : 'OK'}`).join('\n');
+      csv += (db.products || []).map((product) => `${product.name},${product.cat},${product.unit},${product.price},${getOpeningStock(product)},${product.sold || 0},${product.stock},${product.stock === 0 ? 'Out of Stock' : product.stock <= 5 ? 'Low Stock' : 'OK'}`).join('\n');
       filename = `StockReport_${today}.csv`;
     } else if (type === 'price') {
       csv = 'Date,Product,Old Price,New Price,Changed By\n';

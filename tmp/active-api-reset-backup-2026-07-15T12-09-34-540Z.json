@@ -1,0 +1,638 @@
+{
+  "products": [
+    {
+      "id": 34,
+      "name": "Coconut Oil 100g Bottle",
+      "code": "CON-100B",
+      "cat": "Coconut",
+      "unit": "bottles",
+      "price": "50.00",
+      "stock": 24,
+      "sold": 0,
+      "opening_stock": 24,
+      "image": null,
+      "created_at": "2026-05-01 14:09:55"
+    },
+    {
+      "id": 33,
+      "name": "Coconut Oil 200g Bottle",
+      "code": "CON-200B",
+      "cat": "Coconut",
+      "unit": "bottles",
+      "price": "100.00",
+      "stock": 27,
+      "sold": 0,
+      "opening_stock": 26,
+      "image": null,
+      "created_at": "2026-05-01 14:09:55"
+    },
+    {
+      "id": 32,
+      "name": "Coconut Oil 1/2L Bottle",
+      "code": "CON-HFB",
+      "cat": "Coconut",
+      "unit": "bottles",
+      "price": "185.00",
+      "stock": 21,
+      "sold": 0,
+      "opening_stock": 20,
+      "image": null,
+      "created_at": "2026-05-01 14:09:55"
+    },
+    {
+      "id": 31,
+      "name": "Coconut Oil 1/2L Packet",
+      "code": "CON-HFP",
+      "cat": "Coconut",
+      "unit": "pkts",
+      "price": "185.00",
+      "stock": 26,
+      "sold": 0,
+      "opening_stock": 25,
+      "image": null,
+      "created_at": "2026-05-01 14:09:55"
+    },
+    {
+      "id": 30,
+      "name": "Coconut Oil 1L Bottle",
+      "code": "CON-01B",
+      "cat": "Coconut",
+      "unit": "bottles",
+      "price": "370.00",
+      "stock": 20,
+      "sold": 0,
+      "opening_stock": 0,
+      "image": null,
+      "created_at": "2026-05-01 14:09:55"
+    },
+    {
+      "id": 29,
+      "name": "Coconut Oil 1L Packet",
+      "code": "CON-01P",
+      "cat": "Coconut",
+      "unit": "pkts",
+      "price": "370.00",
+      "stock": 31,
+      "sold": 0,
+      "opening_stock": 30,
+      "image": null,
+      "created_at": "2026-05-01 14:09:55"
+    },
+    {
+      "id": 28,
+      "name": "Castor Oil 1/2L Bottle",
+      "code": "CAS-HFB",
+      "cat": "Castor",
+      "unit": "bottles",
+      "price": "110.00",
+      "stock": 16,
+      "sold": 0,
+      "opening_stock": 16,
+      "image": null,
+      "created_at": "2026-05-01 14:09:55"
+    },
+    {
+      "id": 27,
+      "name": "Castor Oil 1L Bottle",
+      "code": "CAS-01B",
+      "cat": "Castor",
+      "unit": "bottles",
+      "price": "220.00",
+      "stock": 11,
+      "sold": 0,
+      "opening_stock": 10,
+      "image": null,
+      "created_at": "2026-05-01 14:09:55"
+    },
+    {
+      "id": 26,
+      "name": "Sesame Oil (Karmegam) 200ml Bottle",
+      "code": "SEK-200B",
+      "cat": "Sesame",
+      "unit": "bottles",
+      "price": "70.00",
+      "stock": 15,
+      "sold": 0,
+      "opening_stock": 0,
+      "image": null,
+      "created_at": "2026-05-01 14:09:55"
+    },
+    {
+      "id": 25,
+      "name": "Sesame Oil (Karmegam) 1/2L Packet",
+      "code": "SEK-HFP",
+      "cat": "Sesame",
+      "unit": "pkts",
+      "price": "165.00",
+      "stock": 25,
+      "sold": 0,
+      "opening_stock": 0,
+      "image": null,
+      "created_at": "2026-05-01 14:09:55"
+    },
+    {
+      "id": 24,
+      "name": "Sesame Oil (Karmegam) 1/2L Bottle",
+      "code": "SEK-HFB",
+      "cat": "Sesame",
+      "unit": "bottles",
+      "price": "170.00",
+      "stock": 20,
+      "sold": 0,
+      "opening_stock": 0,
+      "image": null,
+      "created_at": "2026-05-01 14:09:55"
+    },
+    {
+      "id": 23,
+      "name": "Sesame Oil (Karmegam) 1L Packet",
+      "code": "SEK-01P",
+      "cat": "Sesame",
+      "unit": "pkts",
+      "price": "330.00",
+      "stock": 30,
+      "sold": 0,
+      "opening_stock": 0,
+      "image": null,
+      "created_at": "2026-05-01 14:09:55"
+    },
+    {
+      "id": 22,
+      "name": "Sesame Oil (Karmegam) 1L Bottle",
+      "code": "SEK-01B",
+      "cat": "Sesame",
+      "unit": "bottles",
+      "price": "340.00",
+      "stock": 15,
+      "sold": 0,
+      "opening_stock": 0,
+      "image": null,
+      "created_at": "2026-05-01 14:09:55"
+    },
+    {
+      "id": 21,
+      "name": "Sesame Oil (Karmegam) 5L Can",
+      "code": "SEK-05C",
+      "cat": "Sesame",
+      "unit": "cans",
+      "price": "1575.00",
+      "stock": 10,
+      "sold": 0,
+      "opening_stock": 0,
+      "image": null,
+      "created_at": "2026-05-01 14:09:55"
+    },
+    {
+      "id": 20,
+      "name": "Sesame Oil (Karmegam Premium) 15kg Tin",
+      "code": "SEK-15K",
+      "cat": "Sesame",
+      "unit": "tins",
+      "price": "4560.00",
+      "stock": 15,
+      "sold": 0,
+      "opening_stock": 0,
+      "image": null,
+      "created_at": "2026-05-01 14:09:55"
+    },
+    {
+      "id": 19,
+      "name": "Sesame Oil (Mukil) 15kg Tin",
+      "code": "SEU-15K",
+      "cat": "Sesame",
+      "unit": "tins",
+      "price": "4050.00",
+      "stock": 10,
+      "sold": 0,
+      "opening_stock": 0,
+      "image": null,
+      "created_at": "2026-05-01 14:09:55"
+    },
+    {
+      "id": 18,
+      "name": "Sesame Oil (Mayil) 1/2L Packet",
+      "code": "SEM-HFP",
+      "cat": "Sesame",
+      "unit": "pkts",
+      "price": "160.00",
+      "stock": 25,
+      "sold": 0,
+      "opening_stock": 0,
+      "image": null,
+      "created_at": "2026-05-01 14:09:55"
+    },
+    {
+      "id": 17,
+      "name": "Sesame Oil (Mayil) 1L Packet",
+      "code": "SEM-01P",
+      "cat": "Sesame",
+      "unit": "pkts",
+      "price": "320.00",
+      "stock": 20,
+      "sold": 0,
+      "opening_stock": 0,
+      "image": null,
+      "created_at": "2026-05-01 14:09:55"
+    },
+    {
+      "id": 16,
+      "name": "Vanaspati 15kg Tin",
+      "code": "VAN-15K",
+      "cat": "Vanaspati",
+      "unit": "tins",
+      "price": "2700.00",
+      "stock": 10,
+      "sold": 0,
+      "opening_stock": 0,
+      "image": null,
+      "created_at": "2026-05-01 14:09:55"
+    },
+    {
+      "id": 15,
+      "name": "Palm Oil 1L Packet",
+      "code": "PAL-01P",
+      "cat": "Palm",
+      "unit": "pkts",
+      "price": "154.00",
+      "stock": 60,
+      "sold": 0,
+      "opening_stock": 0,
+      "image": null,
+      "created_at": "2026-05-01 14:09:55"
+    },
+    {
+      "id": 14,
+      "name": "Palm Oil 5L Can",
+      "code": "PAL-05C",
+      "cat": "Palm",
+      "unit": "cans",
+      "price": "780.00",
+      "stock": 20,
+      "sold": 0,
+      "opening_stock": 0,
+      "image": null,
+      "created_at": "2026-05-01 14:09:55"
+    },
+    {
+      "id": 13,
+      "name": "Palm Oil 15kg Tin",
+      "code": "PAL-15K",
+      "cat": "Palm",
+      "unit": "tins",
+      "price": "2445.00",
+      "stock": 24,
+      "sold": 0,
+      "opening_stock": 0,
+      "image": null,
+      "created_at": "2026-05-01 14:09:55"
+    },
+    {
+      "id": 12,
+      "name": "Sunflower Oil (Refined) 1L Packet",
+      "code": "SFR-01P",
+      "cat": "Sunflower",
+      "unit": "pkts",
+      "price": "186.00",
+      "stock": 87,
+      "sold": 0,
+      "opening_stock": 0,
+      "image": null,
+      "created_at": "2026-05-01 14:09:55"
+    },
+    {
+      "id": 11,
+      "name": "Sunflower Oil (Refined) 5L Can",
+      "code": "SFR-05C",
+      "cat": "Sunflower",
+      "unit": "cans",
+      "price": "940.00",
+      "stock": 15,
+      "sold": 0,
+      "opening_stock": 0,
+      "image": null,
+      "created_at": "2026-05-01 14:09:55"
+    },
+    {
+      "id": 10,
+      "name": "Sunflower Oil (Refined) 15kg Tin",
+      "code": "SFR-15K",
+      "cat": "Sunflower",
+      "unit": "tins",
+      "price": "2950.00",
+      "stock": 15,
+      "sold": 0,
+      "opening_stock": 0,
+      "image": null,
+      "created_at": "2026-05-01 14:09:55"
+    },
+    {
+      "id": 9,
+      "name": "Groundnut Oil (Pure) 1L Packet",
+      "code": "GNP-01P",
+      "cat": "Groundnut",
+      "unit": "pkts",
+      "price": "193.00",
+      "stock": 40,
+      "sold": 0,
+      "opening_stock": 0,
+      "image": null,
+      "created_at": "2026-05-01 14:09:55"
+    },
+    {
+      "id": 8,
+      "name": "Groundnut Oil (Pure) 5L Can",
+      "code": "GNP-05C",
+      "cat": "Groundnut",
+      "unit": "cans",
+      "price": "955.00",
+      "stock": 10,
+      "sold": 0,
+      "opening_stock": 0,
+      "image": null,
+      "created_at": "2026-05-01 14:09:55"
+    },
+    {
+      "id": 7,
+      "name": "Groundnut Oil (Pure) 15kg Tin",
+      "code": "GNP-15K",
+      "cat": "Groundnut",
+      "unit": "tins",
+      "price": "3000.00",
+      "stock": 11,
+      "sold": 0,
+      "opening_stock": 0,
+      "image": null,
+      "created_at": "2026-05-01 14:09:55"
+    },
+    {
+      "id": 6,
+      "name": "Groundnut Oil (Refined) 1/2L Packet",
+      "code": "GNR-HFP",
+      "cat": "Groundnut",
+      "unit": "pkts",
+      "price": "92.00",
+      "stock": 15,
+      "sold": 0,
+      "opening_stock": 0,
+      "image": null,
+      "created_at": "2026-05-01 14:09:55"
+    },
+    {
+      "id": 5,
+      "name": "Groundnut Oil (Refined) 1L Packet",
+      "code": "GNR-01P",
+      "cat": "Groundnut",
+      "unit": "pkts",
+      "price": "184.00",
+      "stock": 50,
+      "sold": 0,
+      "opening_stock": 0,
+      "image": null,
+      "created_at": "2026-05-01 14:09:55"
+    },
+    {
+      "id": 4,
+      "name": "Groundnut Oil (Refined) 1L Bottle",
+      "code": "GNR-01B",
+      "cat": "Groundnut",
+      "unit": "bottles",
+      "price": "188.00",
+      "stock": 30,
+      "sold": 0,
+      "opening_stock": 0,
+      "image": null,
+      "created_at": "2026-05-01 14:09:55"
+    },
+    {
+      "id": 3,
+      "name": "Groundnut Oil (Refined) 2L Can",
+      "code": "GNR-02C",
+      "cat": "Groundnut",
+      "unit": "cans",
+      "price": "383.00",
+      "stock": 15,
+      "sold": 0,
+      "opening_stock": 0,
+      "image": null,
+      "created_at": "2026-05-01 14:09:55"
+    },
+    {
+      "id": 2,
+      "name": "Groundnut Oil (Refined) 5L Can",
+      "code": "GNR-05C",
+      "cat": "Groundnut",
+      "unit": "cans",
+      "price": "930.00",
+      "stock": 10,
+      "sold": 0,
+      "opening_stock": 0,
+      "image": null,
+      "created_at": "2026-05-01 14:09:55"
+    },
+    {
+      "id": 1,
+      "name": "Groundnut Oil (Refined) 15kg Tin",
+      "code": "GNR-15K",
+      "cat": "Groundnut",
+      "unit": "tins",
+      "price": "2920.00",
+      "stock": 20,
+      "sold": 0,
+      "opening_stock": 0,
+      "image": null,
+      "created_at": "2026-05-01 14:09:55"
+    }
+  ],
+  "bills": [],
+  "users": [],
+  "customers": [],
+  "sales": [],
+  "refills": [
+    {
+      "id": 24,
+      "date": "2026-07-15 11:46:35",
+      "product": "Coconut Oil 1L Packet",
+      "qty": 1,
+      "by": "admin",
+      "created_at": "2026-07-15 11:46:35"
+    },
+    {
+      "id": 23,
+      "date": "2026-07-15 11:44:06",
+      "product": "Coconut Oil 1/2L Packet",
+      "qty": 1,
+      "by": "admin",
+      "created_at": "2026-07-15 11:44:06"
+    },
+    {
+      "id": 22,
+      "date": "2026-07-15 11:42:03",
+      "product": "Coconut Oil 1/2L Bottle",
+      "qty": 1,
+      "by": "admin",
+      "created_at": "2026-07-15 11:42:03"
+    },
+    {
+      "id": 21,
+      "date": "2026-07-15 11:41:55",
+      "product": "Coconut Oil 200g Bottle",
+      "qty": 1,
+      "by": "admin",
+      "created_at": "2026-07-15 11:41:55"
+    },
+    {
+      "id": 20,
+      "date": "2026-07-15 11:41:46",
+      "product": "Coconut Oil 200g Bottle",
+      "qty": 1,
+      "by": "admin",
+      "created_at": "2026-07-15 11:41:46"
+    }
+  ],
+  "priceHistory": [],
+  "accounts": [
+    {
+      "id": 1,
+      "user": "admin",
+      "role": "Admin"
+    },
+    {
+      "id": 2,
+      "user": "staff1",
+      "role": "Staff"
+    },
+    {
+      "id": 3,
+      "user": "staff2",
+      "role": "Staff"
+    },
+    {
+      "id": 4,
+      "user": "staff3",
+      "role": "Staff"
+    },
+    {
+      "id": 5,
+      "user": "staff4",
+      "role": "Staff"
+    },
+    {
+      "id": 6,
+      "user": "staff5",
+      "role": "Staff"
+    },
+    {
+      "id": 7,
+      "user": "manager",
+      "role": "Manager"
+    },
+    {
+      "id": 9,
+      "user": "staff6",
+      "role": "Staff"
+    }
+  ],
+  "settings": {
+    "id": 1,
+    "gst": "7.00",
+    "shop": "Sri Nikil Tradings",
+    "addr": "058/1, Bhavani Main Road, Opp. Central Warehouse, Erode - 638004",
+    "gstin": "33AMCPD1118L1ZK",
+    "fssai": "12424007000946",
+    "phone": "94875 81302, 0424 2901803",
+    "logo": null,
+    "created_at": "2026-05-01 14:09:54"
+  },
+  "loginLogs": [
+    {
+      "id": 53,
+      "user": "staff2",
+      "role": "Staff",
+      "loginTime": "2026-07-15 11:34:20",
+      "logoutTime": null,
+      "created_at": "2026-07-15 11:34:21",
+      "status": "Active"
+    },
+    {
+      "id": 52,
+      "user": "staff2",
+      "role": "Staff",
+      "loginTime": "2026-07-15 11:33:57",
+      "logoutTime": "2026-07-15 11:34:09",
+      "created_at": "2026-07-15 11:33:58",
+      "status": "Completed"
+    },
+    {
+      "id": 51,
+      "user": "staff2",
+      "role": "Staff",
+      "loginTime": "2026-07-15 11:30:40",
+      "logoutTime": "2026-07-15 11:33:48",
+      "created_at": "2026-07-15 11:30:40",
+      "status": "Completed"
+    },
+    {
+      "id": 50,
+      "user": "manager",
+      "role": "Manager",
+      "loginTime": "2026-07-15 11:03:59",
+      "logoutTime": "2026-07-15 11:11:49",
+      "created_at": "2026-07-15 11:03:59",
+      "status": "Completed"
+    },
+    {
+      "id": 49,
+      "user": "manager",
+      "role": "Manager",
+      "loginTime": "2026-07-15 11:02:13",
+      "logoutTime": "2026-07-15 11:03:50",
+      "created_at": "2026-07-15 11:02:13",
+      "status": "Completed"
+    },
+    {
+      "id": 48,
+      "user": "staff2",
+      "role": "Staff",
+      "loginTime": "2026-07-15 10:53:32",
+      "logoutTime": "2026-07-15 10:54:54",
+      "created_at": "2026-07-15 10:53:32",
+      "status": "Completed"
+    },
+    {
+      "id": 47,
+      "user": "staff1",
+      "role": "Staff",
+      "loginTime": "2026-07-15 10:37:18",
+      "logoutTime": "2026-07-15 10:37:52",
+      "created_at": "2026-07-15 10:37:18",
+      "status": "Completed"
+    },
+    {
+      "id": 46,
+      "user": "staff6",
+      "role": "Staff",
+      "loginTime": "2026-07-08 09:48:15",
+      "logoutTime": "2026-07-08 09:48:22",
+      "created_at": "2026-07-08 09:48:15",
+      "status": "Completed"
+    },
+    {
+      "id": 45,
+      "user": "staff6",
+      "role": "Staff",
+      "loginTime": "2026-07-08 08:15:21",
+      "logoutTime": "2026-07-08 08:15:37",
+      "created_at": "2026-07-08 08:15:21",
+      "status": "Completed"
+    },
+    {
+      "id": 44,
+      "user": "staff6",
+      "role": "Staff",
+      "loginTime": "2026-07-08 08:01:21",
+      "logoutTime": "2026-07-08 08:01:56",
+      "created_at": "2026-07-08 08:01:21",
+      "status": "Completed"
+    }
+  ]
+}

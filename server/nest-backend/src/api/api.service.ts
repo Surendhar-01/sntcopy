@@ -16,6 +16,34 @@ function toMysqlDateTime(value?: string | Date) {
   return parsed.toLocaleString('sv').replace('T', ' ').slice(0, 19);
 }
 
+function parseItems(rawItems: any) {
+  if (Array.isArray(rawItems)) return rawItems;
+  if (typeof rawItems === 'string') {
+    try {
+      const parsed = JSON.parse(rawItems);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
+const RESET_BACKUP_TABLE = 'data_reset_backups';
+
+const RESET_BACKUP_TABLES = [
+  'products',
+  'bills',
+  'bill_items',
+  'customers',
+  'sales',
+  'transactions',
+  'shift_sales',
+  'sales_summaries',
+  'sales_reports',
+  'shift_reports',
+];
+
 @Injectable()
 export class ApiService {
   constructor(private readonly db: DatabaseService) {}
@@ -50,6 +78,60 @@ export class ApiService {
       await connection.beginTransaction();
       const saleDate = toMysqlDateTime(date);
 
+      if (!Array.isArray(items) || items.length === 0) {
+        throw new BadRequestException('At least one bill item is required');
+      }
+
+      const requestedQtyByProductId = new Map<number, number>();
+      for (const item of items) {
+        const productId = Number(item.id);
+        const qty = Number(item.qty || 0);
+        if (!Number.isFinite(productId) || !Number.isFinite(qty) || qty <= 0) {
+          throw new BadRequestException(
+            'Every bill item must have a valid product and positive quantity',
+          );
+        }
+        requestedQtyByProductId.set(
+          productId,
+          (requestedQtyByProductId.get(productId) || 0) + qty,
+        );
+      }
+
+      const productIds = Array.from(requestedQtyByProductId.keys());
+      const [stockRows] = (await connection.query(
+        'SELECT id, name, stock, sold, opening_stock FROM products WHERE id IN (?) FOR UPDATE',
+        [productIds],
+      )) as [any[], any];
+      const stockByProductId = new Map(
+        stockRows.map((product: any) => [Number(product.id), product]),
+      );
+
+      for (const [
+        productId,
+        requestedQty,
+      ] of requestedQtyByProductId.entries()) {
+        const product = stockByProductId.get(productId);
+        if (!product) {
+          throw new BadRequestException('Product not found for billing');
+        }
+
+        const availableStock = Number(product.stock || 0);
+        const openingStock = Number(product.opening_stock || 0);
+        const currentSold = Number(product.sold || 0);
+        const expectedStock = openingStock - currentSold;
+        if (availableStock !== expectedStock || expectedStock < 0) {
+          throw new BadRequestException('Stock cannot become negative.');
+        }
+        if (availableStock <= 0) {
+          throw new BadRequestException(`${product.name} is out of stock.`);
+        }
+        if (requestedQty > availableStock) {
+          throw new BadRequestException(
+            `Only ${availableStock} item(s) are available in stock for ${product.name}.`,
+          );
+        }
+      }
+
       let billNoToUse = String(billNo || '').trim();
       if (!billNoToUse) {
         billNoToUse = await this.getNextBillNo(connection);
@@ -80,25 +162,42 @@ export class ApiService {
         ],
       );
 
-      if (Array.isArray(items)) {
-        for (const item of items) {
-          await connection.query(
-            'UPDATE products SET stock = GREATEST(0, stock - ?), sold = sold + ? WHERE id = ?',
-            [item.qty, item.qty, item.id],
-          );
-          await connection.query(
-            'INSERT INTO sales (date, billNo, customer, product, qty, amount, by_user, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())',
-            [
-              saleDate,
-              billNoToUse,
-              customer || null,
-              item.name,
-              item.qty,
-              item.total || item.qty * item.price,
-              by_user || null,
-            ],
+      for (const [
+        productId,
+        requestedQty,
+      ] of requestedQtyByProductId.entries()) {
+        const [stockUpdate] = (await connection.query(
+          `UPDATE products
+           SET stock = opening_stock - (sold + ?),
+               sold = sold + ?
+           WHERE id = ?
+             AND stock >= ?
+             AND opening_stock - (sold + ?) >= 0`,
+          [requestedQty, requestedQty, productId, requestedQty, requestedQty],
+        )) as [any, any];
+
+        if (stockUpdate.affectedRows !== 1) {
+          const product = stockByProductId.get(productId);
+          const availableStock = Number(product?.stock || 0);
+          throw new BadRequestException(
+            `Only ${availableStock} item(s) are available in stock for ${product?.name || 'this product'}.`,
           );
         }
+      }
+
+      for (const item of items) {
+        await connection.query(
+          'INSERT INTO sales (date, billNo, customer, product, qty, amount, by_user, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())',
+          [
+            saleDate,
+            billNoToUse,
+            customer || null,
+            item.name,
+            item.qty,
+            item.total || item.qty * item.price,
+            by_user || null,
+          ],
+        );
       }
 
       if (customer) {
@@ -110,8 +209,11 @@ export class ApiService {
 
       await connection.commit();
       return { id: (result as any).insertId, billNo: billNoToUse };
-    } catch {
+    } catch (error) {
       await connection.rollback();
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
       throw new InternalServerErrorException('Unable to save bill');
     } finally {
       connection.release();
@@ -137,9 +239,16 @@ export class ApiService {
 
       if (Array.isArray(items)) {
         for (const item of items) {
+          const qty = Number(item.qty || 0);
+          const productId = Number(item.id);
+          if (!Number.isFinite(productId) || !Number.isFinite(qty) || qty <= 0)
+            continue;
           await connection.query(
-            'UPDATE products SET stock = stock + ?, sold = GREATEST(0, sold - ?) WHERE id = ?',
-            [item.qty, item.qty, item.id],
+            `UPDATE products
+             SET stock = opening_stock - GREATEST(0, sold - ?),
+                 sold = GREATEST(0, sold - ?)
+             WHERE id = ?`,
+            [qty, qty, productId],
           );
         }
       }
@@ -186,7 +295,10 @@ export class ApiService {
 
       for (const [productId, qty] of rollbackByProductId.entries()) {
         await connection.query(
-          'UPDATE products SET stock = stock + ?, sold = GREATEST(0, sold - ?) WHERE id = ?',
+          `UPDATE products
+           SET stock = opening_stock - GREATEST(0, sold - ?),
+               sold = GREATEST(0, sold - ?)
+           WHERE id = ?`,
           [qty, qty, productId],
         );
       }
@@ -206,30 +318,49 @@ export class ApiService {
 
   // --- Refills ---
   async createRefill(body: any) {
-    const { product, qty, by, by_user, date } = body;
+    const { product, product_id, productId, id, qty, by, by_user, date } = body;
+    const requestedProductId = Number(product_id || productId || id || 0);
     const refillQty = Number.parseInt(qty, 10);
-    if (!product || !Number.isFinite(refillQty) || refillQty <= 0)
-      throw new BadRequestException(
-        'Product and positive quantity are required',
-      );
+    if (
+      (!product && (!Number.isFinite(requestedProductId) || requestedProductId <= 0)) ||
+      !Number.isFinite(refillQty) ||
+      refillQty <= 0
+    )
+      throw new BadRequestException('Refill quantity must be greater than zero.');
 
     const connection = await this.db.getConnection();
     try {
       await connection.beginTransaction();
 
-      const [productRows] = await connection.query(
-        'SELECT id, name, price, stock, sold, opening_stock FROM products WHERE name = ? FOR UPDATE',
-        [product],
-      );
+      const [productRows] =
+        Number.isFinite(requestedProductId) && requestedProductId > 0
+          ? await connection.query(
+              'SELECT id, name, price, stock, sold, opening_stock FROM products WHERE id = ? FOR UPDATE',
+              [requestedProductId],
+            )
+          : await connection.query(
+              'SELECT id, name, price, stock, sold, opening_stock FROM products WHERE name = ? FOR UPDATE',
+              [product],
+            );
 
       if ((productRows as any[]).length === 0) {
         await connection.rollback();
         throw new NotFoundException('Product not found for refill');
       }
 
+      const lockedProduct = (productRows as any[])[0];
+      const currentStock = Number(lockedProduct.stock || 0);
+      const currentSold = Number(lockedProduct.sold || 0);
+      const openingStock = Number(lockedProduct.opening_stock || 0);
+      if (currentStock !== openingStock - currentSold || currentStock < 0) {
+        throw new BadRequestException('Stock cannot become negative.');
+      }
+      const newOpeningStock = openingStock + refillQty;
+      const newStock = newOpeningStock - currentSold;
+
       const [updateResult] = await connection.query(
-        'UPDATE products SET opening_stock = stock + ?, stock = stock + ? WHERE name = ?',
-        [refillQty, refillQty, product],
+        'UPDATE products SET opening_stock = ?, stock = ? WHERE id = ?',
+        [newOpeningStock, newStock, lockedProduct.id],
       );
 
       if ((updateResult as any).affectedRows === 0) {
@@ -238,14 +369,26 @@ export class ApiService {
       }
 
       const [result] = await connection.query(
-        'INSERT INTO refills (product, qty, `by`, date, created_at) VALUES (?, ?, ?, ?, NOW())',
-        [product, refillQty, by || by_user || 'system', toMysqlDateTime(date)],
+        'INSERT INTO refills (product_id, product, qty, `by`, date, created_at) VALUES (?, ?, ?, ?, ?, NOW())',
+        [
+          lockedProduct.id,
+          lockedProduct.name || product,
+          refillQty,
+          by || by_user || 'system',
+          toMysqlDateTime(date),
+        ],
       );
 
       await connection.commit();
       return { id: (result as any).insertId };
-    } catch {
+    } catch (error) {
       await connection.rollback();
+      if (
+        error instanceof BadRequestException ||
+        error instanceof NotFoundException
+      ) {
+        throw error;
+      }
       throw new InternalServerErrorException('Unable to save refill');
     } finally {
       connection.release();
@@ -257,7 +400,7 @@ export class ApiService {
     try {
       await connection.beginTransaction();
       const [rows] = await connection.query(
-        'SELECT id, product, qty FROM refills WHERE id = ? LIMIT 1',
+        'SELECT id, product_id, product, qty FROM refills WHERE id = ? LIMIT 1',
         [id],
       );
       if ((rows as any[]).length === 0) {
@@ -265,15 +408,42 @@ export class ApiService {
         throw new NotFoundException('Refill record not found');
       }
       const refill = rows[0];
-      await connection.query(
-        'UPDATE products SET stock = GREATEST(0, stock - ?) WHERE name = ?',
-        [Number(refill.qty || 0), refill.product],
-      );
+      const refillQty = Number(refill.qty || 0);
+      const refillProductId = Number(refill.product_id || 0);
+      const [updateResult] =
+        Number.isFinite(refillProductId) && refillProductId > 0
+          ? ((await connection.query(
+              `UPDATE products
+               SET stock = (opening_stock - ?) - sold,
+                   opening_stock = opening_stock - ?
+               WHERE id = ?
+                 AND opening_stock >= ?
+                 AND (opening_stock - ?) - sold >= 0`,
+              [refillQty, refillQty, refillProductId, refillQty, refillQty],
+            )) as [any, any])
+          : ((await connection.query(
+              `UPDATE products
+               SET stock = (opening_stock - ?) - sold,
+                   opening_stock = opening_stock - ?
+               WHERE name = ?
+                 AND opening_stock >= ?
+                 AND (opening_stock - ?) - sold >= 0`,
+              [refillQty, refillQty, refill.product, refillQty, refillQty],
+            )) as [any, any]);
+      if (updateResult.affectedRows !== 1) {
+        throw new BadRequestException('Stock cannot become negative.');
+      }
       await connection.query('DELETE FROM refills WHERE id = ?', [id]);
       await connection.commit();
       return { success: true };
-    } catch {
+    } catch (error) {
       await connection.rollback();
+      if (
+        error instanceof BadRequestException ||
+        error instanceof NotFoundException
+      ) {
+        throw error;
+      }
       throw new InternalServerErrorException('Unable to delete refill');
     } finally {
       connection.release();
@@ -281,14 +451,164 @@ export class ApiService {
   }
 
   async clearRefills() {
-    await this.db.query('DELETE FROM refills');
-    await this.db.query('UPDATE products SET opening_stock = stock, sold = 0');
-    return { success: true };
+    const connection = await this.db.getConnection();
+    try {
+      await connection.beginTransaction();
+      const [rows] = (await connection.query(
+        'SELECT product_id, product, SUM(qty) AS qty FROM refills GROUP BY product_id, product',
+      )) as [any[], any];
+
+      for (const refill of rows) {
+        const refillQty = Number(refill.qty || 0);
+        if (!Number.isFinite(refillQty) || refillQty <= 0) continue;
+        const refillProductId = Number(refill.product_id || 0);
+        const [updateResult] =
+          Number.isFinite(refillProductId) && refillProductId > 0
+            ? ((await connection.query(
+                `UPDATE products
+                 SET stock = (opening_stock - ?) - sold,
+                     opening_stock = opening_stock - ?
+                 WHERE id = ?
+                   AND opening_stock >= ?
+                   AND (opening_stock - ?) - sold >= 0`,
+                [refillQty, refillQty, refillProductId, refillQty, refillQty],
+              )) as [any, any])
+            : ((await connection.query(
+                `UPDATE products
+                 SET stock = (opening_stock - ?) - sold,
+                     opening_stock = opening_stock - ?
+                 WHERE name = ?
+                   AND opening_stock >= ?
+                   AND (opening_stock - ?) - sold >= 0`,
+                [refillQty, refillQty, refill.product, refillQty, refillQty],
+              )) as [any, any]);
+        if (updateResult.affectedRows !== 1) {
+          throw new BadRequestException(
+            `Stock cannot become negative for ${refill.product}.`,
+          );
+        }
+      }
+
+      await connection.query('DELETE FROM refills');
+      await connection.commit();
+      return { success: true };
+    } catch (error) {
+      await connection.rollback();
+      if (error instanceof BadRequestException) throw error;
+      throw new InternalServerErrorException('Unable to clear refills');
+    } finally {
+      connection.release();
+    }
   }
 
   async syncOpeningStock() {
-    await this.db.query('UPDATE products SET opening_stock = stock, sold = 0');
+    await this.db.query('UPDATE products SET opening_stock = 0, sold = 0, stock = 0');
     return { success: true };
+  }
+
+  async repairStock() {
+    const connection = await this.db.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      const [products] = (await connection.query(
+        'SELECT id, code, name, opening_stock FROM products FOR UPDATE',
+      )) as [any[], any];
+      const [bills] = (await connection.query(
+        'SELECT id, billNo, items FROM bills',
+      )) as [any[], any];
+      const [refills] = (await connection.query(
+        'SELECT product_id, product, qty FROM refills',
+      )) as [any[], any];
+      const [duplicateBills] = (await connection.query(
+        'SELECT billNo, COUNT(*) AS count FROM bills GROUP BY billNo HAVING COUNT(*) > 1',
+      )) as [any[], any];
+      const [duplicateRefills] = (await connection.query(
+        'SELECT product, qty, date, `by`, COUNT(*) AS count FROM refills GROUP BY product, qty, date, `by` HAVING COUNT(*) > 1',
+      )) as [any[], any];
+
+      const soldByProductId = new Map<number, number>();
+      for (const bill of bills) {
+        const items = parseItems(bill.items);
+        for (const item of items) {
+          const productId = Number(item.id);
+          const qty = Number(item.qty || 0);
+          if (!Number.isFinite(productId) || !Number.isFinite(qty) || qty <= 0)
+            continue;
+          soldByProductId.set(
+            productId,
+            (soldByProductId.get(productId) || 0) + qty,
+          );
+        }
+      }
+
+      const refillByProductId = new Map<number, number>();
+      const refillByProductName = new Map<string, number>();
+      for (const refill of refills) {
+        const productId = Number(refill.product_id || 0);
+        const productName = String(refill.product || '').trim();
+        const qty = Number(refill.qty || 0);
+        if (!Number.isFinite(qty) || qty <= 0) continue;
+        if (Number.isFinite(productId) && productId > 0) {
+          refillByProductId.set(
+            productId,
+            (refillByProductId.get(productId) || 0) + qty,
+          );
+        } else if (productName) {
+          refillByProductName.set(
+            productName,
+            (refillByProductName.get(productName) || 0) + qty,
+          );
+        }
+      }
+
+      const invalidProducts: any[] = [];
+      let repairedProducts = 0;
+
+      for (const product of products) {
+        const soldQty = Number(soldByProductId.get(Number(product.id)) || 0);
+        const currentOpeningStock = Number(product.opening_stock || 0);
+        const refillStock = Number(
+          refillByProductId.get(Number(product.id)) ||
+            refillByProductName.get(String(product.name || '').trim()) ||
+            0,
+        );
+        const openingStock = Math.max(currentOpeningStock, refillStock);
+        const nextStock = openingStock - soldQty;
+
+        if (nextStock < 0) {
+          invalidProducts.push({
+            id: product.id,
+            code: product.code,
+            name: product.name,
+            openingStock,
+            sold: soldQty,
+            currentStock: nextStock,
+          });
+          continue;
+        }
+
+        const [result] = (await connection.query(
+          'UPDATE products SET opening_stock = ?, sold = ?, stock = ? WHERE id = ?',
+          [openingStock, soldQty, nextStock, product.id],
+        )) as [any, any];
+        repairedProducts += result.affectedRows || 0;
+      }
+
+      await connection.commit();
+      return {
+        success: invalidProducts.length === 0,
+        repairedProducts,
+        invalidProducts,
+        duplicateBills,
+        duplicateRefills,
+      };
+    } catch (error) {
+      await connection.rollback();
+      throw new InternalServerErrorException('Unable to repair stock');
+    } finally {
+      connection.release();
+    }
   }
 
   // --- Price History ---
@@ -360,6 +680,9 @@ export class ApiService {
   async createProduct(body: any) {
     const { code, name, cat, unit, price, stock, image } = body;
     const initialStock = Number(stock || 0);
+    if (!Number.isFinite(initialStock) || initialStock < 0) {
+      throw new BadRequestException('Initial stock must be zero or greater');
+    }
     const [result] = await this.db.query(
       'INSERT INTO products (code, name, cat, unit, price, stock, sold, opening_stock, image, created_at) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, NOW())',
       [code, name, cat, unit, price, initialStock, initialStock, image],
@@ -406,6 +729,94 @@ export class ApiService {
   async clearCustomers() {
     await this.db.query('DELETE FROM customers');
     return { success: true };
+  }
+
+  async resetSalesData() {
+    await this.db.query(
+      `CREATE TABLE IF NOT EXISTS \`${RESET_BACKUP_TABLE}\` (
+        \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+        \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        \`reason\` VARCHAR(255) NOT NULL,
+        \`payload\` LONGTEXT NOT NULL
+      ) ENGINE=InnoDB`,
+    );
+
+    const connection = await this.db.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      const [existingTableRows] = (await connection.query(
+        `SELECT TABLE_NAME
+         FROM INFORMATION_SCHEMA.TABLES
+         WHERE TABLE_SCHEMA = DATABASE()
+           AND TABLE_NAME IN (?)`,
+        [RESET_BACKUP_TABLES],
+      )) as [any[], any];
+
+      const existingTables = new Set(
+        existingTableRows.map((row: any) => String(row.TABLE_NAME)),
+      );
+
+      const backup: Record<string, any[]> = {};
+      for (const tableName of RESET_BACKUP_TABLES) {
+        if (!existingTables.has(tableName)) continue;
+        const [rows] = (await connection.query(
+          `SELECT * FROM \`${tableName}\``,
+        )) as [any[], any];
+        backup[tableName] = rows;
+      }
+
+      const [backupResult] = (await connection.query(
+        `INSERT INTO \`${RESET_BACKUP_TABLE}\` (reason, payload, created_at) VALUES (?, ?, NOW())`,
+        [
+          'sales-data-reset',
+          JSON.stringify({
+            createdAt: new Date().toISOString(),
+            tables: backup,
+          }),
+        ],
+      )) as [any, any];
+
+      const deleteTables = [
+        'bill_items',
+        'bills',
+        'customers',
+        'sales',
+        'transactions',
+        'shift_sales',
+        'sales_summaries',
+        'sales_reports',
+        'shift_reports',
+      ];
+
+      for (const tableName of deleteTables) {
+        if (!existingTables.has(tableName)) continue;
+        await connection.query(`DELETE FROM \`${tableName}\``);
+      }
+
+      await connection.query(
+        `UPDATE products
+         SET
+           opening_stock = 0,
+           stock = 0,
+           sold = 0`,
+      );
+
+      await connection.commit();
+
+      return {
+        success: true,
+        backupId: backupResult.insertId,
+        message: 'Sales data reset successfully',
+      };
+    } catch (error: any) {
+      await connection.rollback();
+      throw new InternalServerErrorException(
+        error.message || 'Unable to reset sales data',
+      );
+    } finally {
+      connection.release();
+    }
   }
 
   // --- Login Logs ---
@@ -785,12 +1196,26 @@ export class ApiService {
       }
 
       await connection.beginTransaction();
+      let reportSessionId: number | null = null;
 
       if (Number.isFinite(shiftSessionId)) {
-        await connection.query(
-          'UPDATE login_logs SET logoutTime = ?, status = ? WHERE id = ?',
-          [shiftEndSql, 'Completed', shiftSessionId],
-        );
+        const [sessionRows] = (await connection.query(
+          'SELECT id FROM login_logs WHERE id = ? LIMIT 1',
+          [shiftSessionId],
+        )) as [any[], any];
+
+        if (sessionRows.length > 0) {
+          reportSessionId = shiftSessionId;
+          await connection.query(
+            'UPDATE login_logs SET logoutTime = ?, status = ? WHERE id = ?',
+            [shiftEndSql, 'Completed', shiftSessionId],
+          );
+        } else {
+          await connection.query(
+            'UPDATE login_logs SET logoutTime = ?, status = ? WHERE user = ? AND logoutTime IS NULL ORDER BY id DESC LIMIT 1',
+            [shiftEndSql, 'Completed', shiftUser],
+          );
+        }
       } else {
         await connection.query(
           'UPDATE login_logs SET logoutTime = ?, status = ? WHERE user = ? AND logoutTime IS NULL ORDER BY id DESC LIMIT 1',
@@ -801,7 +1226,7 @@ export class ApiService {
       await connection.query(
         'INSERT INTO shift_reports (session_id, user, role, shift_start, shift_end, total_bills, total_items_sold, total_sales_amount, payment_breakdown, remaining_stock_summary, report_email, report_subject, email_status, email_error, email_sent_at, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())',
         [
-          Number.isFinite(shiftSessionId) ? shiftSessionId : null,
+          reportSessionId,
           shiftUser,
           shiftRole,
           shiftStartSql,

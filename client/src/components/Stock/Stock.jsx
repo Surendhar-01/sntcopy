@@ -6,7 +6,13 @@ export default function Stock({ db, erp, user }) {
   const [refillProduct, setRefillProduct] = useState(null);
   const [refillQty, setRefillQty] = useState('');
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [showResetStockConfirm, setShowResetStockConfirm] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
+  const [isResettingStock, setIsResettingStock] = useState(false);
+
+  const getOpeningStock = (product) => {
+    return Number(product.opening_stock || 0);
+  };
 
   useEffect(() => {
     erp.fetchProducts().catch(() => {});
@@ -37,7 +43,8 @@ export default function Stock({ db, erp, user }) {
 
     try {
       await erp.addRefill({
-        product: refillProduct,
+        product_id: refillProduct.id,
+        product: refillProduct.name,
         qty: parseInt(refillQty, 10),
         by: user ? user.user : 'Admin'
       });
@@ -65,6 +72,22 @@ export default function Stock({ db, erp, user }) {
     }
   };
 
+  const handleResetStock = async () => {
+    if (isResettingStock) {
+      return;
+    }
+
+    setIsResettingStock(true);
+    try {
+      await erp.resetProductStock();
+      setShowResetStockConfirm(false);
+    } catch (error) {
+      alert(error.message || 'Failed to reset stock');
+    } finally {
+      setIsResettingStock(false);
+    }
+  };
+
   return (
     <>
       <div className="page-header">
@@ -75,9 +98,17 @@ export default function Stock({ db, erp, user }) {
       <div className="card mb-4 stock-card">
         <div className="stock-header mb-3">
           <div className="section-title stock-title">Stock Management</div>
+          <button
+            className="btn btn-danger btn-sm"
+            type="button"
+            onClick={() => setShowResetStockConfirm(true)}
+            disabled={isResettingStock}
+          >
+            {isResettingStock ? 'Resetting...' : 'Reset Stock'}
+          </button>
         </div>
-        <div className="table-wrap" style={{ maxHeight: '560px', overflowY: 'auto' }}>
-          <table className="data-table">
+        <div className="table-wrap stock-table-wrap">
+          <table className="data-table stock-data-table">
             <thead>
               <tr>
                 <th style={{width: '10%'}}>ID</th>
@@ -95,7 +126,7 @@ export default function Stock({ db, erp, user }) {
                 <tr key={product.id}>
                   <td className="text-muted text-xs">{product.code || product.id}</td>
                   <td><b>{product.name}</b></td>
-                  <td>{product.opening_stock ?? (product.stock + (product.sold || 0))}</td>
+                  <td>{getOpeningStock(product)}</td>
                   <td className="text-red">{product.sold || 0}</td>
                   <td className="fw-bold">{product.stock}</td>
                   <td className="text-accent fw-bold">Rs {(product.price * product.stock).toFixed(2)}</td>
@@ -105,7 +136,7 @@ export default function Stock({ db, erp, user }) {
                       : <span className="badge badge-green">Healthy</span>}
                   </td>
                   <td>
-                    <button className="btn btn-sm btn-action" onClick={() => setRefillProduct(product.name)}>Refill</button>
+                    <button className="btn btn-sm btn-action" onClick={() => setRefillProduct(product)}>Refill</button>
                   </td>
                 </tr>
               ))}
@@ -127,8 +158,8 @@ export default function Stock({ db, erp, user }) {
             {isClearing ? 'Clearing...' : 'Clear'}
           </button>
         </div>
-        <div className="table-wrap" style={{ maxHeight: '560px', overflowY: 'auto' }}>
-          <table className="data-table">
+        <div className="table-wrap stock-table-wrap">
+          <table className="data-table stock-data-table refill-history-table">
             <thead>
               <tr>
                 <th>Date</th>
@@ -180,7 +211,7 @@ export default function Stock({ db, erp, user }) {
               <h3 className="modal-title">Refill Stock</h3>
               <button className="modal-close" type="button" onClick={() => { setRefillProduct(null); setRefillQty(''); }}>x</button>
             </div>
-            <p className="text-sm mb-3">Add new stock inventory for <b>{refillProduct}</b></p>
+            <p className="text-sm mb-3">Add new stock inventory for <b>{refillProduct.name}</b></p>
             <div className="form-group mb-4">
               <label>Refill Quantity</label>
               <input
@@ -211,6 +242,16 @@ export default function Stock({ db, erp, user }) {
         confirmLabel="Clear All"
         onConfirm={handleClearRefills}
         onClose={() => setShowClearConfirm(false)}
+      />
+
+      <ClearConfirmModal
+        open={showResetStockConfirm}
+        loading={isResettingStock}
+        title="Reset Stock"
+        message="Set Opening Stock, Sold, and Current Stock to 0 for all products?"
+        confirmLabel={isResettingStock ? 'Resetting...' : 'Reset Stock'}
+        onConfirm={handleResetStock}
+        onClose={() => setShowResetStockConfirm(false)}
       />
 
     </div>

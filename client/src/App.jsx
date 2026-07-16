@@ -30,6 +30,17 @@ const Reports = React.memo(ReportsPage);
 const LoginActivity = React.memo(LoginActivityPage);
 const Settings = React.memo(SettingsPage);
 
+function isClearedSessionError(error) {
+  const message = String(error?.message || error || '').toLowerCase();
+  return (
+    message.includes('validation failed') ||
+    message.includes('unable to end shift') ||
+    message.includes('not found') ||
+    message.includes('foreign key') ||
+    message.includes('constraint')
+  );
+}
+
 function getDefaultPageForRole(role) {
   const normalized = String(role || '').trim().toLowerCase();
   
@@ -88,7 +99,6 @@ function App() {
       return null;
     }
   });
-  
   const erp = useERPData();
 
   const handleLogoutRef = useRef(null);
@@ -171,10 +181,16 @@ function App() {
           });
         } catch (error) {
           console.error(`Failed to auto-end shift on ${lowerRole} logout:`, error);
-          await erp.updateLoginLog(session.id).catch(() => {});
+          if (!isClearedSessionError(error)) {
+            await erp.updateLoginLog(session.id).catch(() => {});
+          }
         }
       } else {
-        await erp.updateLoginLog(session.id);
+        await erp.updateLoginLog(session.id).catch((error) => {
+          if (!isClearedSessionError(error)) {
+            throw error;
+          }
+        });
       }
     }
     setUser(null);
@@ -298,8 +314,9 @@ function App() {
     clearRefills: erp.clearRefills,
     deleteRefill: erp.deleteRefill,
     fetchRefills: erp.fetchRefills,
-    fetchProducts: erp.fetchProducts
-  }), [stockDb, erp.addRefill, erp.clearRefills, erp.deleteRefill, erp.fetchRefills, erp.fetchProducts]);
+    fetchProducts: erp.fetchProducts,
+    resetProductStock: erp.resetProductStock
+  }), [stockDb, erp.addRefill, erp.clearRefills, erp.deleteRefill, erp.fetchRefills, erp.fetchProducts, erp.resetProductStock]);
 
   const erpPricing = useMemo(() => ({
     db: pricingDb,
@@ -323,8 +340,9 @@ function App() {
     addStaff: erp.addStaff,
     deleteStaff: erp.deleteStaff,
     updateStaffPassword: erp.updateStaffPassword,
+    resetSalesData: erp.resetSalesData,
     fetchAccounts: erp.fetchAccounts
-  }), [settingsDb, erp.updateSettings, erp.addStaff, erp.deleteStaff, erp.updateStaffPassword, erp.fetchAccounts]);
+  }), [settingsDb, erp.updateSettings, erp.addStaff, erp.deleteStaff, erp.updateStaffPassword, erp.resetSalesData, erp.fetchAccounts]);
 
   const erpBilling = useMemo(() => ({
     db: billingDb,
@@ -333,6 +351,12 @@ function App() {
     fetchBills: erp.fetchBills,
     fetchProducts: erp.fetchProducts
   }), [billingDb, erp.addBill, erp.refreshData, erp.fetchBills, erp.fetchProducts]);
+
+  const erpDashboard = useMemo(() => ({
+    db: dashboardDb,
+    addRefill: erp.addRefill,
+    fetchProducts: erp.fetchProducts
+  }), [dashboardDb, erp.addRefill, erp.fetchProducts]);
 
   if (!erp || erp.loading || !erp.db) {
     return <div className="loading">Initializing System...</div>;
@@ -350,19 +374,19 @@ function App() {
     const canViewSettings = canAccessSettings(user);
 
     switch (resolvedCurrentPage) {
-      case 'dashboard': return <Dashboard db={dashboardDb} user={user} />;
-      case 'manager': return <Dashboard db={dashboardDb} user={user} />;
-      case 'billing': return canManageAdminPages ? <Dashboard db={dashboardDb} user={user} /> : <Billing erp={erpBilling} user={user} />;
+      case 'dashboard': return <Dashboard db={dashboardDb} erp={erpDashboard} user={user} />;
+      case 'manager': return <Dashboard db={dashboardDb} erp={erpDashboard} user={user} />;
+      case 'billing': return canManageAdminPages ? <Dashboard db={dashboardDb} erp={erpDashboard} user={user} /> : <Billing erp={erpBilling} user={user} />;
       case 'products': return <Products db={productsDb} erp={erpProducts} user={user} />;
       case 'stock': return <Stock db={stockDb} erp={erpStock} user={user} />;
-      case 'pricing': return canManageAdminPages ? <Pricing db={pricingDb} erp={erpPricing} user={user} /> : <Dashboard db={dashboardDb} user={user} />;
+      case 'pricing': return canManageAdminPages ? <Pricing db={pricingDb} erp={erpPricing} user={user} /> : <Dashboard db={dashboardDb} erp={erpDashboard} user={user} />;
       case 'priceboard': return <PriceBoard db={priceBoardDb} fetchPriceHistory={erp.fetchPriceHistory} />;
       case 'sales': return <Sales db={salesDb} fetchBills={erp.fetchBills} user={user} />;
-      case 'customers': return canViewCustomers ? <Customers db={customersDb} fetchCustomers={erp.fetchCustomers} /> : <Dashboard db={dashboardDb} user={user} />;
+      case 'customers': return canViewCustomers ? <Customers db={customersDb} fetchCustomers={erp.fetchCustomers} /> : <Dashboard db={dashboardDb} erp={erpDashboard} user={user} />;
       case 'reports': return <Reports db={reportsDb} user={user} />;
-      case 'loginlog': return canManageAdminPages ? <LoginActivity db={loginActivityDb} erp={erpLoginActivity} user={user} /> : <Dashboard db={dashboardDb} user={user} />;
-      case 'settings': return canViewSettings ? <Settings db={settingsDb} erp={erpSettings} user={user} /> : <Dashboard db={dashboardDb} user={user} />;
-      default: return <Dashboard db={dashboardDb} user={user} />;
+      case 'loginlog': return canManageAdminPages ? <LoginActivity db={loginActivityDb} erp={erpLoginActivity} user={user} /> : <Dashboard db={dashboardDb} erp={erpDashboard} user={user} />;
+      case 'settings': return canViewSettings ? <Settings db={settingsDb} erp={erpSettings} user={user} /> : <Dashboard db={dashboardDb} erp={erpDashboard} user={user} />;
+      default: return <Dashboard db={dashboardDb} erp={erpDashboard} user={user} />;
     }
   };
 
@@ -386,6 +410,11 @@ function App() {
             onLogout={handleLogout}
           />
           <div className="content">
+            {erp.mutationNotice && (
+              <div className={`app-toast ${erp.mutationNotice.type}`} role="status" aria-live="polite">
+                {erp.mutationNotice.message}
+              </div>
+            )}
             {renderPage()}
           </div>
         </div>

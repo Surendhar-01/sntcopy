@@ -43,6 +43,17 @@ const THEME_BUTTONS = [
   }
 ];
 
+function isClearedSessionError(error) {
+  const message = String(error?.message || error || '').toLowerCase();
+  return (
+    message.includes('validation failed') ||
+    message.includes('unable to end shift') ||
+    message.includes('not found') ||
+    message.includes('foreign key') ||
+    message.includes('constraint')
+  );
+}
+
 export default function Topbar({ user, erp, session, setUser, setSession, onLogout }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -202,6 +213,29 @@ export default function Topbar({ user, erp, session, setUser, setSession, onLogo
         }
       }
     } catch (error) {
+      if (isClearedSessionError(error)) {
+        const closedUser = {
+          ...user,
+          loginTime: null
+        };
+        const lowerRole = user?.role?.toLowerCase();
+
+        setUser(closedUser);
+        localStorage.setItem('sri_nikil_user', JSON.stringify(closedUser));
+        setSession(null);
+        setCanStartNextShift(lowerRole === 'staff');
+
+        if (lowerRole === 'staff') {
+          setShowNextShiftPrompt(true);
+          alert('Old shift history was cleared. Shift closed locally; you can start the next shift.');
+        } else if (lowerRole === 'manager' && onLogout) {
+          onLogout();
+        } else {
+          alert('Old shift history was cleared. Shift closed locally.');
+        }
+        return;
+      }
+
       alert(error.message || 'Failed to close shift');
       setShiftActive(true);
     } finally {

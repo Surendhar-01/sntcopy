@@ -77,6 +77,20 @@ export default function Billing({ erp, user }) {
   }, []);
 
   const normalizedSearch = searchTerm.trim().toLowerCase();
+  const products = Array.isArray(db.products) ? db.products : [];
+  const getProductStock = (product) => Number(product?.stock || 0);
+  const getCartQtyForProduct = (productId, skipIndex = -1) => (
+    items.reduce((sum, item, index) => {
+      if (index === skipIndex || String(item.id) !== String(productId)) {
+        return sum;
+      }
+      return sum + Number(item.qty || 0);
+    }, 0)
+  );
+  const getRemainingStockForCart = (product, skipIndex = -1) => (
+    Math.max(0, getProductStock(product) - getCartQtyForProduct(product?.id, skipIndex))
+  );
+  const availableProductCount = products.filter((product) => getProductStock(product) > 0).length;
   const popupProducts = (Array.isArray(db.products) ? db.products : [])
     .filter((product) => {
       if (!normalizedSearch) {
@@ -89,13 +103,28 @@ export default function Billing({ erp, user }) {
     })
     .slice(0, 80);
 
+  const openProductPopup = async () => {
+    setShowProductPopup(true);
+    try {
+      await erp.fetchProducts(true);
+    } catch (error) {
+      showToast(error.message || 'Failed to fetch latest stock', 'error');
+    }
+  };
+
   const toggleProductSelection = (product) => {
+    const remainingStock = getRemainingStockForCart(product);
+    if (remainingStock <= 0) {
+      showToast(`${product.name} is out of stock.`, 'error');
+      return;
+    }
+
     setSelectedProducts((prev) => {
       const next = { ...prev };
       if (next[product.id] !== undefined) {
         delete next[product.id];
       } else {
-        next[product.id] = Number(qty) || 1;
+        next[product.id] = Math.min(Number(qty) || 1, remainingStock);
       }
       return next;
     });
@@ -103,10 +132,19 @@ export default function Billing({ erp, user }) {
 
   const handleAddSelected = () => {
     const newItems = [];
-    Object.keys(selectedProducts).forEach((prodId) => {
+    for (const prodId of Object.keys(selectedProducts)) {
       const product = db.products.find((p) => String(p.id) === String(prodId));
       if (product) {
+        const remainingStock = getRemainingStockForCart(product);
         const parsedQty = parseInt(selectedProducts[prodId], 10) || 1;
+        if (remainingStock <= 0) {
+          showToast(`${product.name} is out of stock.`, 'error');
+          return;
+        }
+        if (parsedQty > remainingStock) {
+          showToast(`Only ${remainingStock} item(s) are available in stock.`, 'error');
+          return;
+        }
         newItems.push({
           id: product.id,
           name: product.name,
@@ -115,7 +153,7 @@ export default function Billing({ erp, user }) {
           total: product.price * parsedQty
         });
       }
-    });
+    }
 
     if (newItems.length > 0) {
       setItems((prevItems) => [...prevItems, ...newItems]);
@@ -137,7 +175,12 @@ export default function Billing({ erp, user }) {
         return item;
       }
 
-      const nextQty = Math.max(1, Number(item.qty || 1) + delta);
+      const product = products.find((p) => String(p.id) === String(item.id));
+      const maxQty = getRemainingStockForCart(product || item, currentIndex) + Number(item.qty || 0);
+      const nextQty = Math.max(1, Math.min(maxQty, Number(item.qty || 1) + delta));
+      if (delta > 0 && nextQty === Number(item.qty || 1)) {
+        showToast(`Only ${maxQty} item(s) are available in stock.`, 'error');
+      }
       return {
         ...item,
         qty: nextQty,
@@ -274,6 +317,17 @@ export default function Billing({ erp, user }) {
     if (!customer.trim()) return showToast('Please enter Customer Name!', 'error');
     if (!phone.trim() || phone.length < 10) return showToast('Valid Mobile Number is required!', 'error');
     const nextSeq = getNextBillSeq(db.bills);
+
+    for (const item of items) {
+      const product = products.find((p) => String(p.id) === String(item.id));
+      const availableStock = getProductStock(product);
+      if (!product || availableStock <= 0) {
+        return showToast(`${item.name} is out of stock.`, 'error');
+      }
+      if (Number(item.qty || 0) > availableStock) {
+        return showToast(`Only ${availableStock} item(s) are available in stock.`, 'error');
+      }
+    }
 
     const bill = {
       billNo: `SNT-${String(nextSeq).padStart(4, '0')}`,
@@ -440,7 +494,7 @@ export default function Billing({ erp, user }) {
               placeholder="Click to select products..."
               value={searchTerm}
               readOnly
-              onClick={() => setShowProductPopup(true)}
+              onClick={openProductPopup}
               style={{ flex: 1 }}
             />
           </div>
@@ -621,24 +675,33 @@ export default function Billing({ erp, user }) {
             <div className="billing-product-list">
               {popupProducts.map((product) => {
                 const isSelected = selectedProducts[product.id] !== undefined;
+                const currentStock = getProductStock(product);
+                const remainingStock = getRemainingStockForCart(product);
+                const isDisabled = currentStock <= 0 || remainingStock <= 0;
                 return (
                   <div
                     key={product.id}
-                    className={`billing-product-row ${isSelected ? 'selected' : ''}`}
+                    className={`billing-product-row ${isSelected ? 'selected' : ''} ${isDisabled ? 'disabled' : ''}`}
                     onClick={() => toggleProductSelection(product)}
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', cursor: 'pointer' }}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', cursor: isDisabled ? 'not-allowed' : 'pointer' }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
                       <input
                         type="checkbox"
                         checked={isSelected}
+                        disabled={isDisabled}
                         onChange={() => toggleProductSelection(product)}
                         onClick={(e) => e.stopPropagation()}
-                        style={{ cursor: 'pointer', width: '16px', height: '16px', flexShrink: 0 }}
+                        style={{ cursor: isDisabled ? 'not-allowed' : 'pointer', width: '16px', height: '16px', flexShrink: 0 }}
                       />
                       <div className="billing-product-name" style={{ display: 'flex', flexDirection: 'column' }}>
                         <span>{product.name}</span>
                         {product.code && <span className="text-muted text-xs" style={{ marginTop: '2px' }}>{product.code}</span>}
+                        {currentStock > 0 ? (
+                          <span className="billing-stock-text">Available Stock: {currentStock}</span>
+                        ) : (
+                          <span className="billing-stock-badge">Out of Stock</span>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()} style={{ flexShrink: 0 }}>
@@ -647,9 +710,13 @@ export default function Billing({ erp, user }) {
                         <input
                           type="number"
                           min="1"
+                          max={remainingStock}
                           value={selectedProducts[product.id]}
                           onChange={(e) => {
-                            const val = Math.max(1, parseInt(e.target.value, 10) || 1);
+                            const val = Math.max(1, Math.min(remainingStock, parseInt(e.target.value, 10) || 1));
+                            if (val < (parseInt(e.target.value, 10) || 1)) {
+                              showToast(`Only ${remainingStock} item(s) are available in stock.`, 'error');
+                            }
                             setSelectedProducts((prev) => ({
                               ...prev,
                               [product.id]: val
@@ -673,7 +740,12 @@ export default function Billing({ erp, user }) {
               })}
               {popupProducts.length === 0 && (
                 <div className="text-center text-muted text-sm" style={{ padding: '12px 8px' }}>
-                  No matching products found
+                  {availableProductCount === 0 ? 'No products are currently available for billing.' : 'No matching products found'}
+                </div>
+              )}
+              {popupProducts.length > 0 && availableProductCount === 0 && (
+                <div className="text-center text-muted text-sm" style={{ padding: '12px 8px' }}>
+                  No products are currently available for billing.
                 </div>
               )}
             </div>

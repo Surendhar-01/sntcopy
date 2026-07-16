@@ -38,6 +38,12 @@ let ApiController = class ApiController {
     clearRefills() {
         return this.apiService.clearRefills();
     }
+    syncOpeningStock() {
+        return this.apiService.syncOpeningStock();
+    }
+    repairStock() {
+        return this.apiService.repairStock();
+    }
     createPriceHistory(body) {
         return this.apiService.createPriceHistory(body);
     }
@@ -67,6 +73,9 @@ let ApiController = class ApiController {
     }
     clearCustomers() {
         return this.apiService.clearCustomers();
+    }
+    resetSalesData() {
+        return this.apiService.resetSalesData();
     }
     createLoginLog(body) {
         return this.apiService.createLoginLog(body);
@@ -156,6 +165,18 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], ApiController.prototype, "clearRefills", null);
 __decorate([
+    (0, common_1.Put)('products/opening-stock/sync'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], ApiController.prototype, "syncOpeningStock", null);
+__decorate([
+    (0, common_1.Post)('stock/repair'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], ApiController.prototype, "repairStock", null);
+__decorate([
     (0, common_1.Post)('price-history'),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -225,6 +246,12 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
 ], ApiController.prototype, "clearCustomers", null);
+__decorate([
+    (0, common_1.Post)('reset-sales-data'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], ApiController.prototype, "resetSalesData", null);
 __decorate([
     (0, common_1.Post)('login-logs'),
     __param(0, (0, common_1.Body)()),

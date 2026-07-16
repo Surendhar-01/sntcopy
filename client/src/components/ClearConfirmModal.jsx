@@ -24,7 +24,7 @@ export default function ClearConfirmModal({
         <div className="flex gap-3 justify-end mt-2">
           <button className="btn btn-secondary" type="button" onClick={onClose} disabled={loading} style={{ padding: '10px 20px' }}>Cancel</button>
           <button className="btn btn-danger" type="button" onClick={onConfirm} disabled={loading} style={{ padding: '10px 20px' }}>
-            {loading ? 'Clearing...' : confirmLabel}
+            {confirmLabel}
           </button>
         </div>
       </div>

@@ -19,6 +19,7 @@ const app = express();
 const port = process.env.PORT || 5001;
 const dbName = process.env.DB_DATABASE || process.env.DB_NAME || 'erp';
 const dbPort = Number(process.env.DB_PORT || 3306);
+const dbUser = process.env.DB_USERNAME || process.env.DB_USER;
 const runtimeMailEnvKeys = [
   'SMTP_HOST',
   'SMTP_PORT',
@@ -288,7 +289,7 @@ app.get('/docs', (req, res) => {
 async function initializeDatabase() {
   const tempConnection = await mysql.createConnection({
     host: process.env.DB_HOST,
-    user: process.env.DB_USER,
+    user: dbUser,
     password: process.env.DB_PASSWORD,
     port: dbPort
   });
@@ -308,7 +309,7 @@ async function initializeDatabase() {
       bills: `CREATE TABLE IF NOT EXISTS \`bills\` ( \`id\` INT AUTO_INCREMENT PRIMARY KEY, \`billNo\` VARCHAR(255) NOT NULL, \`customer\` VARCHAR(255), \`phone\` VARCHAR(20), \`payment\` VARCHAR(50), \`date\` DATETIME NOT NULL, \`subtotal\` DECIMAL(10, 2) NOT NULL DEFAULT 0.00, \`cgst\` DECIMAL(10, 2) NOT NULL DEFAULT 0.00, \`sgst\` DECIMAL(10, 2) NOT NULL DEFAULT 0.00, \`grand\` DECIMAL(10, 2) NOT NULL DEFAULT 0.00, \`items\` LONGTEXT, \`by_user\` VARCHAR(100), \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ) ENGINE=InnoDB`,
       customers: `CREATE TABLE IF NOT EXISTS \`customers\` ( \`id\` INT AUTO_INCREMENT PRIMARY KEY, \`name\` VARCHAR(255) NOT NULL, \`phone\` VARCHAR(50) UNIQUE, \`visits\` INT NOT NULL DEFAULT 0, \`total\` DECIMAL(12, 2) NOT NULL DEFAULT 0.00, \`firstVisit\` DATETIME, \`lastVisit\` DATETIME, \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ) ENGINE=InnoDB`,
       sales: `CREATE TABLE IF NOT EXISTS \`sales\` ( \`id\` INT AUTO_INCREMENT PRIMARY KEY, \`date\` DATETIME NOT NULL, \`billNo\` VARCHAR(255), \`customer\` VARCHAR(255), \`product\` VARCHAR(255), \`qty\` INT NOT NULL DEFAULT 0, \`amount\` DECIMAL(12, 2) NOT NULL DEFAULT 0.00, \`by_user\` VARCHAR(100), \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ) ENGINE=InnoDB`,
-      refills: `CREATE TABLE IF NOT EXISTS \`refills\` ( \`id\` INT AUTO_INCREMENT PRIMARY KEY, \`date\` DATETIME NOT NULL, \`product\` VARCHAR(255), \`qty\` INT NOT NULL DEFAULT 0, \`by\` VARCHAR(100), \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ) ENGINE=InnoDB`,
+      refills: `CREATE TABLE IF NOT EXISTS \`refills\` ( \`id\` INT AUTO_INCREMENT PRIMARY KEY, \`date\` DATETIME NOT NULL, \`product_id\` INT NULL, \`product\` VARCHAR(255), \`qty\` INT NOT NULL DEFAULT 0, \`by\` VARCHAR(100), \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ) ENGINE=InnoDB`,
       price_history: `CREATE TABLE IF NOT EXISTS \`price_history\` ( \`id\` INT AUTO_INCREMENT PRIMARY KEY, \`date\` DATETIME NOT NULL, \`product\` VARCHAR(255), \`old\` DECIMAL(12, 2) NOT NULL DEFAULT 0.00, \`new\` DECIMAL(12, 2) NOT NULL DEFAULT 0.00, \`by\` VARCHAR(100), \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ) ENGINE=InnoDB`,
       login_logs: `CREATE TABLE IF NOT EXISTS \`login_logs\` ( \`id\` INT AUTO_INCREMENT PRIMARY KEY, \`user\` VARCHAR(255), \`role\` VARCHAR(50), \`loginTime\` DATETIME, \`logoutTime\` DATETIME, \`status\` VARCHAR(50) NOT NULL DEFAULT 'Active', \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ) ENGINE=InnoDB`,
       shift_reports: `CREATE TABLE IF NOT EXISTS \`shift_reports\` ( \`id\` INT AUTO_INCREMENT PRIMARY KEY, \`session_id\` INT NULL, \`user\` VARCHAR(255) NOT NULL, \`role\` VARCHAR(50) NOT NULL DEFAULT 'Staff', \`shift_start\` DATETIME NOT NULL, \`shift_end\` DATETIME NOT NULL, \`total_bills\` INT NOT NULL DEFAULT 0, \`total_items_sold\` INT NOT NULL DEFAULT 0, \`total_sales_amount\` DECIMAL(12, 2) NOT NULL DEFAULT 0.00, \`payment_breakdown\` JSON NULL, \`remaining_stock_summary\` JSON NULL, \`report_email\` VARCHAR(255) NULL, \`report_subject\` VARCHAR(255) NULL, \`email_status\` VARCHAR(50) NOT NULL DEFAULT 'pending', \`email_error\` TEXT NULL, \`email_sent_at\` DATETIME NULL, \`status\` VARCHAR(50) NOT NULL DEFAULT 'Completed', \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ) ENGINE=InnoDB`,
@@ -395,6 +396,20 @@ async function initializeDatabase() {
       await tempConnection.query('ALTER TABLE `products` ADD COLUMN `opening_stock` INT NOT NULL DEFAULT 0 AFTER `sold`');
     }
 
+    const [refillProductIdCols] = await tempConnection.query(
+      'SELECT COLUMN_NAME FROM information_schema.columns WHERE table_schema = ? AND table_name = ? AND column_name = ?',
+      [dbName, 'refills', 'product_id']
+    );
+    if (refillProductIdCols.length === 0) {
+      await tempConnection.query('ALTER TABLE `refills` ADD COLUMN `product_id` INT NULL AFTER `date`');
+      await tempConnection.query(
+        `UPDATE refills r
+         JOIN products p ON p.name = r.product
+         SET r.product_id = p.id
+         WHERE r.product_id IS NULL`
+      );
+    }
+
   } finally {
     await tempConnection.end();
   }
@@ -404,7 +419,7 @@ async function initializeDatabase() {
 // Using a pool is better for performance and managing multiple connections
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
-  user: process.env.DB_USER,
+  user: dbUser,
   password: process.env.DB_PASSWORD,
   database: dbName,
   port: dbPort,
@@ -671,6 +686,103 @@ app.get('/api/products', async (req, res) => {
   }
 });
 
+app.post('/api/stock/repair', async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    const [products] = await connection.query(
+      'SELECT id, code, name, opening_stock FROM products FOR UPDATE'
+    );
+    const [bills] = await connection.query('SELECT id, billNo, items FROM bills');
+    const [refills] = await connection.query('SELECT product_id, product, qty FROM refills');
+    const [duplicateBills] = await connection.query(
+      'SELECT billNo, COUNT(*) AS count FROM bills GROUP BY billNo HAVING COUNT(*) > 1'
+    );
+    const [duplicateRefills] = await connection.query(
+      'SELECT product, qty, date, `by`, COUNT(*) AS count FROM refills GROUP BY product, qty, date, `by` HAVING COUNT(*) > 1'
+    );
+
+    const soldByProductId = new Map();
+    for (const bill of bills) {
+      const items = parseItems(bill.items);
+      for (const item of items) {
+        const productId = Number(item.id);
+        const qty = Number(item.qty || 0);
+        if (!Number.isFinite(productId) || !Number.isFinite(qty) || qty <= 0) {
+          continue;
+        }
+        soldByProductId.set(productId, (soldByProductId.get(productId) || 0) + qty);
+      }
+    }
+
+    const refillByProductId = new Map();
+    const refillByProductName = new Map();
+    for (const refill of refills) {
+      const productId = Number(refill.product_id || 0);
+      const productName = String(refill.product || '').trim();
+      const qty = Number(refill.qty || 0);
+      if (!Number.isFinite(qty) || qty <= 0) {
+        continue;
+      }
+      if (Number.isFinite(productId) && productId > 0) {
+        refillByProductId.set(productId, (refillByProductId.get(productId) || 0) + qty);
+      } else if (productName) {
+        refillByProductName.set(productName, (refillByProductName.get(productName) || 0) + qty);
+      }
+    }
+
+    const invalidProducts = [];
+    let repairedProducts = 0;
+
+    for (const product of products) {
+      const soldQty = Number(soldByProductId.get(Number(product.id)) || 0);
+      const currentOpeningStock = Number(product.opening_stock || 0);
+      const refillStock = Number(
+        refillByProductId.get(Number(product.id)) ||
+        refillByProductName.get(String(product.name || '').trim()) ||
+        0
+      );
+      const openingStock = Math.max(currentOpeningStock, refillStock);
+      const nextStock = openingStock - soldQty;
+
+      if (nextStock < 0) {
+        invalidProducts.push({
+          id: product.id,
+          code: product.code,
+          name: product.name,
+          openingStock,
+          sold: soldQty,
+          currentStock: nextStock
+        });
+        continue;
+      }
+
+      const [result] = await connection.query(
+        'UPDATE products SET opening_stock = ?, sold = ?, stock = ? WHERE id = ?',
+        [openingStock, soldQty, nextStock, product.id]
+      );
+      repairedProducts += result.affectedRows || 0;
+    }
+
+    await connection.commit();
+    await syncSchemaSql('repair stock');
+    res.json({
+      success: invalidProducts.length === 0,
+      repairedProducts,
+      invalidProducts,
+      duplicateBills,
+      duplicateRefills
+    });
+  } catch (error) {
+    if (connection) await connection.rollback();
+    console.error('Failed to repair stock:', error);
+    res.status(500).json({ error: 'Unable to repair stock' });
+  } finally {
+    if (connection) connection.release();
+  }
+});
+
 app.get('/api/bills', async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT * FROM bills ORDER BY date DESC');
@@ -784,6 +896,59 @@ app.post('/api/bills', async (req, res) => {
     await connection.beginTransaction();
 
     const saleDate = toMysqlDateTime(date);
+    if (!Array.isArray(items) || items.length === 0) {
+      const error = new Error('At least one bill item is required');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const requestedQtyByProductId = new Map();
+    for (const item of items) {
+      const productId = Number(item.id);
+      const qty = Number(item.qty || 0);
+      if (!Number.isFinite(productId) || !Number.isFinite(qty) || qty <= 0) {
+        const error = new Error('Every bill item must have a valid product and positive quantity');
+        error.statusCode = 400;
+        throw error;
+      }
+      requestedQtyByProductId.set(productId, (requestedQtyByProductId.get(productId) || 0) + qty);
+    }
+
+    const productIds = Array.from(requestedQtyByProductId.keys());
+    const [stockRows] = await connection.query(
+      'SELECT id, name, stock, sold, opening_stock FROM products WHERE id IN (?) FOR UPDATE',
+      [productIds]
+    );
+    const stockByProductId = new Map(stockRows.map((product) => [Number(product.id), product]));
+
+    for (const [productId, requestedQty] of requestedQtyByProductId.entries()) {
+      const product = stockByProductId.get(productId);
+      if (!product) {
+        const error = new Error('Product not found for billing');
+        error.statusCode = 400;
+        throw error;
+      }
+
+      const availableStock = Number(product.stock || 0);
+      const openingStock = Number(product.opening_stock || 0);
+      const currentSold = Number(product.sold || 0);
+      const expectedStock = openingStock - currentSold;
+      if (availableStock !== expectedStock || expectedStock < 0) {
+        const error = new Error('Stock cannot become negative.');
+        error.statusCode = 400;
+        throw error;
+      }
+      if (availableStock <= 0) {
+        const error = new Error(`${product.name} is out of stock.`);
+        error.statusCode = 400;
+        throw error;
+      }
+      if (requestedQty > availableStock) {
+        const error = new Error(`Only ${availableStock} item(s) are available in stock for ${product.name}.`);
+        error.statusCode = 400;
+        throw error;
+      }
+    }
 
     let billNoToUse = String(billNo || '').trim();
     if (!billNoToUse) {
@@ -803,19 +968,31 @@ app.post('/api/bills', async (req, res) => {
       [billNoToUse, customer, phone, payment, saleDate, subtotal, cgst, sgst, grand, JSON.stringify(items || []), by_user]
     );
 
-    // Update stock for each item
-    if (Array.isArray(items)) {
-      for (const item of items) {
-        await connection.query(
-          'UPDATE products SET stock = GREATEST(0, stock - ?), sold = sold + ? WHERE id = ?',
-          [item.qty, item.qty, item.id]
-        );
-        // Insert into item-wise sales table
-        await connection.query(
-          'INSERT INTO sales (date, billNo, customer, product, qty, amount, by_user, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())',
-          [saleDate, billNoToUse, customer || null, item.name, item.qty, item.total || (item.qty * item.price), by_user || null]
-        );
+    for (const [productId, requestedQty] of requestedQtyByProductId.entries()) {
+      const [stockUpdate] = await connection.query(
+        `UPDATE products
+         SET stock = opening_stock - (sold + ?),
+             sold = sold + ?
+         WHERE id = ?
+           AND stock >= ?
+           AND opening_stock - (sold + ?) >= 0`,
+        [requestedQty, requestedQty, productId, requestedQty, requestedQty]
+      );
+
+      if (stockUpdate.affectedRows !== 1) {
+        const product = stockByProductId.get(productId);
+        const availableStock = Number(product?.stock || 0);
+        const error = new Error(`Only ${availableStock} item(s) are available in stock for ${product?.name || 'this product'}.`);
+        error.statusCode = 400;
+        throw error;
       }
+    }
+
+    for (const item of items) {
+      await connection.query(
+        'INSERT INTO sales (date, billNo, customer, product, qty, amount, by_user, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())',
+        [saleDate, billNoToUse, customer || null, item.name, item.qty, item.total || (item.qty * item.price), by_user || null]
+      );
     }
 
     // optionally maintain customers table
@@ -832,7 +1009,7 @@ app.post('/api/bills', async (req, res) => {
   } catch (error) {
     if (connection) await connection.rollback();
     console.error('Failed to insert bill:', error);
-    res.status(500).json({ error: 'Unable to save bill' });
+    res.status(error.statusCode || 500).json({ error: error.statusCode ? error.message : 'Unable to save bill' });
   } finally {
     if (connection) connection.release();
   }
@@ -856,9 +1033,17 @@ app.delete('/api/bills/:id', async (req, res) => {
     // 2. Revert stock
     if (Array.isArray(items)) {
       for (const item of items) {
+        const qty = Number(item.qty || 0);
+        const productId = Number(item.id);
+        if (!Number.isFinite(productId) || !Number.isFinite(qty) || qty <= 0) {
+          continue;
+        }
         await connection.query(
-          'UPDATE products SET stock = stock + ?, sold = GREATEST(0, sold - ?) WHERE id = ?',
-          [item.qty, item.qty, item.id]
+          `UPDATE products
+           SET stock = opening_stock - GREATEST(0, sold - ?),
+               sold = GREATEST(0, sold - ?)
+           WHERE id = ?`,
+          [qty, qty, productId]
         );
       }
     }
@@ -906,7 +1091,10 @@ app.delete('/api/bills', async (req, res) => {
 
     for (const [productId, qty] of rollbackByProductId.entries()) {
       await connection.query(
-        'UPDATE products SET stock = stock + ?, sold = GREATEST(0, sold - ?) WHERE id = ?',
+        `UPDATE products
+         SET stock = opening_stock - GREATEST(0, sold - ?),
+             sold = GREATEST(0, sold - ?)
+         WHERE id = ?`,
         [qty, qty, productId]
       );
     }
@@ -928,29 +1116,55 @@ app.delete('/api/bills', async (req, res) => {
 });
 
 app.post('/api/refills', async (req, res) => {
-  const { product, qty, by, by_user, date } = req.body;
+  const { product, product_id, productId, id, qty, by, by_user, date } = req.body;
+  const requestedProductId = Number(product_id || productId || id || 0);
   const refillQty = Number.parseInt(qty, 10);
-  if (!product || !Number.isFinite(refillQty) || refillQty <= 0) {
-    return res.status(400).json({ error: 'Product and positive quantity are required' });
+  if (
+    (!product && (!Number.isFinite(requestedProductId) || requestedProductId <= 0)) ||
+    !Number.isFinite(refillQty) ||
+    refillQty <= 0
+  ) {
+    return res.status(400).json({ error: 'Refill quantity must be greater than zero.' });
   }
 
   const connection = await pool.getConnection();
   try {
     await connection.beginTransaction();
 
-    const [updateResult] = await connection.query(
-      'UPDATE products SET stock = stock + ? WHERE name = ?',
-      [refillQty, product]
-    );
+    const [productRows] = Number.isFinite(requestedProductId) && requestedProductId > 0
+      ? await connection.query(
+          'SELECT id, name, stock, sold, opening_stock FROM products WHERE id = ? FOR UPDATE',
+          [requestedProductId]
+        )
+      : await connection.query(
+          'SELECT id, name, stock, sold, opening_stock FROM products WHERE name = ? FOR UPDATE',
+          [product]
+        );
 
-    if (updateResult.affectedRows === 0) {
+    if (productRows.length === 0) {
       await connection.rollback();
       return res.status(404).json({ error: 'Product not found for refill' });
     }
 
+    const lockedProduct = productRows[0];
+    const currentStock = Number(lockedProduct.stock || 0);
+    const currentSold = Number(lockedProduct.sold || 0);
+    const openingStock = Number(lockedProduct.opening_stock || 0);
+    if (currentStock !== openingStock - currentSold || currentStock < 0) {
+      await connection.rollback();
+      return res.status(400).json({ error: 'Stock cannot become negative.' });
+    }
+    const newOpeningStock = openingStock + refillQty;
+    const newStock = newOpeningStock - currentSold;
+
+    await connection.query(
+      'UPDATE products SET opening_stock = ?, stock = ? WHERE id = ?',
+      [newOpeningStock, newStock, lockedProduct.id]
+    );
+
     const [result] = await connection.query(
-      'INSERT INTO refills (product, qty, `by`, date, created_at) VALUES (?, ?, ?, ?, NOW())',
-      [product, refillQty, by || by_user || 'system', toMysqlDateTime(date)]
+      'INSERT INTO refills (product_id, product, qty, `by`, date, created_at) VALUES (?, ?, ?, ?, ?, NOW())',
+      [lockedProduct.id, lockedProduct.name || product, refillQty, by || by_user || 'system', toMysqlDateTime(date)]
     );
 
     await connection.commit();
@@ -975,17 +1189,39 @@ app.delete('/api/refills/:id', async (req, res) => {
   try {
     await connection.beginTransaction();
 
-    const [rows] = await connection.query('SELECT id, product, qty FROM refills WHERE id = ? LIMIT 1', [refillId]);
+    const [rows] = await connection.query('SELECT id, product_id, product, qty FROM refills WHERE id = ? LIMIT 1', [refillId]);
     if (rows.length === 0) {
       await connection.rollback();
       return res.status(404).json({ error: 'Refill record not found' });
     }
 
     const refill = rows[0];
-    await connection.query(
-      'UPDATE products SET stock = GREATEST(0, stock - ?) WHERE name = ?',
-      [Number(refill.qty || 0), refill.product]
-    );
+    const refillQty = Number(refill.qty || 0);
+    const refillProductId = Number(refill.product_id || 0);
+    const [updateResult] = Number.isFinite(refillProductId) && refillProductId > 0
+      ? await connection.query(
+          `UPDATE products
+           SET stock = (opening_stock - ?) - sold,
+               opening_stock = opening_stock - ?
+           WHERE id = ?
+             AND opening_stock >= ?
+             AND (opening_stock - ?) - sold >= 0`,
+          [refillQty, refillQty, refillProductId, refillQty, refillQty]
+        )
+      : await connection.query(
+          `UPDATE products
+           SET stock = (opening_stock - ?) - sold,
+               opening_stock = opening_stock - ?
+           WHERE name = ?
+             AND opening_stock >= ?
+             AND (opening_stock - ?) - sold >= 0`,
+          [refillQty, refillQty, refill.product, refillQty, refillQty]
+        );
+    if (updateResult.affectedRows !== 1) {
+      const error = new Error('Stock cannot become negative.');
+      error.statusCode = 400;
+      throw error;
+    }
     await connection.query('DELETE FROM refills WHERE id = ?', [refillId]);
 
     await connection.commit();
@@ -1001,13 +1237,51 @@ app.delete('/api/refills/:id', async (req, res) => {
 });
 
 app.delete('/api/refills', async (req, res) => {
+  const connection = await pool.getConnection();
   try {
-    await pool.query('DELETE FROM refills');
+    await connection.beginTransaction();
+    const [rows] = await connection.query('SELECT product_id, product, SUM(qty) AS qty FROM refills GROUP BY product_id, product');
+    for (const refill of rows) {
+      const refillQty = Number(refill.qty || 0);
+      if (!Number.isFinite(refillQty) || refillQty <= 0) {
+        continue;
+      }
+      const refillProductId = Number(refill.product_id || 0);
+      const [updateResult] = Number.isFinite(refillProductId) && refillProductId > 0
+        ? await connection.query(
+            `UPDATE products
+             SET stock = (opening_stock - ?) - sold,
+                 opening_stock = opening_stock - ?
+             WHERE id = ?
+               AND opening_stock >= ?
+               AND (opening_stock - ?) - sold >= 0`,
+            [refillQty, refillQty, refillProductId, refillQty, refillQty]
+          )
+        : await connection.query(
+            `UPDATE products
+             SET stock = (opening_stock - ?) - sold,
+                 opening_stock = opening_stock - ?
+             WHERE name = ?
+               AND opening_stock >= ?
+               AND (opening_stock - ?) - sold >= 0`,
+            [refillQty, refillQty, refill.product, refillQty, refillQty]
+          );
+      if (updateResult.affectedRows !== 1) {
+        const error = new Error(`Stock cannot become negative for ${refill.product}.`);
+        error.statusCode = 400;
+        throw error;
+      }
+    }
+    await connection.query('DELETE FROM refills');
+    await connection.commit();
     await syncSchemaSql('clear refills');
     res.json({ success: true });
   } catch (error) {
+    if (connection) await connection.rollback();
     console.error('Failed to clear refills:', error);
-    res.status(500).json({ error: 'Unable to clear refills' });
+    res.status(error.statusCode || 500).json({ error: error.statusCode ? error.message : 'Unable to clear refills' });
+  } finally {
+    if (connection) connection.release();
   }
 });
 
@@ -1098,10 +1372,14 @@ app.delete('/api/price-history', async (req, res) => {
 
 app.post('/api/products', async (req, res) => {
   const { code, name, cat, unit, price, stock, image } = req.body;
+  const initialStock = Number(stock || 0);
+  if (!Number.isFinite(initialStock) || initialStock < 0) {
+    return res.status(400).json({ error: 'Initial stock must be zero or greater' });
+  }
   try {
     const [result] = await pool.query(
-      'INSERT INTO products (code, name, cat, unit, price, stock, image, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())',
-      [code, name, cat, unit, price, stock, image]
+      'INSERT INTO products (code, name, cat, unit, price, stock, sold, opening_stock, image, created_at) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, NOW())',
+      [code, name, cat, unit, price, initialStock, initialStock, image]
     );
     await syncSchemaSql('create product');
     res.json({ id: result.insertId });
@@ -1484,13 +1762,24 @@ app.post('/api/shifts/end', async (req, res) => {
     }
 
     await connection.beginTransaction();
+    let reportSessionId = null;
 
     // Mark shift as Completed in login_logs, both for admin and non-admin
     if (Number.isFinite(shiftSessionId)) {
-      await connection.query(
-        'UPDATE login_logs SET logoutTime = ?, status = ? WHERE id = ?',
-        [shiftEndSql, 'Completed', shiftSessionId]
-      );
+      const [sessionRows] = await connection.query('SELECT id FROM login_logs WHERE id = ? LIMIT 1', [shiftSessionId]);
+
+      if (sessionRows.length > 0) {
+        reportSessionId = shiftSessionId;
+        await connection.query(
+          'UPDATE login_logs SET logoutTime = ?, status = ? WHERE id = ?',
+          [shiftEndSql, 'Completed', shiftSessionId]
+        );
+      } else {
+        await connection.query(
+          'UPDATE login_logs SET logoutTime = ?, status = ? WHERE user = ? AND logoutTime IS NULL ORDER BY id DESC LIMIT 1',
+          [shiftEndSql, 'Completed', shiftUser]
+        );
+      }
     } else {
       await connection.query(
         'UPDATE login_logs SET logoutTime = ?, status = ? WHERE user = ? AND logoutTime IS NULL ORDER BY id DESC LIMIT 1',
@@ -1504,7 +1793,7 @@ app.post('/api/shifts/end', async (req, res) => {
         payment_breakdown, remaining_stock_summary, report_email, report_subject, email_status, email_error, email_sent_at, status, created_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
       [
-        Number.isFinite(shiftSessionId) ? shiftSessionId : null,
+        reportSessionId,
         shiftUser,
         shiftRole,
         shiftStartSql,
@@ -1552,7 +1841,7 @@ app.post('/api/shifts/end', async (req, res) => {
           payment_breakdown, remaining_stock_summary, report_email, report_subject, email_status, email_error, email_sent_at, status, created_at
         ) VALUES (?, ?, ?, ?, ?, 0, 0, 0, NULL, NULL, ?, 'Shift Sales Report Failed', 'failed', ?, NULL, ?, NOW())`,
         [
-          Number.isFinite(shiftSessionId) ? shiftSessionId : null,
+          null,
           shiftUser,
           shiftRole,
           toMysqlDateTime(shiftStart),

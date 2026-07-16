@@ -21,6 +21,16 @@ export declare class ApiController {
     clearRefills(): Promise<{
         success: boolean;
     }>;
+    syncOpeningStock(): Promise<{
+        success: boolean;
+    }>;
+    repairStock(): Promise<{
+        success: boolean;
+        repairedProducts: number;
+        invalidProducts: any[];
+        duplicateBills: any[];
+        duplicateRefills: any[];
+    }>;
     createPriceHistory(body: any): Promise<{
         id: any;
     }>;
@@ -50,6 +60,11 @@ export declare class ApiController {
     }>;
     clearCustomers(): Promise<{
         success: boolean;
+    }>;
+    resetSalesData(): Promise<{
+        success: boolean;
+        backupId: any;
+        message: string;
     }>;
     createLoginLog(body: any): Promise<{
         skipped: boolean;

@@ -41,7 +41,12 @@ const defaultProducts = [
 ];
 
 const defaultDb = {
-  products: defaultProducts,
+  products: defaultProducts.map((product) => ({
+    ...product,
+    opening_stock: 0,
+    stock: 0,
+    sold: 0
+  })),
   bills: [],
   customers: [],
   suppliers: [],
@@ -146,7 +151,7 @@ function normalizeDb(data) {
     price: Number(product.price || 0),
     stock: Number(product.stock || 0),
     sold: Number(product.sold || 0),
-    opening_stock: Number(product.opening_stock ?? (product.stock + product.sold)),
+    opening_stock: Math.max(Number(product.opening_stock ?? 0), Number(product.stock || 0)),
     image: product.image || defaultProducts[index]?.image || 'https://placehold.co/150x150?text=Product'
   }));
 
@@ -254,6 +259,7 @@ export function useERPData() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [mutationNotice, setMutationNotice] = useState(null);
 
   const db = useMemo(() => ({
     products,
@@ -269,6 +275,7 @@ export function useERPData() {
 
   const initDone = useRef(false);
   const pendingRequests = useRef({});
+  const noticeTimeout = useRef(null);
   const lastFetched = useRef({
     products: 0,
     bills: 0,
@@ -288,11 +295,28 @@ export function useERPData() {
     return Date.now() - last > CACHE_TTL;
   }, []);
 
+  const showMutationNotice = useCallback((message, type = 'success') => {
+    if (noticeTimeout.current) {
+      window.clearTimeout(noticeTimeout.current);
+    }
+
+    setMutationNotice({
+      id: Date.now(),
+      message,
+      type
+    });
+
+    noticeTimeout.current = window.setTimeout(() => {
+      setMutationNotice(null);
+      noticeTimeout.current = null;
+    }, 2600);
+  }, []);
+
   const fetchSettings = useCallback(async (force = false) => {
     if (!shouldFetch('settings', force)) {
       return settings;
     }
-    if (pendingRequests.current.settings) {
+    if (pendingRequests.current.settings && !force) {
       return pendingRequests.current.settings;
     }
     const promise = (async () => {
@@ -321,7 +345,7 @@ export function useERPData() {
     if (!shouldFetch('products', force)) {
       return products;
     }
-    if (pendingRequests.current.products) {
+    if (pendingRequests.current.products && !force) {
       return pendingRequests.current.products;
     }
     const promise = (async () => {
@@ -332,7 +356,7 @@ export function useERPData() {
           price: Number(product.price || 0),
           stock: Number(product.stock || 0),
           sold: Number(product.sold || 0),
-          opening_stock: Number(product.opening_stock ?? (product.stock + product.sold)),
+          opening_stock: Math.max(Number(product.opening_stock ?? 0), Number(product.stock || 0)),
           image: product.image || defaultProducts[index]?.image || 'https://placehold.co/150x150?text=Product'
         }));
         setProducts(normalized);
@@ -353,7 +377,7 @@ export function useERPData() {
     if (!shouldFetch('bills', force)) {
       return bills;
     }
-    if (pendingRequests.current.bills) {
+    if (pendingRequests.current.bills && !force) {
       return pendingRequests.current.bills;
     }
     const promise = (async () => {
@@ -387,7 +411,7 @@ export function useERPData() {
     if (!shouldFetch('customers', force)) {
       return customers;
     }
-    if (pendingRequests.current.customers) {
+    if (pendingRequests.current.customers && !force) {
       return pendingRequests.current.customers;
     }
     const promise = (async () => {
@@ -418,7 +442,7 @@ export function useERPData() {
     if (!shouldFetch('refills', force)) {
       return refills;
     }
-    if (pendingRequests.current.refills) {
+    if (pendingRequests.current.refills && !force) {
       return pendingRequests.current.refills;
     }
     const promise = (async () => {
@@ -447,7 +471,7 @@ export function useERPData() {
     if (!shouldFetch('priceHistory', force)) {
       return priceHistory;
     }
-    if (pendingRequests.current.priceHistory) {
+    if (pendingRequests.current.priceHistory && !force) {
       return pendingRequests.current.priceHistory;
     }
     const promise = (async () => {
@@ -477,7 +501,7 @@ export function useERPData() {
     if (!shouldFetch('loginLogs', force)) {
       return loginLogs;
     }
-    if (pendingRequests.current.loginLogs) {
+    if (pendingRequests.current.loginLogs && !force) {
       return pendingRequests.current.loginLogs;
     }
     const promise = (async () => {
@@ -507,7 +531,7 @@ export function useERPData() {
     if (!shouldFetch('accounts', force)) {
       return accounts;
     }
-    if (pendingRequests.current.accounts) {
+    if (pendingRequests.current.accounts && !force) {
       return pendingRequests.current.accounts;
     }
     const promise = (async () => {
@@ -582,6 +606,12 @@ export function useERPData() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => () => {
+    if (noticeTimeout.current) {
+      window.clearTimeout(noticeTimeout.current);
+    }
+  }, []);
+
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
   }, [db]);
@@ -621,114 +651,24 @@ export function useERPData() {
     else if (key === 'settings') setSettings(value);
   }, []);
 
-  const runMutation = useCallback(async (path, options, fetchers = []) => {
-    await apiRequest(path, options);
-    if (fetchers.length > 0) {
-      await Promise.all(fetchers.map(f => f(true).catch(() => {})));
-    } else {
-      await refreshData();
-    }
-  }, [refreshData]);
-
-  const appendLoginLogLocally = useCallback((log) => {
-    const normalizedLog = {
-      id: Number(log.id || Date.now()),
-      user: log.user || log.user_name,
-      role: log.role || 'Staff',
-      loginTime: log.loginTime || log.login_time || new Date().toISOString(),
-      logoutTime: log.logoutTime || log.logout_time || null
-    };
-    setLoginLogs(prev => [normalizedLog, ...prev]);
-    return normalizedLog;
-  }, []);
-
-  const logoutLoginLogLocally = useCallback((id) => {
-    setLoginLogs(prev => prev.map(log =>
-      Number(log.id) === Number(id) ? { ...log, logoutTime: new Date().toISOString() } : log
-    ));
-  }, []);
-
-  const clearLoginLogsLocally = useCallback((roles = []) => {
-    const normalizedRoles = (Array.isArray(roles) ? roles : [])
-      .map((role) => String(role || '').trim().toLowerCase())
-      .filter(Boolean);
-
-    setLoginLogs(prev => normalizedRoles.length === 0 ? [] : prev.filter(log =>
-      !normalizedRoles.includes(String(log.role || '').trim().toLowerCase())
-    ));
-  }, []);
-
-  const appendPurchaseLocally = useCallback((purchase) => {
-    const normalizedPurchase = {
-      id: Number(purchase.id || Date.now()),
-      date: purchase.date || new Date().toISOString(),
-      supplier: purchase.supplier || '',
-      product: purchase.product || '',
-      qty: Number(purchase.qty || 0),
-      amount: Number(purchase.amount || 0),
-      by: purchase.by || purchase.by_user || 'staff'
-    };
-
-    setProducts((prev) => prev.map((product) => (
-      product.name === normalizedPurchase.product
-        ? { ...product, stock: Number(product.stock || 0) + normalizedPurchase.qty }
-        : product
-    )));
-    return normalizedPurchase;
-  }, []);
-
-  const deleteBillLocally = useCallback((id) => {
-    const billToDelete = bills.find((bill) => Number(bill.id) === Number(id));
-    if (!billToDelete) return;
-
-    setProducts((prev) => prev.map((product) => {
-      const matchedItem = (Array.isArray(billToDelete.items) ? billToDelete.items : []).find(
-        (item) => Number(item.id) === Number(product.id)
-      );
-      if (!matchedItem) return product;
-      return {
-        ...product,
-        stock: Number(product.stock || 0) + Number(matchedItem.qty || 0),
-        sold: Math.max(0, Number(product.sold || 0) - Number(matchedItem.qty || 0))
-      };
-    }));
-
-    setCustomers((prev) => prev.flatMap((customer) => {
-      if (customer.phone !== billToDelete.phone) {
-        return [customer];
+  const runMutation = useCallback(async (path, options, fetchers = [], config = {}) => {
+    try {
+      const result = await apiRequest(path, options);
+      if (fetchers.length > 0) {
+        await Promise.all(fetchers.map((fetcher) => fetcher(true)));
+      } else {
+        await refreshData();
       }
-      const nextVisits = Math.max(0, Number(customer.visits || 0) - 1);
-      const nextTotal = Math.max(0, Number(customer.total || 0) - Number(billToDelete.grand || 0));
-      if (nextVisits === 0) return [];
-      return [{ ...customer, visits: nextVisits, total: nextTotal }];
-    }));
-
-    setBills((prev) => prev.filter((bill) => Number(bill.id) !== Number(id)));
-  }, [bills]);
-
-  const clearRefillsLocally = useCallback(() => setRefills([]), []);
-
-  const clearBillsLocally = useCallback(() => {
-    setBills([]);
-    setCustomers([]);
-    setProducts((prev) => prev.map((product) => ({
-      ...product,
-      stock: Number(product.stock || 0) + Number(product.sold || 0),
-      sold: 0
-    })));
-  }, []);
-
-  const clearCustomersLocally = useCallback(() => setCustomers([]), []);
-  const clearPriceHistoryLocally = useCallback(() => setPriceHistory([]), []);
-  const updateSettingsLocally = useCallback((nextSettings) => {
-    const normalized = {
-      ...defaultDb.settings,
-      ...(nextSettings || {}),
-      gst: Number(nextSettings?.gst ?? defaultDb.settings.gst)
-    };
-    setSettings(normalized);
-    return normalized;
-  }, []);
+      setError('');
+      showMutationNotice(config.successMessage || 'Updated successfully');
+      return result;
+    } catch (mutationError) {
+      const message = mutationError?.message || 'Update failed';
+      setError(message);
+      showMutationNotice(message, 'error');
+      throw mutationError;
+    }
+  }, [refreshData, showMutationNotice]);
 
   const restoreDatabase = useCallback((data) => {
     const parsed = normalizeDb(data);
@@ -784,45 +724,29 @@ export function useERPData() {
       by_user: bill.by || bill.by_user
     };
 
-    try {
-      await runMutation('/api/bills', {
-        method: 'POST',
-        body: JSON.stringify(payload)
-      }, [fetchProducts, fetchBills, fetchCustomers]);
-    } catch {
-      const retryPayload = {
-        ...payload,
-        billNo: makeUniqueBillNo(payload.billNo)
-      };
-      try {
-        await runMutation('/api/bills', {
-          method: 'POST',
-          body: JSON.stringify(retryPayload)
-        }, [fetchProducts, fetchBills, fetchCustomers]);
-      } catch (retryError) {
-        console.warn('Failed to save bill to backend', retryError);
-        throw retryError;
-      }
-    }
+    await runMutation('/api/bills', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    }, [fetchProducts, fetchBills, fetchCustomers]);
   }, [runMutation, fetchProducts, fetchBills, fetchCustomers]);
 
   const deleteBill = useCallback(async (id) => {
     try {
       await runMutation(`/api/bills/${id}`, { method: 'DELETE' }, [fetchProducts, fetchBills, fetchCustomers]);
     } catch (mutationError) {
-      console.warn('Failed to delete bill in backend, deleting locally instead', mutationError);
-      deleteBillLocally(id);
+      console.warn('Failed to delete bill in backend', mutationError);
+      throw mutationError;
     }
-  }, [runMutation, fetchProducts, fetchBills, fetchCustomers, deleteBillLocally]);
+  }, [runMutation, fetchProducts, fetchBills, fetchCustomers]);
 
   const clearBills = useCallback(async () => {
     try {
       await runMutation('/api/bills', { method: 'DELETE' }, [fetchProducts, fetchBills, fetchCustomers]);
     } catch (mutationError) {
-      console.warn('Failed to clear bills in backend, clearing locally instead', mutationError);
-      clearBillsLocally();
+      console.warn('Failed to clear bills in backend', mutationError);
+      throw mutationError;
     }
-  }, [runMutation, fetchProducts, fetchBills, fetchCustomers, clearBillsLocally]);
+  }, [runMutation, fetchProducts, fetchBills, fetchCustomers]);
 
   const addPurchase = useCallback(async (purchase) => {
     try {
@@ -837,10 +761,10 @@ export function useERPData() {
         })
       }, [fetchProducts]);
     } catch (mutationError) {
-      console.warn('Failed to save purchase to backend, storing locally instead', mutationError);
-      appendPurchaseLocally(purchase);
+      console.warn('Failed to save purchase to backend', mutationError);
+      throw mutationError;
     }
-  }, [runMutation, fetchProducts, appendPurchaseLocally]);
+  }, [runMutation, fetchProducts]);
 
   const updateProductPrice = useCallback((id, newPrice, userName) => runMutation(`/api/products/${id}/price`, {
     method: 'PUT',
@@ -856,15 +780,16 @@ export function useERPData() {
     try {
       await runMutation('/api/price-history', { method: 'DELETE' }, [fetchPriceHistory]);
     } catch (mutationError) {
-      console.warn('Failed to clear price history in backend, clearing locally instead', mutationError);
-      clearPriceHistoryLocally();
+      console.warn('Failed to clear price history in backend', mutationError);
+      throw mutationError;
     }
-  }, [runMutation, fetchPriceHistory, clearPriceHistoryLocally]);
+  }, [runMutation, fetchPriceHistory]);
 
   const addRefill = useCallback(async (refill) => {
     await runMutation('/api/refills', {
       method: 'POST',
       body: JSON.stringify({
+        product_id: refill.product_id || refill.productId || refill.id,
         product: refill.product,
         qty: Number(refill.qty),
         by_user: refill.by || refill.by_user
@@ -876,42 +801,27 @@ export function useERPData() {
 
   const clearRefills = useCallback(async () => {
     try {
-      await runMutation('/api/refills', { method: 'DELETE' }, [fetchRefills]);
+      await runMutation('/api/refills', { method: 'DELETE' }, [fetchProducts, fetchRefills]);
     } catch (mutationError) {
-      console.warn('Failed to clear refills in backend, clearing locally instead', mutationError);
-      clearRefillsLocally();
+      console.warn('Failed to clear refills in backend', mutationError);
+      throw mutationError;
     }
-  }, [runMutation, fetchRefills, clearRefillsLocally]);
+  }, [runMutation, fetchProducts, fetchRefills]);
 
   const addLoginLog = useCallback(async (log) => {
-    try {
-      const response = await apiRequest('/api/login-logs', {
-        method: 'POST',
-        body: JSON.stringify({
-          user_name: log.user || log.user_name,
-          role: log.role,
-          login_time: log.loginTime || log.login_time
-        })
-      });
-      await fetchLoginLogs(true).catch(() => {});
-      return response;
-    } catch (logError) {
-      console.warn('Failed to save login log to backend, storing locally instead', logError);
-      return appendLoginLogLocally(log);
-    }
-  }, [fetchLoginLogs, appendLoginLogLocally]);
+    return runMutation('/api/login-logs', {
+      method: 'POST',
+      body: JSON.stringify({
+        user_name: log.user || log.user_name,
+        role: log.role,
+        login_time: log.loginTime || log.login_time
+      })
+    }, [fetchLoginLogs]);
+  }, [runMutation, fetchLoginLogs]);
 
   const updateLoginLog = useCallback(async (id) => {
-    try {
-      const response = await apiRequest(`/api/login-logs/${id}/logout`, { method: 'PUT' });
-      await fetchLoginLogs(true).catch(() => {});
-      return response;
-    } catch (logError) {
-      console.warn('Failed to update login log in backend, updating locally instead', logError);
-      logoutLoginLogLocally(id);
-      return { id };
-    }
-  }, [fetchLoginLogs, logoutLoginLogLocally]);
+    return runMutation(`/api/login-logs/${id}/logout`, { method: 'PUT' }, [fetchLoginLogs]);
+  }, [runMutation, fetchLoginLogs]);
 
   const startShift = useCallback(async ({ user, role, shiftStart }) => {
     const response = await apiRequest('/api/shifts/start', {
@@ -922,9 +832,10 @@ export function useERPData() {
         shiftStart: shiftStart || new Date().toISOString()
       })
     });
-    await fetchLoginLogs(true).catch(() => {});
+    await fetchLoginLogs(true);
+    showMutationNotice(response?.message || 'Updated successfully');
     return response;
-  }, [fetchLoginLogs]);
+  }, [fetchLoginLogs, showMutationNotice]);
 
   const endShift = useCallback(async ({ user, role, sessionId, shiftStart, recipientEmail }) => {
     const response = await apiRequest('/api/shifts/end', {
@@ -938,12 +849,13 @@ export function useERPData() {
       })
     });
     await Promise.all([
-      fetchProducts(true).catch(() => {}),
-      fetchBills(true).catch(() => {}),
-      fetchLoginLogs(true).catch(() => {})
+      fetchProducts(true),
+      fetchBills(true),
+      fetchLoginLogs(true)
     ]);
+    showMutationNotice(response?.message || 'Updated successfully');
     return response;
-  }, [fetchProducts, fetchBills, fetchLoginLogs]);
+  }, [fetchProducts, fetchBills, fetchLoginLogs, showMutationNotice]);
 
   const deleteLoginLog = useCallback((id) => runMutation(`/api/login-logs/${id}`, { method: 'DELETE' }, [fetchLoginLogs]), [runMutation, fetchLoginLogs]);
 
@@ -958,19 +870,44 @@ export function useERPData() {
     try {
       await runMutation(`/api/login-logs${query}`, { method: 'DELETE' }, [fetchLoginLogs]);
     } catch (logError) {
-      console.warn('Failed to clear login logs in backend, clearing locally instead', logError);
-      clearLoginLogsLocally(normalizedRoles);
+      console.warn('Failed to clear login logs in backend', logError);
+      throw logError;
     }
-  }, [runMutation, fetchLoginLogs, clearLoginLogsLocally]);
+  }, [runMutation, fetchLoginLogs]);
 
   const clearCustomers = useCallback(async () => {
     try {
       await runMutation('/api/customers', { method: 'DELETE' }, [fetchCustomers]);
     } catch (mutationError) {
-      console.warn('Failed to clear customers in backend, clearing locally instead', mutationError);
-      clearCustomersLocally();
+      console.warn('Failed to clear customers in backend', mutationError);
+      throw mutationError;
     }
-  }, [runMutation, fetchCustomers, clearCustomersLocally]);
+  }, [runMutation, fetchCustomers]);
+
+  const resetProductStock = useCallback(async () => {
+    try {
+      return await runMutation('/api/products/opening-stock/sync', { method: 'PUT' }, [fetchProducts]);
+    } catch (mutationError) {
+      console.warn('Failed to reset product stock in backend', mutationError);
+      throw mutationError;
+    }
+  }, [runMutation, fetchProducts]);
+
+  const resetSalesData = useCallback(async () => {
+    try {
+      return await runMutation('/api/reset-sales-data', { method: 'POST' }, [
+        fetchProducts,
+        fetchBills,
+        fetchCustomers,
+        fetchRefills,
+        fetchPriceHistory,
+        fetchLoginLogs
+      ]);
+    } catch (mutationError) {
+      console.warn('Failed to reset sales data in backend', mutationError);
+      throw mutationError;
+    }
+  }, [runMutation, fetchProducts, fetchBills, fetchCustomers, fetchRefills, fetchPriceHistory, fetchLoginLogs]);
 
   const updateSettings = useCallback(async (nextSettings) => {
     try {
@@ -986,10 +923,10 @@ export function useERPData() {
         })
       }, [fetchSettings]);
     } catch (mutationError) {
-      console.warn('Failed to update settings in backend, updating locally instead', mutationError);
-      updateSettingsLocally(nextSettings);
+      console.warn('Failed to update settings in backend', mutationError);
+      throw mutationError;
     }
-  }, [runMutation, fetchSettings, updateSettingsLocally]);
+  }, [runMutation, fetchSettings]);
 
   const addStaff = useCallback((account) => runMutation('/api/accounts', {
     method: 'POST',
@@ -1005,12 +942,11 @@ export function useERPData() {
   }, [fetchAccounts]), [runMutation, fetchAccounts]);
 
   const updateStaffPassword = useCallback(async (username, password) => {
-    await apiRequest(`/api/accounts/${encodeURIComponent(username)}/password`, {
+    await runMutation(`/api/accounts/${encodeURIComponent(username)}/password`, {
       method: 'PUT',
       body: JSON.stringify({ password: String(password || '') })
-    });
-    await fetchAccounts(true).catch(() => {});
-  }, [fetchAccounts]);
+    }, [fetchAccounts]);
+  }, [runMutation, fetchAccounts]);
 
   const actions = useMemo(() => ({
     refreshData,
@@ -1044,6 +980,8 @@ export function useERPData() {
     deleteLoginLog,
     clearLoginLogs,
     clearCustomers,
+    resetProductStock,
+    resetSalesData,
     updateSettings,
     addStaff,
     deleteStaff,
@@ -1080,6 +1018,8 @@ export function useERPData() {
     deleteLoginLog,
     clearLoginLogs,
     clearCustomers,
+    resetProductStock,
+    resetSalesData,
     updateSettings,
     addStaff,
     deleteStaff,
@@ -1090,6 +1030,7 @@ export function useERPData() {
     db,
     loading,
     error,
+    mutationNotice,
     ...actions
-  }), [db, loading, error, actions]);
+  }), [db, loading, error, mutationNotice, actions]);
 }

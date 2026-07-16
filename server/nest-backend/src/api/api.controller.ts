@@ -51,6 +51,11 @@ export class ApiController {
     return this.apiService.syncOpeningStock();
   }
 
+  @Post('stock/repair')
+  repairStock() {
+    return this.apiService.repairStock();
+  }
+
   // --- Price History ---
   @Post('price-history')
   createPriceHistory(@Body() body: any) {
@@ -103,6 +108,11 @@ export class ApiController {
   @Delete('customers')
   clearCustomers() {
     return this.apiService.clearCustomers();
+  }
+
+  @Post('reset-sales-data')
+  resetSalesData() {
+    return this.apiService.resetSalesData();
   }
 
   // --- Login Logs ---

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -118,9 +118,12 @@ function DashboardStatIcon({ icon }) {
   }
 }
 
-export default function Dashboard({ db, user }) {
+export default function Dashboard({ db, erp, user }) {
   const [showLowStockPopup, setShowLowStockPopup] = useState(false);
   const [showTodaySalesPopup, setShowTodaySalesPopup] = useState(false);
+  const [refillProduct, setRefillProduct] = useState(null);
+  const [refillQty, setRefillQty] = useState('');
+  const [isRefilling, setIsRefilling] = useState(false);
   const canManageAdminPages = hasAdminAccess(user);
   const isAdmin = user?.role === 'Admin';
   const isManager = user?.role === 'Manager';
@@ -132,6 +135,56 @@ export default function Dashboard({ db, user }) {
   }), [db.bills, canManageAdminPages, user?.user]);
 
   const products = useMemo(() => db.products || [], [db.products]);
+  const fetchProducts = erp?.fetchProducts;
+
+  useEffect(() => {
+    if (!fetchProducts) {
+      return undefined;
+    }
+
+    fetchProducts(true).catch(() => {});
+
+    const handleWindowFocus = () => {
+      fetchProducts(true).catch(() => {});
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchProducts(true).catch(() => {});
+      }
+    };
+
+    window.addEventListener('focus', handleWindowFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('focus', handleWindowFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [fetchProducts]);
+
+  const submitRefill = async () => {
+    const qty = Number.parseInt(refillQty, 10);
+    if (!refillProduct || !Number.isFinite(qty) || qty <= 0 || isRefilling) {
+      return;
+    }
+
+    setIsRefilling(true);
+    try {
+      await erp.addRefill({
+        product_id: refillProduct.id,
+        product: refillProduct.name,
+        qty,
+        by: user ? user.user : 'Admin'
+      });
+      setRefillProduct(null);
+      setRefillQty('');
+    } catch (error) {
+      alert(error.message || 'Failed to refill stock');
+    } finally {
+      setIsRefilling(false);
+    }
+  };
 
   const stats = useMemo(() => {
     const now = new Date();
@@ -166,7 +219,9 @@ export default function Dashboard({ db, user }) {
     const monthlyRevenue = monthlyBills.reduce((sum, bill) => sum + (bill.grand || 0), 0);
     const yearlyRevenue = yearlyBills.reduce((sum, bill) => sum + (bill.grand || 0), 0);
 
-    const lowStock = products.filter((product) => (product.stock || 0) <= 5);
+    const lowStock = products
+      .filter((product) => Number(product.stock || 0) < 5)
+      .sort((a, b) => Number(a.stock || 0) - Number(b.stock || 0));
     const soldProducts = [...products].sort((a, b) => (b.sold || 0) - (a.sold || 0));
     const topProduct = soldProducts[0] || null;
     const topSellingProducts = soldProducts
@@ -270,7 +325,7 @@ export default function Dashboard({ db, user }) {
           <div className="stat-card dashboard-summary-card red" onClick={() => setShowLowStockPopup(true)} style={{ cursor: 'pointer' }}>
             <div className="stat-label">Low Stock Items</div>
             <div className="stat-value">{lowStock.length}</div>
-            <div className="stat-sub">{products.filter((product) => product.stock === 0).length} out of stock</div>
+            <div className="stat-sub">{products.filter((product) => Number(product.stock || 0) === 0).length} out of stock</div>
             <div className="stat-icon"><DashboardStatIcon icon="warning" /></div>
           </div>
         )}
@@ -281,7 +336,7 @@ export default function Dashboard({ db, user }) {
           <div className="stat-card dashboard-summary-card red" onClick={() => setShowLowStockPopup(true)} style={{ cursor: 'pointer' }}>
             <div className="stat-label">Low Stock Items</div>
             <div className="stat-value">{lowStock.length}</div>
-            <div className="stat-sub">{products.filter((product) => product.stock === 0).length} out of stock</div>
+            <div className="stat-sub">{products.filter((product) => Number(product.stock || 0) === 0).length} out of stock</div>
             <div className="stat-icon"><DashboardStatIcon icon="warning" /></div>
           </div>
           <div className="stat-card dashboard-summary-card orange">
@@ -447,19 +502,43 @@ export default function Dashboard({ db, user }) {
                     <th>Code</th>
                     <th>Product</th>
                     <th style={{ textAlign: 'right' }}>Stock</th>
+                    <th>Status</th>
+                    <th style={{ textAlign: 'right' }}>Action</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {lowStock.map(product => (
-                    <tr key={product.id}>
-                      <td>{product.code}</td>
-                      <td>{product.name}</td>
-                      <td style={{ textAlign: 'right' }} className="text-red fw-bold">{product.stock}</td>
-                    </tr>
-                  ))}
+                  {lowStock.map((product) => {
+                    const currentStock = Number(product.stock || 0);
+                    const isOutOfStock = currentStock === 0;
+
+                    return (
+                      <tr key={product.id}>
+                        <td>{product.code}</td>
+                        <td>{product.name}</td>
+                        <td style={{ textAlign: 'right' }} className="text-red fw-bold">{currentStock}</td>
+                        <td>
+                          <span className={`badge ${isOutOfStock ? 'badge-red' : 'badge-orange'}`}>
+                            {isOutOfStock ? 'Out of Stock' : 'Low Stock'}
+                          </span>
+                        </td>
+                        <td style={{ textAlign: 'right' }}>
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-action"
+                            onClick={() => {
+                              setRefillProduct(product);
+                              setRefillQty('');
+                            }}
+                          >
+                            Refill
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                   {lowStock.length === 0 && (
                     <tr>
-                      <td colSpan="3" className="text-center text-muted">No low stock items</td>
+                      <td colSpan="5" className="text-center text-muted">No low stock items.</td>
                     </tr>
                   )}
                 </tbody>
@@ -467,6 +546,40 @@ export default function Dashboard({ db, user }) {
             </div>
             <div className="flex justify-end mt-4">
               <button className="btn btn-secondary" onClick={() => setShowLowStockPopup(false)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {refillProduct && (
+        <div className="modal-overlay open" onClick={() => { setRefillProduct(null); setRefillQty(''); }}>
+          <div className="modal dashboard-refill-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="modal-header">
+              <h3 className="modal-title">Refill Stock</h3>
+              <button className="modal-close" type="button" onClick={() => { setRefillProduct(null); setRefillQty(''); }}>x</button>
+            </div>
+            <p className="text-sm mb-3">
+              Add stock for <b>{refillProduct.name}</b>. Current stock: <b>{Number(refillProduct.stock || 0)}</b>
+            </p>
+            <div className="form-group mb-4">
+              <label>Refill Quantity</label>
+              <input
+                type="number"
+                value={refillQty}
+                onChange={(event) => setRefillQty(event.target.value)}
+                min="1"
+                placeholder="Enter quantity"
+                autoFocus
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') submitRefill();
+                }}
+              />
+            </div>
+            <div className="flex gap-2">
+              <button className="btn btn-primary flex-1" onClick={submitRefill} disabled={isRefilling}>
+                {isRefilling ? 'Saving...' : 'Save Refill'}
+              </button>
+              <button className="btn btn-secondary" onClick={() => { setRefillProduct(null); setRefillQty(''); }}>Cancel</button>
             </div>
           </div>
         </div>

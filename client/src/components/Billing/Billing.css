@@ -92,8 +92,37 @@
 
 .billing-product-row:hover { background: var(--surface-hover); }
 
+.billing-product-row.disabled {
+  opacity: 0.55;
+  background: var(--surface);
+  color: var(--text3);
+}
+
+.billing-product-row.disabled:hover {
+  background: var(--surface);
+}
+
 .billing-product-name {
   font-weight: 500;
+}
+
+.billing-stock-text {
+  color: var(--green);
+  font-size: 0.78rem;
+  font-weight: 700;
+  margin-top: 3px;
+}
+
+.billing-stock-badge {
+  align-self: flex-start;
+  color: var(--red);
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 6px;
+  font-size: 0.74rem;
+  font-weight: 800;
+  margin-top: 4px;
+  padding: 2px 7px;
 }
 
 .billing-product-price {
