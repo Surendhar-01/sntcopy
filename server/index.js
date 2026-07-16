@@ -386,6 +386,15 @@ async function initializeDatabase() {
       await tempConnection.query("ALTER TABLE `shift_reports` ADD COLUMN `status` VARCHAR(50) NOT NULL DEFAULT 'Completed'");
     }
 
+    // opening_stock column on products
+    const [openingStockCols] = await tempConnection.query(
+      'SELECT COLUMN_NAME FROM information_schema.columns WHERE table_schema = ? AND table_name = ? AND column_name = ?',
+      [dbName, 'products', 'opening_stock']
+    );
+    if (openingStockCols.length === 0) {
+      await tempConnection.query('ALTER TABLE `products` ADD COLUMN `opening_stock` INT NOT NULL DEFAULT 0 AFTER `sold`');
+    }
+
   } finally {
     await tempConnection.end();
   }
@@ -1172,6 +1181,74 @@ app.delete('/api/customers', async (req, res) => {
   } catch (error) {
     console.error('Failed to clear customers:', error);
     res.status(500).json({ error: 'Unable to clear customers' });
+  }
+});
+
+// --- Reset Sales Data (full fresh start) ---
+app.post('/api/reset-sales-data', async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    // 1. Create backup table if it doesn't exist
+    await connection.query(`CREATE TABLE IF NOT EXISTS \`data_reset_backups\` (
+      \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+      \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      \`reason\` VARCHAR(255) NOT NULL,
+      \`payload\` LONGTEXT NOT NULL
+    ) ENGINE=InnoDB`);
+
+    // 2. Backup current data
+    const backupTables = ['products', 'bills', 'customers', 'sales', 'refills', 'shift_reports'];
+    const [existingTableRows] = await connection.query(
+      `SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME IN (?)`,
+      [backupTables]
+    );
+    const existingTables = new Set(existingTableRows.map(r => String(r.TABLE_NAME)));
+
+    const backup = {};
+    for (const tableName of backupTables) {
+      if (!existingTables.has(tableName)) continue;
+      const [rows] = await connection.query(`SELECT * FROM \`${tableName}\``);
+      backup[tableName] = rows;
+    }
+
+    const [backupResult] = await connection.query(
+      `INSERT INTO \`data_reset_backups\` (reason, payload, created_at) VALUES (?, ?, NOW())`,
+      ['sales-data-reset', JSON.stringify({ createdAt: new Date().toISOString(), tables: backup })]
+    );
+
+    // 3. Clear sales-related tables
+    const deleteTables = ['bills', 'customers', 'sales', 'shift_reports'];
+    for (const tableName of deleteTables) {
+      if (!existingTables.has(tableName)) continue;
+      await connection.query(`DELETE FROM \`${tableName}\``);
+    }
+
+    // 4. Reset all product stock
+    await connection.query('UPDATE products SET opening_stock = 0, stock = 0, sold = 0');
+
+    await connection.commit();
+    await syncSchemaSql('reset sales data');
+    res.json({ success: true, backupId: backupResult.insertId, message: 'Sales data reset successfully' });
+  } catch (error) {
+    await connection.rollback();
+    console.error('Failed to reset sales data:', error);
+    res.status(500).json({ error: error.message || 'Unable to reset sales data' });
+  } finally {
+    connection.release();
+  }
+});
+
+// --- Reset Product Stock (opening_stock, sold, stock to 0) ---
+app.put('/api/products/opening-stock/sync', async (req, res) => {
+  try {
+    await pool.query('UPDATE products SET opening_stock = 0, sold = 0, stock = 0');
+    await syncSchemaSql('sync opening stock');
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Failed to reset product stock:', error);
+    res.status(500).json({ error: 'Unable to reset product stock' });
   }
 });
 
