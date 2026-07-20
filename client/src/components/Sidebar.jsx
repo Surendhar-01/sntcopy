@@ -225,15 +225,11 @@ export default function Sidebar({ currentPage, setCurrentPage, user, onLogout })
 
   const {
     closeMobileSidebar,
-    handleMouseEnter,
-    handleMouseLeave,
     isCollapsed,
     isExpanded,
     isMobile,
     isMobileOpen,
-    isPinned,
-    toggleMobileSidebar,
-    togglePin
+    toggleMobileSidebar
   } = useSidebar();
   const role = user?.role || 'Staff';
   const canManageAdminPages = hasAdminAccess(role);
@@ -278,30 +274,24 @@ export default function Sidebar({ currentPage, setCurrentPage, user, onLogout })
       <aside
         className={`sidebar ${isExpanded ? 'expanded' : 'collapsed'} ${isMobileOpen ? 'mobile-open' : ''}`}
         data-role={sidebarRole}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
       >
         <div className="sidebar-brand">
-          <div className="brand-icon">
-            <img src="/logo.svg" alt="Sri Nikil logo" />
+          <div className="brand-logo-container">
+            <div className="brand-logo-glow" />
+            <svg className="brand-logo-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2C12 2 4 9 4 14C4 18.4183 7.58172 22 12 22C16.4183 22 20 18.4183 20 14C20 9 12 2 12 2Z" fill="url(#brandGrad)" />
+              <path d="M12 5C12 5 7 10.5 7 14C7 16.7614 9.23858 19 12 19C14.7614 19 17 16.7614 17 14C17 10.5 12 5 12 5z" fill="rgba(255, 255, 255, 0.25)" />
+              <defs>
+                <linearGradient id="brandGrad" x1="4" y1="2" x2="20" y2="22" gradientUnits="userSpaceOnUse">
+                  <stop stopColor="var(--accent)" />
+                  <stop offset="1" stopColor="var(--accent2)" />
+                </linearGradient>
+              </defs>
+            </svg>
           </div>
-          <div className="brand-copy" style={{ display: 'none' }}>
+          <div className="brand-copy">
             <span className="shop-name">Sri Nikil</span>
             <span className="brand-subtitle">Tradings</span>
-          </div>
-          {!isMobile && (
-            <button
-              className={`sidebar-pin-btn ${isPinned ? 'pinned' : ''}`}
-              type="button"
-              onClick={togglePin}
-              aria-label={isPinned ? 'Unpin sidebar' : 'Pin sidebar'}
-              title={isPinned ? 'Unpin sidebar' : 'Pin sidebar'}
-            >
-              <SidebarIcon name="pin" />
-            </button>
-          )}
-          <div className="sidebar-status" style={{ display: 'none' }}>
-            <div className="user-role">{role.toUpperCase()}</div>
           </div>
         </div>
 

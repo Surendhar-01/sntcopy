@@ -90,6 +90,10 @@ export default function Billing({ erp, user }) {
   const getRemainingStockForCart = (product, skipIndex = -1) => (
     Math.max(0, getProductStock(product) - getCartQtyForProduct(product?.id, skipIndex))
   );
+  const getMaxQtyForCartItem = (item, index) => {
+    const product = products.find((p) => String(p.id) === String(item.id));
+    return getRemainingStockForCart(product || item, index);
+  };
   const availableProductCount = products.filter((product) => getProductStock(product) > 0).length;
   const popupProducts = (Array.isArray(db.products) ? db.products : [])
     .filter((product) => {
@@ -176,7 +180,7 @@ export default function Billing({ erp, user }) {
       }
 
       const product = products.find((p) => String(p.id) === String(item.id));
-      const maxQty = getRemainingStockForCart(product || item, currentIndex) + Number(item.qty || 0);
+      const maxQty = getRemainingStockForCart(product || item, currentIndex);
       const nextQty = Math.max(1, Math.min(maxQty, Number(item.qty || 1) + delta));
       if (delta > 0 && nextQty === Number(item.qty || 1)) {
         showToast(`Only ${maxQty} item(s) are available in stock.`, 'error');
@@ -503,41 +507,46 @@ export default function Billing({ erp, user }) {
             <table>
               <thead><tr><th style={{ width: '180px' }}>Item</th><th style={{ textAlign: 'center' }}>Qty</th><th>Total</th><th></th></tr></thead>
               <tbody>
-                {items.map((item, index) => (
-                  <tr key={index}>
-                    <td style={{ fontSize: '.8rem' }}>{item.name}</td>
-                    <td style={{ textAlign: 'center' }}>
-                      <div className="qty-stepper">
-                        <button
-                          type="button"
-                          className="qty-stepper-btn"
-                          onClick={() => changeItemQty(index, -1)}
-                          disabled={item.qty <= 1}
-                          aria-label={`Decrease quantity of ${item.name}`}
-                        >
-                          -
+                {items.map((item, index) => {
+                  const maxQty = getMaxQtyForCartItem(item, index);
+                  const itemQty = Number(item.qty || 0);
+                  return (
+                    <tr key={index}>
+                      <td style={{ fontSize: '.8rem' }}>{item.name}</td>
+                      <td style={{ textAlign: 'center' }}>
+                        <div className="qty-stepper">
+                          <button
+                            type="button"
+                            className="qty-stepper-btn"
+                            onClick={() => changeItemQty(index, -1)}
+                            disabled={itemQty <= 1}
+                            aria-label={`Decrease quantity of ${item.name}`}
+                          >
+                            -
+                          </button>
+                          <span className="qty-stepper-value">{item.qty}</span>
+                          <button
+                            type="button"
+                            className="qty-stepper-btn"
+                            onClick={() => changeItemQty(index, 1)}
+                            disabled={itemQty >= maxQty}
+                            aria-label={`Increase quantity of ${item.name}`}
+                          >
+                            +
+                          </button>
+                        </div>
+                      </td>
+                      <td>Rs {item.total}</td>
+                      <td style={{ textAlign: 'right' }}>
+                        <button className="del-btn" onClick={() => removeItem(index)} title="Remove Item">
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 01 2-2h4a2 2 0 01 2 2v2M10 11v6M14 11v6"></path>
+                          </svg>
                         </button>
-                        <span className="qty-stepper-value">{item.qty}</span>
-                        <button
-                          type="button"
-                          className="qty-stepper-btn"
-                          onClick={() => changeItemQty(index, 1)}
-                          aria-label={`Increase quantity of ${item.name}`}
-                        >
-                          +
-                        </button>
-                      </div>
-                    </td>
-                    <td>Rs {item.total}</td>
-                    <td style={{ textAlign: 'right' }}>
-                      <button className="del-btn" onClick={() => removeItem(index)} title="Remove Item">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 01 2-2h4a2 2 0 01 2 2v2M10 11v6M14 11v6"></path>
-                        </svg>
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                    </tr>
+                  );
+                })}
                 {items.length === 0 && (
                   <tr>
                     <td colSpan="4" className="text-center text-muted">No cart items</td>

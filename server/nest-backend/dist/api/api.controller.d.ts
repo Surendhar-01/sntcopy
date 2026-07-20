@@ -82,6 +82,17 @@ export declare class ApiController {
     clearLoginLogs(): Promise<{
         success: boolean;
     }>;
+    getActiveShift(user: string, role: string): Promise<{
+        success: boolean;
+        shiftStart: string;
+        sessionId: any;
+        active: boolean;
+    } | {
+        success: boolean;
+        shiftStart: null;
+        sessionId: null;
+        active: boolean;
+    }>;
     startShift(body: any): Promise<{
         success: boolean;
         skipped: boolean;

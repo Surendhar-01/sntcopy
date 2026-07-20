@@ -54,3 +54,6 @@ lerna-debug.log*
 *.njsproj
 *.sln
 *.sw?
+
+# Temporary files
+/tmp

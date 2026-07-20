@@ -16,12 +16,12 @@ function toMysqlDateTime(value?: string | Date) {
   return parsed.toLocaleString('sv').replace('T', ' ').slice(0, 19);
 }
 
-function parseItems(rawItems: any) {
-  if (Array.isArray(rawItems)) return rawItems;
+function parseItems(rawItems: any): Record<string, any>[] {
+  if (Array.isArray(rawItems)) return rawItems as Record<string, any>[];
   if (typeof rawItems === 'string') {
     try {
       const parsed = JSON.parse(rawItems);
-      return Array.isArray(parsed) ? parsed : [];
+      return Array.isArray(parsed) ? (parsed as Record<string, any>[]) : [];
     } catch {
       return [];
     }
@@ -322,11 +322,15 @@ export class ApiService {
     const requestedProductId = Number(product_id || productId || id || 0);
     const refillQty = Number.parseInt(qty, 10);
     if (
-      (!product && (!Number.isFinite(requestedProductId) || requestedProductId <= 0)) ||
+      (!product &&
+        (!Number.isFinite(requestedProductId) || requestedProductId <= 0)) ||
       !Number.isFinite(refillQty) ||
       refillQty <= 0
-    )
-      throw new BadRequestException('Refill quantity must be greater than zero.');
+    ) {
+      throw new BadRequestException(
+        'Refill quantity must be greater than zero.',
+      );
+    }
 
     const connection = await this.db.getConnection();
     try {
@@ -502,7 +506,9 @@ export class ApiService {
   }
 
   async syncOpeningStock() {
-    await this.db.query('UPDATE products SET opening_stock = 0, sold = 0, stock = 0');
+    await this.db.query(
+      'UPDATE products SET opening_stock = 0, sold = 0, stock = 0',
+    );
     return { success: true };
   }
 
@@ -603,7 +609,7 @@ export class ApiService {
         duplicateBills,
         duplicateRefills,
       };
-    } catch (error) {
+    } catch {
       await connection.rollback();
       throw new InternalServerErrorException('Unable to repair stock');
     } finally {
@@ -868,6 +874,66 @@ export class ApiService {
   }
 
   // --- Shifts ---
+  async getActiveShift(user: string, role: string) {
+    if (!user || !role) {
+      throw new BadRequestException('User and role are required');
+    }
+
+    const normalizedRole = role.toLowerCase();
+    const connection = await this.db.getConnection();
+    try {
+      if (normalizedRole === 'admin') {
+        const [lastAdminReport] = (await connection.query(
+          "SELECT shift_end FROM shift_reports WHERE LOWER(role) = 'admin' AND status = 'Completed' ORDER BY id DESC LIMIT 1",
+        )) as [any[], any];
+
+        let shiftStart: Date;
+        if (lastAdminReport && lastAdminReport.length > 0) {
+          shiftStart = new Date(lastAdminReport[0].shift_end);
+        } else {
+          const [oldestLog] = (await connection.query(
+            'SELECT loginTime FROM login_logs ORDER BY id ASC LIMIT 1',
+          )) as [any[], any];
+          if (oldestLog && oldestLog.length > 0) {
+            shiftStart = new Date(oldestLog[0].loginTime);
+          } else {
+            shiftStart = new Date(Date.now() - 24 * 60 * 60 * 1000);
+          }
+        }
+
+        return {
+          success: true,
+          shiftStart: shiftStart.toISOString(),
+          sessionId: null,
+          active: true,
+        };
+      } else {
+        const [activeSessions] = (await connection.query(
+          "SELECT id, loginTime FROM login_logs WHERE user = ? AND status = 'Active' AND logoutTime IS NULL ORDER BY id DESC LIMIT 1",
+          [user],
+        )) as [any[], any];
+
+        if (activeSessions.length > 0) {
+          return {
+            success: true,
+            shiftStart: new Date(activeSessions[0].loginTime).toISOString(),
+            sessionId: activeSessions[0].id,
+            active: true,
+          };
+        }
+
+        return {
+          success: true,
+          shiftStart: null,
+          sessionId: null,
+          active: false,
+        };
+      }
+    } finally {
+      connection.release();
+    }
+  }
+
   async startShift(body: any) {
     const shiftUser = String(body?.user || '').trim();
     const shiftRole = String(body?.role || 'Staff').trim();
@@ -1245,6 +1311,10 @@ export class ApiService {
           emailSentAtSql,
           'Completed',
         ],
+      );
+
+      await connection.query(
+        'UPDATE products SET opening_stock = stock, sold = 0',
       );
 
       await connection.commit();

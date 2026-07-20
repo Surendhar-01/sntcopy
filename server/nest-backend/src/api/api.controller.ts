@@ -7,6 +7,7 @@ import {
   Param,
   Put,
   ParseIntPipe,
+  Query,
 } from '@nestjs/common';
 import { ApiService } from './api.service';
 
@@ -137,6 +138,11 @@ export class ApiController {
   }
 
   // --- Shifts ---
+  @Get('shifts/active')
+  getActiveShift(@Query('user') user: string, @Query('role') role: string) {
+    return this.apiService.getActiveShift(user, role);
+  }
+
   @Post('shifts/start')
   startShift(@Body() body: any) {
     return this.apiService.startShift(body);

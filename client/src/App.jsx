@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useRef } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import Sidebar from './components/Sidebar';
 import Topbar from './components/Topbar';
 import DashboardPage from './components/Dashboard/Dashboard';
@@ -30,16 +30,7 @@ const Reports = React.memo(ReportsPage);
 const LoginActivity = React.memo(LoginActivityPage);
 const Settings = React.memo(SettingsPage);
 
-function isClearedSessionError(error) {
-  const message = String(error?.message || error || '').toLowerCase();
-  return (
-    message.includes('validation failed') ||
-    message.includes('unable to end shift') ||
-    message.includes('not found') ||
-    message.includes('foreign key') ||
-    message.includes('constraint')
-  );
-}
+
 
 function getDefaultPageForRole(role) {
   const normalized = String(role || '').trim().toLowerCase();
@@ -67,13 +58,6 @@ function App() {
     return localStorage.getItem('sri_nikil_current_page') || 'dashboard';
   });
   const [user, setUser] = useState(() => {
-    const lastActivity = localStorage.getItem('sri_nikil_last_activity');
-    if (lastActivity && Date.now() - parseInt(lastActivity, 10) > 300000) {
-      localStorage.removeItem('sri_nikil_user');
-      localStorage.removeItem('sri_nikil_session');
-      localStorage.removeItem('sri_nikil_last_activity');
-      return null;
-    }
     const saved = localStorage.getItem('sri_nikil_user');
     if (!saved) return null;
     try {
@@ -101,7 +85,7 @@ function App() {
   });
   const erp = useERPData();
 
-  const handleLogoutRef = useRef(null);
+
 
   useEffect(() => {
     const preventNumberScrollChange = (event) => {
@@ -132,35 +116,120 @@ function App() {
   }, [session]);
 
   useEffect(() => {
+    if (!isLoggedIn || !user?.user || !user?.role) return;
+
+    let isMounted = true;
+
+    const syncActiveShift = async () => {
+      try {
+        const activeShift = await erp.getActiveShift(user.user, user.role);
+        if (!isMounted) return;
+
+        if (activeShift && activeShift.success) {
+          if (activeShift.active || user.role.toLowerCase() === 'admin') {
+            if (user.loginTime !== activeShift.shiftStart) {
+              const updatedUser = {
+                ...user,
+                loginTime: activeShift.shiftStart
+              };
+              setUser(updatedUser);
+              localStorage.setItem('sri_nikil_user', JSON.stringify(updatedUser));
+            }
+
+            if (activeShift.sessionId) {
+              if (!session || session.id !== activeShift.sessionId || session.loginTime !== activeShift.shiftStart) {
+                setSession({
+                  id: activeShift.sessionId,
+                  user: user.user,
+                  role: user.role,
+                  loginTime: activeShift.shiftStart,
+                  logoutTime: null
+                });
+              }
+            } else {
+              if (session !== null) setSession(null);
+            }
+          } else {
+            if (user.loginTime !== null) {
+              const updatedUser = {
+                ...user,
+                loginTime: null
+              };
+              setUser(updatedUser);
+              localStorage.setItem('sri_nikil_user', JSON.stringify(updatedUser));
+            }
+            if (session !== null) setSession(null);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to sync active shift start time:', err);
+      }
+    };
+
+    syncActiveShift();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isLoggedIn, user, session, erp]);
+
+  useEffect(() => {
     localStorage.setItem('sri_nikil_current_page', currentPage);
   }, [currentPage]);
 
   const handleLogin = async (username, password) => {
     try {
       const userData = await erp.login(username, password);
-      const loginTime = new Date().toISOString();
-      const userWithSession = { ...userData, loginTime };
+      const defaultLoginTime = new Date().toISOString();
+      const userWithSession = { ...userData, loginTime: defaultLoginTime };
 
       setUser(userWithSession);
       setIsLoggedIn(true);
       setCurrentPage(getDefaultPageForRole(userData.role));
       localStorage.setItem('sri_nikil_user', JSON.stringify(userWithSession));
-      localStorage.setItem('sri_nikil_last_activity', Date.now().toString());
-      
-      const newSession = {
-        id: erp.db.loginLogs.length > 0 ? Math.max(...erp.db.loginLogs.map(item => item.id)) + 1 : 1,
-        user: userData.user,
-        role: userData.role,
-        loginTime,
-        logoutTime: null
-      };
-      
-      try {
-        const createdLog = await erp.addLoginLog(newSession);
-        setSession({ ...newSession, id: createdLog.id });
-      } catch (logError) {
-        console.warn('Login logged locally only', logError);
-        setSession(newSession);
+
+      const lowerRole = userData.role?.toLowerCase();
+      if (lowerRole === 'staff' || lowerRole === 'manager') {
+        try {
+          const activeShift = await erp.startShift({
+            user: userData.user,
+            role: userData.role,
+            shiftStart: defaultLoginTime
+          });
+          if (activeShift && activeShift.success) {
+            const updatedUser = {
+              ...userWithSession,
+              loginTime: activeShift.shiftStart
+            };
+            setUser(updatedUser);
+            localStorage.setItem('sri_nikil_user', JSON.stringify(updatedUser));
+            if (activeShift.sessionId) {
+              setSession({
+                id: activeShift.sessionId,
+                user: userData.user,
+                role: userData.role,
+                loginTime: activeShift.shiftStart,
+                logoutTime: null
+              });
+            }
+          }
+        } catch (shiftError) {
+          console.error('Failed to init shift on login:', shiftError);
+        }
+      } else if (lowerRole === 'admin') {
+        try {
+          const activeShift = await erp.getActiveShift(userData.user, userData.role);
+          if (activeShift && activeShift.success && activeShift.shiftStart) {
+            const updatedUser = {
+              ...userWithSession,
+              loginTime: activeShift.shiftStart
+            };
+            setUser(updatedUser);
+            localStorage.setItem('sri_nikil_user', JSON.stringify(updatedUser));
+          }
+        } catch (adminShiftError) {
+          console.error('Failed to resolve admin shift time on login:', adminShiftError);
+        }
       }
     } catch (error) {
       console.error('Login failed:', error);
@@ -169,78 +238,15 @@ function App() {
   };
 
   const handleLogout = React.useCallback(async () => {
-    if (session) {
-      const lowerRole = user?.role?.toLowerCase();
-      if (lowerRole === 'staff' || lowerRole === 'manager') {
-        try {
-          await erp.endShift({
-            user: user.user,
-            role: user.role,
-            sessionId: session.id,
-            shiftStart: user.loginTime
-          });
-        } catch (error) {
-          console.error(`Failed to auto-end shift on ${lowerRole} logout:`, error);
-          if (!isClearedSessionError(error)) {
-            await erp.updateLoginLog(session.id).catch(() => {});
-          }
-        }
-      } else {
-        await erp.updateLoginLog(session.id).catch((error) => {
-          if (!isClearedSessionError(error)) {
-            throw error;
-          }
-        });
-      }
-    }
+    // We no longer automatically end shifts on logout. Shift only ends on user's manual action.
     setUser(null);
     setIsLoggedIn(false);
     setSession(null);
     localStorage.removeItem('sri_nikil_user');
-    localStorage.removeItem('sri_nikil_last_activity');
     localStorage.removeItem('sri_nikil_current_page');
-  }, [session, user, erp]);
+  }, []);
 
-  useEffect(() => {
-    handleLogoutRef.current = handleLogout;
-  }, [handleLogout]);
 
-  useEffect(() => {
-    if (!isLoggedIn) return;
-
-    let lastActivity = Date.now();
-    localStorage.setItem('sri_nikil_last_activity', lastActivity.toString());
-
-    const updateActivity = () => {
-      const now = Date.now();
-      if (now - lastActivity > 1000) {
-        lastActivity = now;
-        localStorage.setItem('sri_nikil_last_activity', lastActivity.toString());
-      }
-    };
-
-    window.addEventListener('mousemove', updateActivity);
-    window.addEventListener('keydown', updateActivity);
-    window.addEventListener('click', updateActivity);
-    window.addEventListener('scroll', updateActivity);
-
-    const interval = setInterval(() => {
-      const now = Date.now();
-      if (now - lastActivity > 300000) {
-        if (handleLogoutRef.current) {
-          handleLogoutRef.current();
-        }
-      }
-    }, 10000);
-
-    return () => {
-      window.removeEventListener('mousemove', updateActivity);
-      window.removeEventListener('keydown', updateActivity);
-      window.removeEventListener('click', updateActivity);
-      window.removeEventListener('scroll', updateActivity);
-      clearInterval(interval);
-    };
-  }, [isLoggedIn]);
 
   // State-slice database selectors to prevent unnecessary component updates
   const dashboardDb = useMemo(() => ({

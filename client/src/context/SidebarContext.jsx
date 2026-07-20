@@ -14,13 +14,12 @@ function readStoredSidebarPinned() {
 
 export function SidebarProvider({ children }) {
   const [isPinned, setIsPinned] = useState(readStoredSidebarPinned);
-  const [isHovering, setIsHovering] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(() => (
     typeof window !== 'undefined' ? window.matchMedia(MOBILE_MEDIA_QUERY).matches : false
   ));
 
-  const isExpanded = isMobile ? isMobileOpen : isPinned || isHovering;
+  const isExpanded = isMobile ? isMobileOpen : true;
   const isCollapsed = !isMobile && !isExpanded;
 
   useEffect(() => {
@@ -61,25 +60,10 @@ export function SidebarProvider({ children }) {
   const closeMobileSidebar = useCallback(() => setIsMobileOpen(false), []);
   const togglePin = useCallback(() => setIsPinned((current) => !current), []);
 
-  const handleMouseEnter = useCallback(() => {
-    if (!isMobile && !isPinned) {
-      setIsHovering(true);
-    }
-  }, [isMobile, isPinned]);
-
-  const handleMouseLeave = useCallback(() => {
-    if (!isMobile && !isPinned) {
-      setIsHovering(false);
-    }
-  }, [isMobile, isPinned]);
-
   const value = useMemo(() => ({
     closeMobileSidebar,
-    handleMouseEnter,
-    handleMouseLeave,
     isCollapsed,
     isExpanded,
-    isHovering,
     isMobile,
     isMobileOpen,
     isPinned,
@@ -87,11 +71,8 @@ export function SidebarProvider({ children }) {
     togglePin
   }), [
     closeMobileSidebar,
-    handleMouseEnter,
-    handleMouseLeave,
     isCollapsed,
     isExpanded,
-    isHovering,
     isMobile,
     isMobileOpen,
     isPinned,

@@ -246,10 +246,12 @@ let ApiService = class ApiService {
         const { product, product_id, productId, id, qty, by, by_user, date } = body;
         const requestedProductId = Number(product_id || productId || id || 0);
         const refillQty = Number.parseInt(qty, 10);
-        if ((!product && (!Number.isFinite(requestedProductId) || requestedProductId <= 0)) ||
+        if ((!product &&
+            (!Number.isFinite(requestedProductId) || requestedProductId <= 0)) ||
             !Number.isFinite(refillQty) ||
-            refillQty <= 0)
+            refillQty <= 0) {
             throw new common_1.BadRequestException('Refill quantity must be greater than zero.');
+        }
         const connection = await this.db.getConnection();
         try {
             await connection.beginTransaction();
@@ -453,7 +455,7 @@ let ApiService = class ApiService {
                 duplicateRefills,
             };
         }
-        catch (error) {
+        catch {
             await connection.rollback();
             throw new common_1.InternalServerErrorException('Unable to repair stock');
         }
@@ -642,6 +644,57 @@ let ApiService = class ApiService {
             value,
         ]);
         return { success: true };
+    }
+    async getActiveShift(user, role) {
+        if (!user || !role) {
+            throw new common_1.BadRequestException('User and role are required');
+        }
+        const normalizedRole = role.toLowerCase();
+        const connection = await this.db.getConnection();
+        try {
+            if (normalizedRole === 'admin') {
+                const [lastAdminReport] = (await connection.query("SELECT shift_end FROM shift_reports WHERE LOWER(role) = 'admin' AND status = 'Completed' ORDER BY id DESC LIMIT 1"));
+                let shiftStart;
+                if (lastAdminReport && lastAdminReport.length > 0) {
+                    shiftStart = new Date(lastAdminReport[0].shift_end);
+                }
+                else {
+                    const [oldestLog] = (await connection.query('SELECT loginTime FROM login_logs ORDER BY id ASC LIMIT 1'));
+                    if (oldestLog && oldestLog.length > 0) {
+                        shiftStart = new Date(oldestLog[0].loginTime);
+                    }
+                    else {
+                        shiftStart = new Date(Date.now() - 24 * 60 * 60 * 1000);
+                    }
+                }
+                return {
+                    success: true,
+                    shiftStart: shiftStart.toISOString(),
+                    sessionId: null,
+                    active: true,
+                };
+            }
+            else {
+                const [activeSessions] = (await connection.query("SELECT id, loginTime FROM login_logs WHERE user = ? AND status = 'Active' AND logoutTime IS NULL ORDER BY id DESC LIMIT 1", [user]));
+                if (activeSessions.length > 0) {
+                    return {
+                        success: true,
+                        shiftStart: new Date(activeSessions[0].loginTime).toISOString(),
+                        sessionId: activeSessions[0].id,
+                        active: true,
+                    };
+                }
+                return {
+                    success: true,
+                    shiftStart: null,
+                    sessionId: null,
+                    active: false,
+                };
+            }
+        }
+        finally {
+            connection.release();
+        }
     }
     async startShift(body) {
         const shiftUser = String(body?.user || '').trim();
@@ -917,6 +970,7 @@ let ApiService = class ApiService {
                 emailSentAtSql,
                 'Completed',
             ]);
+            await connection.query('UPDATE products SET opening_stock = stock, sold = 0');
             await connection.commit();
             return {
                 success: true,

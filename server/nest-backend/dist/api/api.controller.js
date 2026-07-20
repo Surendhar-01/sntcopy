@@ -89,6 +89,9 @@ let ApiController = class ApiController {
     clearLoginLogs() {
         return this.apiService.clearLoginLogs();
     }
+    getActiveShift(user, role) {
+        return this.apiService.getActiveShift(user, role);
+    }
     startShift(body) {
         return this.apiService.startShift(body);
     }
@@ -279,6 +282,14 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
 ], ApiController.prototype, "clearLoginLogs", null);
+__decorate([
+    (0, common_1.Get)('shifts/active'),
+    __param(0, (0, common_1.Query)('user')),
+    __param(1, (0, common_1.Query)('role')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", void 0)
+], ApiController.prototype, "getActiveShift", null);
 __decorate([
     (0, common_1.Post)('shifts/start'),
     __param(0, (0, common_1.Body)()),

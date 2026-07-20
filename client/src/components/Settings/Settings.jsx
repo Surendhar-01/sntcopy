@@ -9,9 +9,6 @@ export default function Settings({ db, erp }) {
   const [resetPasswordValue, setResetPasswordValue] = useState('');
   const [resetError, setResetError] = useState('');
   const [isResetting, setIsResetting] = useState(false);
-  const [showSalesResetModal, setShowSalesResetModal] = useState(false);
-  const [isSalesResetting, setIsSalesResetting] = useState(false);
-  const [salesResetError, setSalesResetError] = useState('');
   const [newStaff, setNewStaff] = useState({ user: '', pass: '', role: 'Staff' });
   const [shopSettings, setShopSettings] = useState(() => db.settings);
   const [gstValue, setGstValue] = useState(() => String(db.settings?.gst ?? 0));
@@ -200,28 +197,7 @@ export default function Settings({ db, erp }) {
     input.click();
   };
 
-  const closeSalesResetModal = () => {
-    if (isSalesResetting) {
-      return;
-    }
-    setShowSalesResetModal(false);
-    setSalesResetError('');
-  };
 
-  const handleConfirmSalesReset = async () => {
-    setIsSalesResetting(true);
-    setSalesResetError('');
-    try {
-      const response = await erp.resetSalesData();
-      setShowSalesResetModal(false);
-      alert(`Sales data reset successfully. Backup ID: ${response?.backupId || 'created'}.`);
-    } catch (error) {
-      setShowSalesResetModal(false);
-      setSalesResetError(error.message || 'Failed to reset sales data');
-    } finally {
-      setIsSalesResetting(false);
-    }
-  };
 
   return (
     <>
@@ -271,9 +247,6 @@ export default function Settings({ db, erp }) {
             <button className="btn btn-blue flex-1" onClick={backupDB}>Download Backup</button>
             <button className="btn btn-secondary flex-1" onClick={restoreDB}>Restore Database</button>
           </div>
-          <button className="btn btn-danger settings-reset-sales-btn" onClick={() => setShowSalesResetModal(true)}>
-            Reset Sales Data
-          </button>
           <p className="text-muted text-xs mt-3">Restore will overwrite all current data.</p>
         </div>
       </div>
@@ -434,27 +407,7 @@ export default function Settings({ db, erp }) {
         </div>
       )}
 
-      <ClearConfirmModal
-        open={showSalesResetModal}
-        title="Reset Sales Data"
-        message="This action will permanently remove all previous bills, customers, and sales data and reset the stock. Do you want to continue?"
-        confirmLabel={isSalesResetting ? 'Resetting...' : 'Reset Data'}
-        loading={isSalesResetting}
-        onConfirm={handleConfirmSalesReset}
-        onClose={closeSalesResetModal}
-      />
-      {salesResetError && (
-        <div className="modal-overlay open" onClick={() => setSalesResetError('')}>
-          <div className="modal settings-reset-modal" onClick={event => event.stopPropagation()}>
-            <div className="modal-header">
-              <div className="modal-title">Reset Failed</div>
-              <button className="modal-close" type="button" onClick={() => setSalesResetError('')}>x</button>
-            </div>
-            <p className="text-red text-sm">{salesResetError}</p>
-            <button className="btn btn-secondary" type="button" onClick={() => setSalesResetError('')}>Close</button>
-          </div>
-        </div>
-      )}
+
     </div>
     </>
   );

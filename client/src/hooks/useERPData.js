@@ -823,6 +823,10 @@ export function useERPData() {
     return runMutation(`/api/login-logs/${id}/logout`, { method: 'PUT' }, [fetchLoginLogs]);
   }, [runMutation, fetchLoginLogs]);
 
+  const getActiveShift = useCallback(async (user, role) => {
+    return await apiRequest(`/api/shifts/active?user=${encodeURIComponent(user)}&role=${encodeURIComponent(role)}`);
+  }, []);
+
   const startShift = useCallback(async ({ user, role, shiftStart }) => {
     const response = await apiRequest('/api/shifts/start', {
       method: 'POST',
@@ -949,6 +953,7 @@ export function useERPData() {
   }, [runMutation, fetchAccounts]);
 
   const actions = useMemo(() => ({
+    getActiveShift,
     refreshData,
     fetchProducts,
     fetchBills,
@@ -987,6 +992,7 @@ export function useERPData() {
     deleteStaff,
     updateStaffPassword
   }), [
+    getActiveShift,
     refreshData,
     fetchProducts,
     fetchBills,

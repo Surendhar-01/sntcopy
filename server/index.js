@@ -1812,6 +1812,7 @@ app.post('/api/shifts/end', async (req, res) => {
       ]
     );
 
+    await connection.query('UPDATE products SET opening_stock = stock, sold = 0');
     await connection.commit();
     await syncSchemaSql('end shift');
 

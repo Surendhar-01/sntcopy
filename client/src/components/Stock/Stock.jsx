@@ -6,9 +6,7 @@ export default function Stock({ db, erp, user }) {
   const [refillProduct, setRefillProduct] = useState(null);
   const [refillQty, setRefillQty] = useState('');
   const [showClearConfirm, setShowClearConfirm] = useState(false);
-  const [showResetStockConfirm, setShowResetStockConfirm] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
-  const [isResettingStock, setIsResettingStock] = useState(false);
 
   const getOpeningStock = (product) => {
     return Number(product.opening_stock || 0);
@@ -72,21 +70,7 @@ export default function Stock({ db, erp, user }) {
     }
   };
 
-  const handleResetStock = async () => {
-    if (isResettingStock) {
-      return;
-    }
 
-    setIsResettingStock(true);
-    try {
-      await erp.resetProductStock();
-      setShowResetStockConfirm(false);
-    } catch (error) {
-      alert(error.message || 'Failed to reset stock');
-    } finally {
-      setIsResettingStock(false);
-    }
-  };
 
   return (
     <>
@@ -98,14 +82,6 @@ export default function Stock({ db, erp, user }) {
       <div className="card mb-4 stock-card">
         <div className="stock-header mb-3">
           <div className="section-title stock-title">Stock Management</div>
-          <button
-            className="btn btn-danger btn-sm"
-            type="button"
-            onClick={() => setShowResetStockConfirm(true)}
-            disabled={isResettingStock}
-          >
-            {isResettingStock ? 'Resetting...' : 'Reset Stock'}
-          </button>
         </div>
         <div className="table-wrap stock-table-wrap">
           <table className="data-table stock-data-table">
@@ -244,15 +220,7 @@ export default function Stock({ db, erp, user }) {
         onClose={() => setShowClearConfirm(false)}
       />
 
-      <ClearConfirmModal
-        open={showResetStockConfirm}
-        loading={isResettingStock}
-        title="Reset Stock"
-        message="Set Opening Stock, Sold, and Current Stock to 0 for all products?"
-        confirmLabel={isResettingStock ? 'Resetting...' : 'Reset Stock'}
-        onConfirm={handleResetStock}
-        onClose={() => setShowResetStockConfirm(false)}
-      />
+
 
     </div>
     </>

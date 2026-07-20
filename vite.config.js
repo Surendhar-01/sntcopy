@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-const apiTarget = process.env.VITE_API_PROXY_TARGET || 'https://snt-backend-raur.onrender.com'
+const apiTarget = process.env.VITE_API_PROXY_TARGET || 'http://localhost:5001'
 
 // https://vite.dev/config/
 export default defineConfig({
