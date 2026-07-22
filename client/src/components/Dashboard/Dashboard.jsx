@@ -104,7 +104,7 @@ function StatCard({ title, value, prefix, suffix, sub, icon, color, onClick, isT
               value={value}
               prefix={prefix}
               suffix={suffix}
-              valueStyle={{ color: 'inherit', fontSize: '1.6rem', fontWeight: 700 }}
+              styles={{ content: { color: 'inherit', fontSize: '1.6rem', fontWeight: 700 } }}
             />
           )}
           <div className="stat-card-sub">{sub}</div>
