@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Backend server for the application",
   "main": "index.js",
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "build": "node -e \"console.log('No server build step required')\"",
     "start": "node mongo-server.js",
