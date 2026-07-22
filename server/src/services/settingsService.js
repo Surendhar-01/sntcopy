@@ -1,5 +1,4 @@
 const { pool } = require('../db');
-const { toMysqlDateTime } = require('../utils');
 
 async function getSettings() {
   const [rows] = await pool.query('SELECT * FROM settings ORDER BY id ASC LIMIT 1');

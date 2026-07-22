@@ -1,20 +1,319 @@
 .pricing-page {
-  display: grid;
-  gap: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+  width: 100%;
 }
 
-.pricing-card {
-  border-color: #e6ebf3;
+.pricing-page .ant-card {
+  background: var(--card);
+  border-color: var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px var(--shadow-soft);
 }
 
-.pricing-header {
-  padding-bottom: 8px;
+.pricing-page .ant-card-body,
+.pricing-page .ant-card-head,
+.pricing-page .ant-typography {
+  color: var(--text) !important;
 }
 
-.pricing-title {
-  margin-bottom: 0;
+.pricing-page .ant-card-head {
+  min-height: 56px;
+  border-bottom-color: var(--border);
 }
 
-.pricing-modal {
-  width: min(520px, 95vw);
+.pricing-page .ant-card-head-title {
+  color: var(--text);
+  font-weight: 800;
+}
+
+.pricing-table-card {
+  overflow: hidden;
+}
+
+.pricing-table-card .ant-card-body {
+  padding: 0;
+}
+
+.pricing-table-card .ant-table {
+  background: transparent;
+  color: var(--text);
+  table-layout: fixed;
+}
+
+.pricing-table-card .ant-table-thead > tr > th {
+  background: var(--surface) !important;
+  color: var(--text2) !important;
+  border-bottom-color: var(--border);
+  font-weight: 800;
+  padding: 16px 20px;
+  vertical-align: middle;
+}
+
+.pricing-table-card .ant-table-thead > tr > th::before {
+  display: none !important;
+}
+
+.pricing-table-card .ant-table-tbody > tr > td {
+  background: var(--card);
+  border-bottom-color: var(--border);
+  color: var(--text);
+  height: 74px;
+  padding: 14px 20px;
+  vertical-align: middle;
+}
+
+.pricing-table-card .ant-table-tbody > tr:hover > td {
+  background: var(--surface-hover) !important;
+}
+
+.pricing-product-cell {
+  max-width: 100%;
+}
+
+.pricing-product-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(249, 115, 22, 0.14));
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.pricing-product-copy {
+  min-width: 0;
+}
+
+.pricing-product-name {
+  display: block;
+  color: var(--text) !important;
+  font-weight: 800;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pricing-product-code {
+  display: block;
+  margin-top: 3px;
+  color: var(--text2) !important;
+  font-size: 0.76rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pricing-money {
+  color: var(--text) !important;
+  display: block;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.pricing-table-card .ant-tag {
+  margin-inline-end: 0;
+}
+
+.pricing-number-input {
+  width: 100%;
+}
+
+.pricing-modal .ant-modal-content {
+  padding: 0 !important;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.pricing-modal .ant-modal-header {
+  margin: 0;
+  padding: 20px 24px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.pricing-modal .ant-modal-body {
+  padding: 20px 24px 4px;
+}
+
+.pricing-modal .ant-modal-footer {
+  margin: 0;
+  padding: 16px 24px 20px;
+  border-top: 1px solid var(--border);
+}
+
+.pricing-modal .ant-modal-title,
+.pricing-modal .ant-form-item-label > label {
+  color: var(--text) !important;
+}
+
+.pricing-modal .ant-form-item {
+  margin-bottom: 18px;
+}
+
+:root[data-theme='dark'] .pricing-page .ant-card {
+  background: #1b2433;
+  border-color: #334155;
+  box-shadow: none;
+}
+
+:root[data-theme='dark'] .pricing-page,
+:root[data-theme='dark'] .pricing-page .ant-card-body,
+:root[data-theme='dark'] .pricing-page .ant-card-head,
+:root[data-theme='dark'] .pricing-page .ant-card-head-title,
+:root[data-theme='dark'] .pricing-page .ant-typography,
+:root[data-theme='dark'] .pricing-page .pricing-product-name,
+:root[data-theme='dark'] .pricing-page .pricing-money {
+  color: #f8fafc !important;
+}
+
+:root[data-theme='dark'] .pricing-page .pricing-product-code {
+  color: #cbd5e1 !important;
+}
+
+:root[data-theme='dark'] .pricing-table-card .ant-table,
+:root[data-theme='dark'] .pricing-table-card .ant-table-container,
+:root[data-theme='dark'] .pricing-table-card .ant-table-content,
+:root[data-theme='dark'] .pricing-table-card .ant-table-cell-scrollbar {
+  background: #1b2433 !important;
+}
+
+:root[data-theme='dark'] .pricing-table-card .ant-table-thead > tr > th {
+  background: #111827 !important;
+  color: #e5e7eb !important;
+  border-bottom-color: #334155 !important;
+}
+
+:root[data-theme='dark'] .pricing-table-card .ant-table-tbody > tr > td {
+  background: #1b2433 !important;
+  border-bottom-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+:root[data-theme='dark'] .pricing-table-card .ant-table-tbody > tr.ant-table-row:hover > td,
+:root[data-theme='dark'] .pricing-table-card .ant-table-tbody > tr:hover > td {
+  background: #263244 !important;
+}
+
+:root[data-theme='dark'] .pricing-table-card .ant-pagination-item,
+:root[data-theme='dark'] .pricing-table-card .ant-pagination-prev button,
+:root[data-theme='dark'] .pricing-table-card .ant-pagination-next button {
+  background: #111827 !important;
+  border-color: #334155 !important;
+  color: #cbd5e1 !important;
+}
+
+:root[data-theme='dark'] .pricing-table-card .ant-pagination-item a,
+:root[data-theme='dark'] .pricing-table-card .ant-pagination-prev button,
+:root[data-theme='dark'] .pricing-table-card .ant-pagination-next button {
+  color: #cbd5e1 !important;
+}
+
+:root[data-theme='dark'] .pricing-table-card .ant-pagination-item-active {
+  border-color: var(--accent) !important;
+}
+
+:root[data-theme='dark'] .pricing-table-card .ant-pagination-item-active a {
+  color: #ffffff !important;
+}
+
+:root[data-theme='dark'] .pricing-page .ant-tag {
+  background: #111827;
+  border-color: #334155;
+  color: #e5e7eb;
+}
+
+html[data-theme='dark'] body .pricing-modal,
+html[data-theme='dark'] body .pricing-modal .ant-modal-content {
+  background: transparent !important;
+}
+
+html[data-theme='dark'] body .pricing-modal .ant-modal-content,
+html[data-theme='dark'] body .pricing-modal .ant-modal-header,
+html[data-theme='dark'] body .pricing-modal .ant-modal-body,
+html[data-theme='dark'] body .pricing-modal .ant-modal-footer {
+  background-color: #1b2433 !important;
+  border-color: #334155 !important;
+}
+
+html[data-theme='dark'] body .pricing-modal .ant-modal-title,
+html[data-theme='dark'] body .pricing-modal .ant-form-item-label > label,
+html[data-theme='dark'] body .pricing-modal .ant-typography {
+  color: #f8fafc !important;
+}
+
+html[data-theme='dark'] body .pricing-modal .ant-modal-close,
+html[data-theme='dark'] body .pricing-modal .ant-modal-close-x {
+  color: #cbd5e1 !important;
+}
+
+html[data-theme='dark'] body .pricing-modal .ant-modal-close:hover {
+  background: #263244 !important;
+}
+
+html[data-theme='dark'] body .pricing-modal .ant-input,
+html[data-theme='dark'] body .pricing-modal .ant-input-number,
+html[data-theme='dark'] body .pricing-modal .ant-input-number-input {
+  background-color: #111827 !important;
+  color: #f8fafc !important;
+}
+
+html[data-theme='dark'] body .pricing-modal .ant-input,
+html[data-theme='dark'] body .pricing-modal .ant-input-number {
+  border-color: #334155 !important;
+}
+
+html[data-theme='dark'] body .pricing-modal .ant-input:hover,
+html[data-theme='dark'] body .pricing-modal .ant-input-number:hover {
+  border-color: #475569 !important;
+}
+
+html[data-theme='dark'] body .pricing-modal .ant-input:focus,
+html[data-theme='dark'] body .pricing-modal .ant-input-number-focused {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px rgba(251, 146, 60, 0.16) !important;
+}
+
+html[data-theme='dark'] body .pricing-modal .ant-input-number-prefix {
+  color: #cbd5e1 !important;
+}
+
+html[data-theme='dark'] body .pricing-modal .ant-btn-default {
+  background: #111827 !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+html[data-theme='dark'] body .pricing-modal .ant-btn-default:hover,
+html[data-theme='dark'] body .pricing-modal .ant-btn-default:focus {
+  background: #263244 !important;
+  border-color: #475569 !important;
+  color: #ffffff !important;
+}
+
+html[data-theme='dark'] body .ant-popover .ant-popconfirm,
+html[data-theme='dark'] body .ant-popover .ant-popover-inner {
+  background: #111827 !important;
+  color: #e5e7eb !important;
+}
+
+html[data-theme='dark'] body .ant-popover .ant-popover-title,
+html[data-theme='dark'] body .ant-popover .ant-popconfirm-description {
+  color: #e5e7eb !important;
+}
+
+@media (max-width: 768px) {
+  .pricing-table-card .ant-table-thead > tr > th,
+  .pricing-table-card .ant-table-tbody > tr > td {
+    padding: 12px 14px;
+  }
 }

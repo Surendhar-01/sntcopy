@@ -47,7 +47,7 @@ SMTP_SECURE=false
 SMTP_USER=karthickkumar2312@gmail.com
 SMTP_PASS=YOUR_16_CHAR_PASSWORD_NO_SPACES
 SMTP_FROM=karthickkumar2312@gmail.com
-SHIFT_REPORT_EMAIL=karthickkumar2312@gmail.com
+SHIFT_REPORT_EMAIL=surendharkavin01@gmail.com
 ```
 
 #### Step 4: Restart Server

@@ -1,38 +1,30 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { Form, Input, Button, message } from 'antd';
+import { UserOutlined, LockOutlined, ArrowRightOutlined } from '@ant-design/icons';
 import './Login.css';
 import companyLogo from '../assets/companylogo.png';
 
 export default function Login({ onLogin }) {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
+  const [form] = Form.useForm();
 
-  const doLogin = async () => {
-    const normalizedUsername = username.trim();
-
-    if (!normalizedUsername || !password) {
-      setError('Enter username and password');
-      return;
-    }
-
+  const doLogin = async (values) => {
+    const normalizedUsername = values.username?.trim();
     try {
-      await onLogin(normalizedUsername, password);
-      setError('');
+      await onLogin(normalizedUsername, values.password);
     } catch (loginError) {
-      setError(loginError?.message || 'Login failed');
+      message.error(loginError?.message || 'Login failed');
     }
   };
 
   return (
     <div id="loginPage">
+      {/* LEFT PANEL */}
       <div className="login-left-panel">
         <div className="login-left-content">
-
           <h1 className="login-welcome-title">Welcome to...</h1>
           <div className="login-business-info">
             <h2 className="business-name">Sri Nikil Tradings</h2>
-            
+
             <div className="business-detail-row">
               <span className="icon">📍</span>
               <p style={{ margin: 0 }}>
@@ -40,7 +32,7 @@ export default function Login({ onLogin }) {
                 Opp. Central Warehouse, Erode - 638004
               </p>
             </div>
-            
+
             <div className="business-badges">
               <div className="business-badge">
                 <span className="badge-label">GSTIN</span>
@@ -52,9 +44,8 @@ export default function Login({ onLogin }) {
               </div>
             </div>
           </div>
-
-
         </div>
+
         <div className="login-wave-bg">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320" preserveAspectRatio="none">
             <path fill="rgba(255, 255, 255, 0.15)" fillOpacity="1" d="M0,192L48,181.3C96,171,192,149,288,149.3C384,149,480,171,576,197.3C672,224,768,256,864,250.7C960,245,1056,203,1152,192C1248,181,1344,203,1392,213.3L1440,224L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
@@ -62,73 +53,63 @@ export default function Login({ onLogin }) {
           </svg>
         </div>
       </div>
-      
+
+      {/* RIGHT PANEL */}
       <div className="login-right-panel">
         <div className="login-box">
           <img src={companyLogo} alt="Company Logo" className="login-company-logo" />
           <h2 className="login-title">Login</h2>
           <p className="login-greeting">Welcome! Login to get amazing discounts and offers only for you.</p>
-          
-          <div className="field-group">
-            <label>Username</label>
-            <input
-              type="text"
-              autoComplete="off"
-              autoCapitalize="none"
-              spellCheck={false}
-              placeholder="Enter username"
-              value={username}
-              onChange={event => {
-                setUsername(event.target.value);
-                setError('');
-              }}
-              onKeyDown={event => {
-                if (event.key === 'Enter') doLogin();
-              }}
-            />
-          </div>
-          <div className="field-group">
-            <label>Password</label>
-            <div className="password-wrapper">
-              <input
-                type={showPassword ? "text" : "password"}
-                placeholder="Enter password"
-                value={password}
-                onChange={event => {
-                  setPassword(event.target.value);
-                  setError('');
-                }}
-                onKeyDown={event => {
-                  if (event.key === 'Enter') doLogin();
-                }}
+
+          <Form
+            form={form}
+            layout="vertical"
+            onFinish={doLogin}
+            requiredMark={false}
+          >
+            <Form.Item
+              name="username"
+              label={<span className="antd-label">Username</span>}
+              rules={[{ required: true, message: 'Please enter your username' }]}
+            >
+              <Input
+                prefix={<UserOutlined className="antd-input-icon" />}
+                placeholder="Enter username"
+                autoComplete="off"
+                autoCapitalize="none"
+                spellCheck={false}
+                size="large"
+                className="antd-input"
               />
-              <button 
-                type="button" 
-                className="eye-btn" 
-                onClick={() => setShowPassword(!showPassword)}
-                tabIndex="-1"
+            </Form.Item>
+
+            <Form.Item
+              name="password"
+              label={<span className="antd-label">Password</span>}
+              rules={[{ required: true, message: 'Please enter your password' }]}
+            >
+              <Input.Password
+                prefix={<LockOutlined className="antd-input-icon" />}
+                placeholder="Enter password"
+                size="large"
+                className="antd-input"
+              />
+            </Form.Item>
+
+            <Form.Item style={{ marginTop: '24px', marginBottom: 0 }}>
+              <Button
+                type="primary"
+                htmlType="submit"
+                size="large"
+                icon={<ArrowRightOutlined />}
+                iconPosition="end"
+                block
+                className="antd-login-btn"
               >
-                {showPassword ? (
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
-                ) : (
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                )}
-              </button>
-            </div>
-          </div>
-
-
-
-          {error && (
-             <div style={{ color: 'var(--red, #ef4444)', fontSize: '.82rem', marginBottom: '10px' }}>
-               {error}
-             </div>
-          )}
-          
-          <button className="login-btn" onClick={doLogin}>
-            <span>Login</span>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
-          </button>
+                Login
+              </Button>
+            </Form.Item>
+          </Form>
         </div>
       </div>
     </div>

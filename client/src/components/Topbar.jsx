@@ -1,47 +1,17 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
+import { Avatar, Button, Dropdown, Segmented, Tooltip, Space } from 'antd';
+import {
+  BulbOutlined,
+  MoonOutlined,
+  DesktopOutlined,
+  UserOutlined,
+  LogoutOutlined,
+  ThunderboltOutlined,
+  PlayCircleOutlined,
+} from '@ant-design/icons';
 import ClearConfirmModal from './ClearConfirmModal';
 import { useTheme } from '../context/useTheme';
 import './Topbar.css';
-
-const THEME_BUTTONS = [
-  {
-    id: 'light',
-    label: 'Light theme',
-    icon: (
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <circle cx="12" cy="12" r="4" />
-        <path d="M12 2v2" />
-        <path d="M12 20v2" />
-        <path d="m4.93 4.93 1.41 1.41" />
-        <path d="m17.66 17.66 1.41 1.41" />
-        <path d="M2 12h2" />
-        <path d="M20 12h2" />
-        <path d="m6.34 17.66-1.41 1.41" />
-        <path d="m19.07 4.93-1.41 1.41" />
-      </svg>
-    )
-  },
-  {
-    id: 'dark',
-    label: 'Dark theme',
-    icon: (
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M21 12.79A8.5 8.5 0 1 1 11.21 3 6.5 6.5 0 0 0 21 12.79Z" />
-      </svg>
-    )
-  },
-  {
-    id: 'system',
-    label: 'System default theme',
-    icon: (
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <rect x="3" y="4" width="18" height="12" rx="2" />
-        <path d="M8 20h8" />
-        <path d="M12 16v4" />
-      </svg>
-    )
-  }
-];
 
 function isClearedSessionError(error) {
   const message = String(error?.message || error || '').toLowerCase();
@@ -55,19 +25,7 @@ function isClearedSessionError(error) {
 }
 
 export default function Topbar({ user, erp, session, setUser, setSession, onLogout }) {
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const dropdownRef = useRef(null);
-
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setDropdownOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-  const { effectiveTheme, setTheme, theme } = useTheme();
+  const { setTheme, theme } = useTheme();
   const [currentTime, setCurrentTime] = useState(Date.now());
   const [isEndingShift, setIsEndingShift] = useState(false);
   const [isStartingShift, setIsStartingShift] = useState(false);
@@ -76,11 +34,8 @@ export default function Topbar({ user, erp, session, setUser, setSession, onLogo
   const [shiftActive, setShiftActive] = useState(() => Boolean(user?.loginTime));
 
   useEffect(() => {
-    const intervalId = window.setInterval(() => {
-      setCurrentTime(Date.now());
-    }, 1000);
-
-    return () => window.clearInterval(intervalId);
+    const id = window.setInterval(() => setCurrentTime(Date.now()), 1000);
+    return () => window.clearInterval(id);
   }, []);
 
   useEffect(() => {
@@ -103,19 +58,12 @@ export default function Topbar({ user, erp, session, setUser, setSession, onLogo
   }, [currentTime, shiftActive, user?.loginTime, user?.role, onLogout]);
 
   const formatShiftDuration = () => {
-    if (!shiftActive) {
-      return '00:00:00';
-    }
-
+    if (!shiftActive) return '00:00:00';
     const loginTimeValue = user?.loginTime;
-    if (!loginTimeValue) {
-      return '00:00:00';
-    }
+    if (!loginTimeValue) return '00:00:00';
 
     const loginTimestamp = new Date(loginTimeValue).getTime();
-    if (Number.isNaN(loginTimestamp)) {
-      return '00:00:00';
-    }
+    if (Number.isNaN(loginTimestamp)) return '00:00:00';
 
     const elapsedSeconds = Math.max(0, Math.floor((currentTime - loginTimestamp) / 1000));
     const lowerRole = user?.role?.toLowerCase();
@@ -126,7 +74,6 @@ export default function Topbar({ user, erp, session, setUser, setSession, onLogo
       const seconds = String(elapsedSeconds % 60).padStart(2, '0');
       return `${hours}:${minutes}:${seconds}`;
     } else {
-      // Countdown from 12 hours (43200 seconds)
       const totalShiftSeconds = 12 * 3600;
       const remainingSeconds = Math.max(0, totalShiftSeconds - elapsedSeconds);
       const hours = String(Math.floor(remainingSeconds / 3600)).padStart(2, '0');
@@ -137,10 +84,7 @@ export default function Topbar({ user, erp, session, setUser, setSession, onLogo
   };
 
   const startNextShift = async () => {
-    if (!erp || !user) {
-      return;
-    }
-
+    if (!erp || !user) return;
     setIsStartingShift(true);
     try {
       const response = await erp.startShift({
@@ -148,14 +92,9 @@ export default function Topbar({ user, erp, session, setUser, setSession, onLogo
         role: user.role,
         shiftStart: new Date().toISOString()
       });
-
       const nextLoginTime = response?.shiftStart || new Date().toISOString();
       const nextSessionId = response?.sessionId || null;
-      const nextUser = {
-        ...user,
-        loginTime: nextLoginTime
-      };
-
+      const nextUser = { ...user, loginTime: nextLoginTime };
       setUser(nextUser);
       localStorage.setItem('sri_nikil_user', JSON.stringify(nextUser));
       setSession(nextSessionId ? {
@@ -177,10 +116,7 @@ export default function Topbar({ user, erp, session, setUser, setSession, onLogo
   };
 
   const endShift = async () => {
-    if (!erp || !user) {
-      return;
-    }
-
+    if (!erp || !user) return;
     setIsEndingShift(true);
     setShiftActive(false);
     try {
@@ -190,41 +126,26 @@ export default function Topbar({ user, erp, session, setUser, setSession, onLogo
         sessionId: session?.id,
         shiftStart: user.loginTime
       });
-
-      const closedUser = {
-        ...user,
-        loginTime: null
-      };
-
+      const closedUser = { ...user, loginTime: null };
       setUser(closedUser);
       localStorage.setItem('sri_nikil_user', JSON.stringify(closedUser));
       setSession(null);
       setCanStartNextShift(Boolean(response?.promptNextShift));
       alert(response?.message || 'Shift closed and report sent successfully');
-
       if (response?.promptNextShift) {
         setShowNextShiftPrompt(true);
       } else {
         const lowerRole = user?.role?.toLowerCase();
-        if (lowerRole === 'manager') {
-          if (onLogout) {
-            onLogout();
-          }
-        }
+        if (lowerRole === 'manager' && onLogout) onLogout();
       }
     } catch (error) {
       if (isClearedSessionError(error)) {
-        const closedUser = {
-          ...user,
-          loginTime: null
-        };
+        const closedUser = { ...user, loginTime: null };
         const lowerRole = user?.role?.toLowerCase();
-
         setUser(closedUser);
         localStorage.setItem('sri_nikil_user', JSON.stringify(closedUser));
         setSession(null);
         setCanStartNextShift(lowerRole === 'staff');
-
         if (lowerRole === 'staff') {
           setShowNextShiftPrompt(true);
           alert('Old shift history was cleared. Shift closed locally; you can start the next shift.');
@@ -235,7 +156,6 @@ export default function Topbar({ user, erp, session, setUser, setSession, onLogo
         }
         return;
       }
-
       alert(error.message || 'Failed to close shift');
       setShiftActive(true);
     } finally {
@@ -246,91 +166,111 @@ export default function Topbar({ user, erp, session, setUser, setSession, onLogo
   const handlePrimaryAction = async () => {
     if (canStartNextShift) {
       await startNextShift();
-      return;
+    } else {
+      await endShift();
     }
-
-    await endShift();
   };
 
   const primaryButtonLabel = canStartNextShift ? 'Next Shift' : 'End Shift';
   const isBusy = isEndingShift || isStartingShift;
-
   const showShiftWrap = ['admin', 'manager', 'staff'].includes(user?.role?.toLowerCase());
+
+  /* ── Theme Segmented options ── */
+  const themeOptions = [
+    {
+      value: 'light',
+      label: (
+        <Tooltip title="Light theme">
+          <BulbOutlined />
+        </Tooltip>
+      ),
+    },
+    {
+      value: 'dark',
+      label: (
+        <Tooltip title="Dark theme">
+          <MoonOutlined />
+        </Tooltip>
+      ),
+    },
+    {
+      value: 'system',
+      label: (
+        <Tooltip title="System default">
+          <DesktopOutlined />
+        </Tooltip>
+      ),
+    },
+  ];
+
+  /* ── Avatar dropdown items ── */
+  const avatarMenuItems = [
+    {
+      key: 'logout',
+      icon: <LogoutOutlined style={{ color: '#ff8a8a' }} />,
+      label: <span style={{ color: 'var(--red, #ef4444)' }}>Logout</span>,
+      onClick: () => { if (onLogout) onLogout(); },
+    },
+  ];
+
+  const avatarInitial = user?.user ? user.user.charAt(0).toUpperCase() : 'U';
 
   return (
     <>
       <div className="topbar">
+        {/* Shift controls */}
         {showShiftWrap && (
           <div className="shift-action-wrap">
             <span className="shift-duration">{formatShiftDuration()}</span>
-            <button className="overall-report-btn" onClick={handlePrimaryAction} disabled={isBusy}>
-              <span>
-                {isEndingShift ? 'Closing...' : isStartingShift ? 'Starting...' : primaryButtonLabel}
-              </span>
-              <span className="icon" style={{ display: 'flex', alignItems: 'center' }}>
-                {canStartNextShift ? '\u{23ED}' : (
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/>
-                    <path d="M20 3a2 2 0 0 0-1.437 1.437L17 10l-1.563-5.563A2 2 0 0 0 14 3l3 1.5L20 3z" />
-                  </svg>
-                )}
-              </span>
-            </button>
+            <Button
+              className="antd-shift-btn"
+              shape="round"
+              disabled={isBusy}
+              onClick={handlePrimaryAction}
+              icon={canStartNextShift ? <PlayCircleOutlined /> : <ThunderboltOutlined />}
+              loading={isBusy}
+            >
+              {isEndingShift ? 'Closing...' : isStartingShift ? 'Starting...' : primaryButtonLabel}
+            </Button>
           </div>
         )}
-        <div className="topbar-project-title">
-          Sri Nikil Trading Dashboard
-        </div>
 
+        {/* Center title */}
+        <div className="topbar-project-title">Sri Nikil Trading Dashboard</div>
+
+        {/* Right section */}
         <div className="topbar-right">
-          <div className="theme-switcher" role="group" aria-label="Theme switcher">
-            {THEME_BUTTONS.map((item) => {
-              const isActive = theme === item.id;
+          {/* Theme switcher */}
+          <Segmented
+            value={theme}
+            onChange={setTheme}
+            options={themeOptions}
+            className="antd-theme-segmented"
+          />
 
-              return (
-                <button
-                  key={item.id}
-                  className={`theme-switcher-btn ${isActive ? 'active' : ''}`}
-                  type="button"
-                  onClick={() => setTheme(item.id)}
-                  title={item.label}
-                  aria-label={item.label}
-                  aria-pressed={isActive}
-                  data-effective={item.id === 'system' ? effectiveTheme : item.id}
+          {/* User avatar + dropdown */}
+          <Dropdown
+            menu={{ items: avatarMenuItems }}
+            trigger={['click']}
+            placement="bottomRight"
+            classNames={{ root: 'antd-topbar-dropdown' }}
+          >
+            <Button
+              type="text"
+              className="antd-avatar-btn"
+            >
+              <Space size={6}>
+                <Avatar
+                  size={30}
+                  className="antd-topbar-avatar"
+                  icon={<UserOutlined />}
                 >
-                  {item.icon}
-                </button>
-              );
-            })}
-          </div>
-
-
-
-          <div className="avatar-dropdown" ref={dropdownRef}>
-            <button className="avatar-btn" onClick={() => setDropdownOpen(!dropdownOpen)}>
-              <div className="avatar-circle">
-                {user?.user ? user.user.charAt(0).toUpperCase() : 'U'}
-              </div>
-              <span className="avatar-name">{user?.user || 'User'}</span>
-              <svg className="avatar-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="6 9 12 15 18 9"></polyline>
-              </svg>
-            </button>
-            
-            {dropdownOpen && (
-              <div className="avatar-menu">
-                <button className="avatar-menu-item" onClick={() => { setDropdownOpen(false); if (onLogout) onLogout(); }}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '16px', height: '16px', color: 'var(--red)', opacity: 0.8 }}>
-                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                    <polyline points="16 17 21 12 16 7"></polyline>
-                    <line x1="21" y1="12" x2="9" y2="12"></line>
-                  </svg>
-                  <span>Logout</span>
-                </button>
-              </div>
-            )}
-          </div>
-
+                  {avatarInitial}
+                </Avatar>
+                <span className="avatar-name">{user?.user || 'User'}</span>
+              </Space>
+            </Button>
+          </Dropdown>
         </div>
       </div>
 
@@ -344,9 +284,7 @@ export default function Topbar({ user, erp, session, setUser, setSession, onLogo
         onClose={() => {
           if (!isStartingShift) {
             setShowNextShiftPrompt(false);
-            if (onLogout) {
-              onLogout();
-            }
+            if (onLogout) onLogout();
           }
         }}
       />

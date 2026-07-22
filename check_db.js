@@ -1,6 +1,5 @@
 import mysql from 'mysql2/promise';
 import path from 'path';
-import fs from 'fs';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import process from 'process';
@@ -24,7 +23,7 @@ async function check() {
   
   for (const table of tables) {
     try {
-      const [schema] = await connection.query(`DESCRIBE \`${table}\``);
+      await connection.query(`DESCRIBE \`${table}\``);
       console.log(`--- ${table} Table ---`);
       console.log(`${table} exists.`);
     } catch (err) {

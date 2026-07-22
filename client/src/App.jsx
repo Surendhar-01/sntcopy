@@ -302,8 +302,9 @@ function App() {
     products: erp.db.products,
     settings: erp.db.settings,
     bills: erp.db.bills,
+    customers: erp.db.customers,
     billSeq: erp.db.billSeq
-  }), [erp.db.products, erp.db.settings, erp.db.bills, erp.db.billSeq]);
+  }), [erp.db.products, erp.db.settings, erp.db.bills, erp.db.customers, erp.db.billSeq]);
 
   // Wrap ERP references in sub-providers to isolate mutable values
   const erpProducts = useMemo(() => ({

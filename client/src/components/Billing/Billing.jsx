@@ -1,7 +1,49 @@
-import React, { useEffect, useEffectEvent, useState } from 'react';
+import React, { useEffect, useEffectEvent, useMemo, useState } from 'react';
+import {
+  CloseOutlined,
+  DeleteOutlined,
+  EyeOutlined,
+  FileAddOutlined,
+  FileTextOutlined,
+  MinusOutlined,
+  PlusOutlined,
+  PrinterOutlined,
+  SaveOutlined,
+  SearchOutlined,
+  ShopOutlined,
+  ShoppingCartOutlined,
+} from '@ant-design/icons';
+import {
+  Button,
+  Card,
+  Checkbox,
+  ConfigProvider,
+  Empty,
+  Form,
+  Input,
+  InputNumber,
+  List,
+  Modal,
+  Select,
+  Space,
+  Table,
+  Tag,
+  Tooltip,
+  Typography,
+  message,
+  theme as antdTheme,
+} from 'antd';
+import { useTheme } from '../../context/useTheme';
 import './Billing.css';
 
+const { Text } = Typography;
+
+const formatCurrency = (value) => `Rs. ${Number(value || 0).toFixed(2)}`;
+const isSameUserName = (left, right) =>
+  String(left || '').trim().toLowerCase() === String(right || '').trim().toLowerCase();
+
 export default function Billing({ erp, user }) {
+  const { effectiveTheme } = useTheme();
   const [items, setItems] = useState([]);
   const [viewBill, setViewBill] = useState(null);
   const [isReviewMode, setIsReviewMode] = useState(false);
@@ -12,10 +54,59 @@ export default function Billing({ erp, user }) {
   const [customer, setCustomer] = useState('');
   const [phone, setPhone] = useState('');
   const [payment, setPayment] = useState('Cash');
-  const [toast, setToast] = useState(null);
   const [hiddenRecentBillIds, setHiddenRecentBillIds] = useState([]);
 
   const { db, addBill } = erp;
+  const isDarkTheme = effectiveTheme === 'dark';
+  const billingAntTheme = useMemo(
+    () => ({
+      algorithm: isDarkTheme
+        ? antdTheme.darkAlgorithm
+        : antdTheme.defaultAlgorithm,
+      token: {
+        borderRadius: 6,
+        colorPrimary: '#f97316',
+        colorBgBase: isDarkTheme ? '#111827' : '#ffffff',
+        colorBgContainer: isDarkTheme ? '#1b2433' : '#ffffff',
+        colorBgElevated: isDarkTheme ? '#111827' : '#ffffff',
+        colorBorder: isDarkTheme ? '#334155' : '#e2e5ea',
+        colorText: isDarkTheme ? '#f8fafc' : '#1a1f2e',
+        colorTextSecondary: isDarkTheme ? '#cbd5e1' : '#5a6278',
+      },
+      components: {
+        Button: {
+          defaultBg: isDarkTheme ? '#111827' : '#ffffff',
+          defaultBorderColor: isDarkTheme ? '#334155' : '#d9d9d9',
+          defaultColor: isDarkTheme ? '#f8fafc' : '#1a1f2e',
+        },
+        Card: {
+          colorBgContainer: isDarkTheme ? '#1b2433' : '#ffffff',
+        },
+        Input: {
+          activeBg: isDarkTheme ? '#111827' : '#ffffff',
+          colorBgContainer: isDarkTheme ? '#111827' : '#ffffff',
+        },
+        InputNumber: {
+          activeBg: isDarkTheme ? '#111827' : '#ffffff',
+          colorBgContainer: isDarkTheme ? '#111827' : '#ffffff',
+        },
+        Modal: {
+          contentBg: isDarkTheme ? '#1b2433' : '#ffffff',
+          footerBg: isDarkTheme ? '#1b2433' : '#ffffff',
+          headerBg: isDarkTheme ? '#1b2433' : '#ffffff',
+        },
+        Select: {
+          optionSelectedBg: isDarkTheme ? '#263244' : '#e6f4ff',
+          selectorBg: isDarkTheme ? '#111827' : '#ffffff',
+        },
+        Table: {
+          headerBg: isDarkTheme ? '#111827' : '#f4f6f9',
+          rowHoverBg: isDarkTheme ? '#263244' : '#fafafa',
+        },
+      },
+    }),
+    [isDarkTheme],
+  );
   const syncBillingData = useEffectEvent(() => {
     erp.refreshData({ showLoading: false }).catch(() => {});
   });
@@ -58,8 +149,12 @@ export default function Billing({ erp, user }) {
   const nextBillSeq = getNextBillSeq(db.bills);
 
   const showToast = (msg, type = 'success') => {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 3000);
+    if (type === 'error') {
+      message.error(msg);
+      return;
+    }
+
+    message.success(msg);
   };
 
   useEffect(() => {
@@ -435,359 +530,521 @@ export default function Billing({ erp, user }) {
 
 
   const todayStr = new Date().toDateString();
-  const recentBills = (db.bills || [])
-    .filter(bill => (isAdmin || (bill.by || bill.by_user) === user?.user) && !hiddenRecentBillIds.includes(bill.id) && new Date(bill.date).toDateString() === todayStr)
-    .slice(0, 6);
+  const visibleRecentBills = (db.bills || [])
+    .filter((bill) => (isAdmin || isSameUserName(bill.by || bill.by_user, user?.user)) && !hiddenRecentBillIds.includes(bill.id))
+    .sort((a, b) => new Date(b.date || b.created_at || 0) - new Date(a.date || a.created_at || 0));
+  const todayRecentBills = visibleRecentBills.filter((bill) => new Date(bill.date || bill.created_at).toDateString() === todayStr);
+  const recentBills = (todayRecentBills.length > 0 ? todayRecentBills : visibleRecentBills).slice(0, 6);
+  const recentBillsTitle = todayRecentBills.length > 0 || visibleRecentBills.length === 0 ? "Today's Bills" : 'Latest Bills';
+
+  const modalStyles = {
+    content: {
+      background: isDarkTheme ? '#1b2433' : '#ffffff',
+      border: `1px solid ${isDarkTheme ? '#334155' : '#e2e5ea'}`,
+      padding: 0,
+    },
+    header: {
+      background: isDarkTheme ? '#1b2433' : '#ffffff',
+      borderBottom: `1px solid ${isDarkTheme ? '#334155' : '#e2e5ea'}`,
+    },
+    body: {
+      background: isDarkTheme ? '#1b2433' : '#ffffff',
+    },
+    footer: {
+      background: isDarkTheme ? '#1b2433' : '#ffffff',
+      borderTop: `1px solid ${isDarkTheme ? '#334155' : '#e2e5ea'}`,
+    },
+  };
+
+  const cartColumns = [
+    {
+      title: 'Item',
+      dataIndex: 'name',
+      key: 'name',
+      width: 280,
+      render: (name, item) => (
+        <Space direction="vertical" size={2} className="billing-item-cell">
+          <Text className="billing-item-name">{name}</Text>
+          <Text type="secondary">{formatCurrency(item.price)}</Text>
+        </Space>
+      ),
+    },
+    {
+      title: 'Qty',
+      key: 'qty',
+      align: 'center',
+      width: 150,
+      render: (_, item, index) => {
+        const maxQty = getMaxQtyForCartItem(item, index);
+        const itemQty = Number(item.qty || 0);
+
+        return (
+          <Space.Compact className="billing-qty-control">
+            <Button
+              icon={<MinusOutlined />}
+              disabled={itemQty <= 1}
+              onClick={() => changeItemQty(index, -1)}
+            />
+            <Button className="billing-qty-value">{itemQty}</Button>
+            <Button
+              icon={<PlusOutlined />}
+              disabled={itemQty >= maxQty}
+              onClick={() => changeItemQty(index, 1)}
+            />
+          </Space.Compact>
+        );
+      },
+    },
+    {
+      title: 'Total',
+      dataIndex: 'total',
+      key: 'total',
+      align: 'right',
+      width: 150,
+      render: (total) => <Text className="billing-money">{formatCurrency(total)}</Text>,
+    },
+    {
+      title: '',
+      key: 'action',
+      align: 'center',
+      width: 80,
+      render: (_, item, index) => (
+        <Tooltip title="Remove item">
+          <Button
+            danger
+            type="text"
+            icon={<DeleteOutlined />}
+            onClick={() => removeItem(index)}
+          />
+        </Tooltip>
+      ),
+    },
+  ];
+
+  const billDetailColumns = [
+    {
+      title: 'Item',
+      dataIndex: 'name',
+      key: 'name',
+      width: 240,
+      render: (name) => <Text className="billing-item-name">{name}</Text>,
+    },
+    {
+      title: 'Qty',
+      dataIndex: 'qty',
+      key: 'qty',
+      align: 'right',
+      width: 80,
+    },
+    {
+      title: 'Rate',
+      dataIndex: 'price',
+      key: 'price',
+      align: 'right',
+      width: 130,
+      render: (price) => formatCurrency(price),
+    },
+    {
+      title: 'Total',
+      dataIndex: 'total',
+      key: 'total',
+      align: 'right',
+      width: 130,
+      render: (total) => <Text className="billing-money">{formatCurrency(total)}</Text>,
+    },
+  ];
 
   return (
-    <>
+    <ConfigProvider theme={billingAntTheme}>
       <div className="page-header">
         <h1 className="page-title">Billing Workspace</h1>
         <p className="page-description">Create, manage and print customer bills.</p>
       </div>
-      {toast && (
-        <div className={`toast-msg ${toast.type}`}>
-          {toast.type === 'success' ? '✅' : '❌'} {toast.msg}
-        </div>
-      )}
-      <div
-        className="grid gap-4"
-        style={{
-          gridTemplateColumns: 'minmax(0, 1.7fr) minmax(360px, 1fr)',
-          alignItems: 'start'
-        }}
-      >
-      <div style={{ minWidth: 0 }}>
-        <div className="card mb-4 no-print">
-          <div className="bill-header">
-            <div className="bill-shop-name gold-text" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-              <img src="/logo.svg" alt="Logo" style={{ height: '32px' }} />
-              {db.settings.shop}
-            </div>
-            <div className="bill-address">{db.settings.addr}<br />Ph: {db.settings.phone}</div>
-          </div>
-          <div className="form-row mb-3">
-            <div className="form-group"><label>Bill No</label><input readOnly value={`SNT-${String(nextBillSeq).padStart(4, '0')}`} style={{ color: 'var(--accent)', fontWeight: 700 }} /></div>
-            <div className="form-group"><label>Date</label><input readOnly value={new Date().toLocaleString()} /></div>
-            <div className="form-group"><label>Payment</label>
-              <select value={payment} onChange={(event) => setPayment(event.target.value)}>
-                <option>Cash</option>
-                <option>UPI</option>
-                <option>Card</option>
-              </select>
-            </div>
-          </div>
-          <div className="form-row">
-            <div className="form-group"><label>Customer Name <span className="text-red" title="Required">*</span></label><input value={customer} onChange={(event) => setCustomer(event.target.value)} placeholder="Required" /></div>
-            <div className="form-group"><label>Mobile No <span className="text-red" title="Required">*</span></label><input value={phone} onChange={(event) => {
-              const nextPhone = event.target.value.replace(/\D/g, '').slice(0, 10);
-              setPhone(nextPhone);
 
-              const matchedCustomer = findCustomerByPhone(nextPhone);
-              if (matchedCustomer?.name) {
-                setCustomer(matchedCustomer.name);
+      <div className="billing-page">
+        <div className="billing-layout">
+          <div className="billing-main">
+            <Card
+              className="billing-card no-print"
+              title={
+                <Space>
+                  <ShopOutlined />
+                  <span>{db.settings.shop}</span>
+                </Space>
               }
-            }} maxLength="10" placeholder="10 Digits Required" /></div>
-          </div>
-        </div>
-
-        <div className="card">
-          <div className="section-title">Add Item</div>
-          <div className="form-group mb-3">
-            <input
-              placeholder="Click to select products..."
-              value={searchTerm}
-              readOnly
-              onClick={openProductPopup}
-              style={{ flex: 1 }}
-            />
-          </div>
-
-          <div className="table-wrap mb-3">
-            <table>
-              <thead><tr><th style={{ width: '180px' }}>Item</th><th style={{ textAlign: 'center' }}>Qty</th><th>Total</th><th></th></tr></thead>
-              <tbody>
-                {items.map((item, index) => {
-                  const maxQty = getMaxQtyForCartItem(item, index);
-                  const itemQty = Number(item.qty || 0);
-                  return (
-                    <tr key={index}>
-                      <td style={{ fontSize: '.8rem' }}>{item.name}</td>
-                      <td style={{ textAlign: 'center' }}>
-                        <div className="qty-stepper">
-                          <button
-                            type="button"
-                            className="qty-stepper-btn"
-                            onClick={() => changeItemQty(index, -1)}
-                            disabled={itemQty <= 1}
-                            aria-label={`Decrease quantity of ${item.name}`}
-                          >
-                            -
-                          </button>
-                          <span className="qty-stepper-value">{item.qty}</span>
-                          <button
-                            type="button"
-                            className="qty-stepper-btn"
-                            onClick={() => changeItemQty(index, 1)}
-                            disabled={itemQty >= maxQty}
-                            aria-label={`Increase quantity of ${item.name}`}
-                          >
-                            +
-                          </button>
-                        </div>
-                      </td>
-                      <td>Rs {item.total}</td>
-                      <td style={{ textAlign: 'right' }}>
-                        <button className="del-btn" onClick={() => removeItem(index)} title="Remove Item">
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 01 2-2h4a2 2 0 01 2 2v2M10 11v6M14 11v6"></path>
-                          </svg>
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-                {items.length === 0 && (
-                  <tr>
-                    <td colSpan="4" className="text-center text-muted">No cart items</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="totals-box">
-            <div className="total-row"><span>Subtotal:</span><span>Rs {netSubtotal.toFixed(2)}</span></div>
-            <div className="total-row"><span>CGST @{(db.settings.gst / 2).toFixed(1)}%:</span><span>Rs {(gstAmt / 2).toFixed(2)}</span></div>
-            <div className="total-row"><span>SGST @{(db.settings.gst / 2).toFixed(1)}%:</span><span>Rs {(gstAmt / 2).toFixed(2)}</span></div>
-            <div className="total-row grand"><span>Total:</span><span>Rs {grandTotal.toFixed(2)}</span></div>
-          </div>
-
-          <div className="mt-4 flex gap-2">
-            <button className="btn btn-primary" onClick={handleSaveBill}>Save Bill</button>
-            <button className="btn btn-secondary btn-review" onClick={reviewBill}>Review Bill</button>
-            <button className="btn btn-blue" onClick={printBill}>Print Bill</button>
-            <button className="btn btn-danger" onClick={() => setItems([])}>Clear</button>
-          </div>
-        </div>
-      </div>
-
-      <div style={{ width: '100%', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '16px' }}>
-
-
-        {/* Recent Bills Section */}
-        <div className="card no-print">
-          <div className="section-title">Recent Bills</div>
-          <div className="recent-bills-list">
-            {recentBills.map((bill) => (
-              <div key={bill.id} className="card bg3 border-radius mb-1" style={{ padding: '10px', cursor: 'pointer', transition: '0.2s', border: '1px solid var(--border)' }} onClick={() => { setViewBill(bill); setIsReviewMode(false); }} title="Click to view details">
-                <div className="flex justify-between items-center mb-1">
-                  <b className="text-accent text-sm">{bill.billNo}</b>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted">{new Date(bill.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                    <button className="del-btn" style={{ padding: '2px', color: 'var(--red)', width: 'auto', height: 'auto' }} onClick={(event) => { event.stopPropagation(); hideRecentBill(bill.id); }} title="Remove from recent list">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 01 2-2h4a2 2 0 01 2 2v2M10 11v6M14 11v6"></path></svg>
-                    </button>
-                  </div>
-                </div>
-                <div className="text-sm fw-600">{bill.customer}</div>
-                <div className="flex justify-between mt-2">
-                  <span className="badge badge-green text-xs" style={{ padding: '1px 6px' }}>{bill.payment}</span>
-                  <b className="text-sm">Rs {bill.grand.toFixed(2)}</b>
-                </div>
+            >
+              <div className="billing-shop-copy">
+                <Text type="secondary">{db.settings.addr}</Text>
+                <Text type="secondary">Ph: {db.settings.phone}</Text>
               </div>
-            ))}
-            {recentBills.length === 0 && <div className="text-center text-muted text-sm mt-4">No recent bills</div>}
-          </div>
-        </div>
-      </div>
+              <Form layout="vertical" requiredMark={false} className="billing-form">
+                <Form.Item label="Bill No">
+                  <Input
+                    readOnly
+                    value={`SNT-${String(nextBillSeq).padStart(4, '0')}`}
+                    className="billing-bill-no-input"
+                  />
+                </Form.Item>
+                <Form.Item label="Date">
+                  <Input readOnly value={new Date().toLocaleString()} />
+                </Form.Item>
+                <Form.Item label="Payment">
+                  <Select
+                    value={payment}
+                    onChange={setPayment}
+                    options={[
+                      { label: 'Cash', value: 'Cash' },
+                      { label: 'UPI', value: 'UPI' },
+                      { label: 'Card', value: 'Card' },
+                    ]}
+                  />
+                </Form.Item>
+                <Form.Item label="Customer Name" required>
+                  <Input
+                    value={customer}
+                    onChange={(event) => setCustomer(event.target.value)}
+                    placeholder="Required"
+                  />
+                </Form.Item>
+                <Form.Item label="Mobile No" required>
+                  <Input
+                    value={phone}
+                    maxLength={10}
+                    placeholder="10 Digits Required"
+                    onChange={(event) => {
+                      const nextPhone = event.target.value.replace(/\D/g, '').slice(0, 10);
+                      setPhone(nextPhone);
 
-      {viewBill && (
-        <div className="modal-overlay open" onClick={() => { setViewBill(null); setIsReviewMode(false); }} style={{ padding: '20px' }}>
-          <div className="modal" onClick={(event) => event.stopPropagation()}>
-            <div className="modal-header" style={{ marginBottom: '15px' }}>
-              <div style={{ flex: 1 }}>
-                <h3 style={{ margin: 0, color: 'var(--text)' }}>{isReviewMode ? 'Review Bill' : 'Bill Details'}</h3>
-                <div style={{ fontSize: '0.9rem', color: 'var(--accent)', fontWeight: 600 }}>{viewBill.billNo}</div>
-              </div>
-              <button className="modal-close" onClick={() => { setViewBill(null); setIsReviewMode(false); }}>x</button>
-            </div>
+                      const matchedCustomer = findCustomerByPhone(nextPhone);
+                      if (matchedCustomer?.name) {
+                        setCustomer(matchedCustomer.name);
+                      }
+                    }}
+                  />
+                </Form.Item>
+              </Form>
+            </Card>
 
-            <div style={{ paddingBottom: '15px', borderBottom: '1px solid var(--border)', marginBottom: '15px' }}>
-              <div className="grid grid-2 text-sm" style={{ gap: '8px' }}>
-                <div><span className="text-muted">Date:</span> <b>{new Date(viewBill.date).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</b></div>
-                <div><span className="text-muted">Customer:</span> <b>{viewBill.customer}</b></div>
-                <div><span className="text-muted">Phone:</span> <b>{viewBill.phone || 'N/A'}</b></div>
-                <div><span className="text-muted">Payment:</span> <span className="badge badge-green">{viewBill.payment}</span></div>
-                <div><span className="text-muted">Billed By:</span> <b>{viewBill.by || 'System'}</b></div>
-              </div>
-            </div>
-
-            <div className="table-wrap mb-3" style={{ maxHeight: '200px', overflowY: 'auto' }}>
-              <table>
-                <thead>
-                  <tr>
-                    <th style={{ width: '180px' }}>Item</th>
-                    <th style={{ textAlign: 'right' }}>Qty</th>
-                    <th style={{ textAlign: 'right' }}>Rate</th>
-                    <th style={{ textAlign: 'right' }}>Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {viewBill.items.map((item, index) => (
-                    <tr key={index}>
-                      <td>{item.name}</td>
-                      <td style={{ textAlign: 'right' }}>{item.qty}</td>
-                      <td style={{ textAlign: 'right' }}>Rs {item.price.toFixed(2)}</td>
-                      <td style={{ textAlign: 'right', fontWeight: 600 }}>Rs {item.total.toFixed(2)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="totals-box mb-4">
-              <div className="total-row"><span>Subtotal:</span><span>Rs {viewBill.subtotal.toFixed(2)}</span></div>
-              <div className="total-row"><span>CGST:</span><span>Rs {viewBill.cgst.toFixed(2)}</span></div>
-              <div className="total-row"><span>SGST:</span><span>Rs {viewBill.sgst.toFixed(2)}</span></div>
-              <div className="total-row grand"><span>Total:</span><span>Rs {viewBill.grand.toFixed(2)}</span></div>
-            </div>
-
-            <div className="flex justify-end items-center mt-2">
-              <button className="btn btn-blue" onClick={() => { setViewBill(null); setIsReviewMode(false); }} style={{ padding: '8px 24px' }}>Close</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showProductPopup && (
-        <div className="modal-overlay open" onClick={() => { setShowProductPopup(false); setSelectedProducts({}); }} style={{ padding: '20px' }}>
-          <div className="modal billing-product-modal" onClick={(event) => event.stopPropagation()}>
-            <div className="modal-header">
-              <div>
-                <div className="modal-title">Select Products</div>
-                <div className="text-muted text-sm">Choose items and add them to cart in batch.</div>
-              </div>
-              <button className="modal-close" onClick={() => { setShowProductPopup(false); setSelectedProducts({}); }}>x</button>
-            </div>
-
-            <div className="form-group mb-3">
-              <label style={{ fontSize: '0.8rem', marginBottom: '4px' }}>Search Products</label>
-              <input
-                autoFocus
-                placeholder="Search by name or code..."
+            <Card
+              className="billing-card billing-cart-card"
+              title={
+                <Space>
+                  <ShoppingCartOutlined />
+                  <span>Add Item</span>
+                </Space>
+              }
+              extra={
+                <Button
+                  type="primary"
+                  icon={<FileAddOutlined />}
+                  onClick={openProductPopup}
+                >
+                  Select Products
+                </Button>
+              }
+            >
+              <Input
+                readOnly
+                prefix={<SearchOutlined />}
+                placeholder="Click to select products..."
                 value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
+                onClick={openProductPopup}
+                className="billing-product-trigger"
               />
-            </div>
 
-            <div className="billing-product-list">
-              {popupProducts.map((product) => {
-                const isSelected = selectedProducts[product.id] !== undefined;
-                const currentStock = getProductStock(product);
-                const remainingStock = getRemainingStockForCart(product);
-                const isDisabled = currentStock <= 0 || remainingStock <= 0;
-                return (
-                  <div
-                    key={product.id}
-                    className={`billing-product-row ${isSelected ? 'selected' : ''} ${isDisabled ? 'disabled' : ''}`}
-                    onClick={() => toggleProductSelection(product)}
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', cursor: isDisabled ? 'not-allowed' : 'pointer' }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        disabled={isDisabled}
-                        onChange={() => toggleProductSelection(product)}
-                        onClick={(e) => e.stopPropagation()}
-                        style={{ cursor: isDisabled ? 'not-allowed' : 'pointer', width: '16px', height: '16px', flexShrink: 0 }}
-                      />
-                      <div className="billing-product-name" style={{ display: 'flex', flexDirection: 'column' }}>
-                        <span>{product.name}</span>
-                        {product.code && <span className="text-muted text-xs" style={{ marginTop: '2px' }}>{product.code}</span>}
-                        {currentStock > 0 ? (
-                          <span className="billing-stock-text">Available Stock: {currentStock}</span>
-                        ) : (
-                          <span className="billing-stock-badge">Out of Stock</span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()} style={{ flexShrink: 0 }}>
-                      <span className="billing-product-price">Rs {Number(product.price || 0).toFixed(2)}</span>
-                      {isSelected && (
-                        <input
-                          type="number"
-                          min="1"
-                          max={remainingStock}
-                          value={selectedProducts[product.id]}
-                          onChange={(e) => {
-                            const val = Math.max(1, Math.min(remainingStock, parseInt(e.target.value, 10) || 1));
-                            if (val < (parseInt(e.target.value, 10) || 1)) {
-                              showToast(`Only ${remainingStock} item(s) are available in stock.`, 'error');
-                            }
-                            setSelectedProducts((prev) => ({
-                              ...prev,
-                              [product.id]: val
-                            }));
-                          }}
-                          style={{
-                            width: '74px',
-                            padding: '6px 8px',
-                            borderRadius: '4px',
-                            border: '1px solid var(--border)',
-                            background: 'var(--surface-muted)',
-                            color: 'var(--text)',
-                            textAlign: 'center',
-                            fontWeight: 700
-                          }}
-                        />
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-              {popupProducts.length === 0 && (
-                <div className="text-center text-muted text-sm" style={{ padding: '12px 8px' }}>
-                  {availableProductCount === 0 ? 'No products are currently available for billing.' : 'No matching products found'}
-                </div>
-              )}
-              {popupProducts.length > 0 && availableProductCount === 0 && (
-                <div className="text-center text-muted text-sm" style={{ padding: '12px 8px' }}>
-                  No products are currently available for billing.
-                </div>
-              )}
-            </div>
+              <Table
+                rowKey={(_, index) => `${_.id}-${index}`}
+                columns={cartColumns}
+                dataSource={items}
+                pagination={false}
+                scroll={{ x: 660 }}
+                tableLayout="fixed"
+                locale={{ emptyText: <Empty description="No cart items" /> }}
+              />
 
-            <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border)', gap: '12px' }}>
-              <div className="text-sm text-muted">
-                Selected: <b className="text-accent">{Object.keys(selectedProducts).length}</b> product(s)
+              <div className="billing-totals">
+                <div className="billing-total-row">
+                  <span>Subtotal</span>
+                  <span>{formatCurrency(netSubtotal)}</span>
+                </div>
+                <div className="billing-total-row">
+                  <span>CGST @{(db.settings.gst / 2).toFixed(1)}%</span>
+                  <span>{formatCurrency(gstAmt / 2)}</span>
+                </div>
+                <div className="billing-total-row">
+                  <span>SGST @{(db.settings.gst / 2).toFixed(1)}%</span>
+                  <span>{formatCurrency(gstAmt / 2)}</span>
+                </div>
+                <div className="billing-total-row billing-grand-row">
+                  <span>Total</span>
+                  <span>{formatCurrency(grandTotal)}</span>
+                </div>
               </div>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => {
-                    setSelectedProducts({});
-                    setShowProductPopup(false);
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-primary btn-sm"
-                  disabled={Object.keys(selectedProducts).length === 0}
-                  onClick={handleAddSelected}
-                >
-                  Add Selected to Cart
-                </button>
-              </div>
-            </div>
+
+              <Space wrap className="billing-actions">
+                <Button type="primary" icon={<SaveOutlined />} onClick={handleSaveBill}>
+                  Save Bill
+                </Button>
+                <Button icon={<EyeOutlined />} onClick={reviewBill}>
+                  Review Bill
+                </Button>
+                <Button icon={<PrinterOutlined />} onClick={printBill}>
+                  Print Bill
+                </Button>
+                <Button danger icon={<CloseOutlined />} onClick={() => setItems([])}>
+                  Clear
+                </Button>
+              </Space>
+            </Card>
           </div>
+
+          <Card
+            className="billing-card billing-recent-card no-print"
+            title={
+              <Space>
+                <FileTextOutlined />
+                <span>{recentBillsTitle}</span>
+              </Space>
+            }
+          >
+            <List
+              dataSource={recentBills}
+              locale={{ emptyText: <Empty description="No recent bills" /> }}
+              renderItem={(bill) => (
+                <List.Item
+                  className="billing-recent-item"
+                  onClick={() => {
+                    setViewBill(bill);
+                    setIsReviewMode(false);
+                  }}
+                  actions={[
+                    <Tooltip title="Remove from recent list" key="remove">
+                      <Button
+                        danger
+                        type="text"
+                        icon={<DeleteOutlined />}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          hideRecentBill(bill.id);
+                        }}
+                      />
+                    </Tooltip>,
+                  ]}
+                >
+                  <List.Item.Meta
+                    title={
+                      <Space className="billing-recent-title">
+                        <Text className="billing-bill-no">{bill.billNo}</Text>
+                        <Text type="secondary">
+                          {new Date(bill.date).toLocaleTimeString([], {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </Text>
+                      </Space>
+                    }
+                    description={
+                      <Space direction="vertical" size={8} className="billing-recent-copy">
+                        <Text className="billing-item-name">{bill.customer}</Text>
+                        <Space>
+                          <Tag color="green">{bill.payment}</Tag>
+                          <Text className="billing-money">{formatCurrency(bill.grand)}</Text>
+                        </Space>
+                      </Space>
+                    }
+                  />
+                </List.Item>
+              )}
+            />
+          </Card>
         </div>
-      )}
-    </div>
-    </>
+
+        <Modal
+          title={isReviewMode ? 'Review Bill' : 'Bill Details'}
+          open={Boolean(viewBill)}
+          onCancel={() => {
+            setViewBill(null);
+            setIsReviewMode(false);
+          }}
+          footer={[
+            <Button
+              key="close"
+              type="primary"
+              onClick={() => {
+                setViewBill(null);
+                setIsReviewMode(false);
+              }}
+            >
+              Close
+            </Button>,
+          ]}
+          width={760}
+          centered
+          className="billing-modal"
+          styles={modalStyles}
+        >
+          {viewBill && (
+            <>
+              <div className="billing-preview-meta">
+                <div>
+                  <Text type="secondary">Bill No</Text>
+                  <Text className="billing-bill-no">{viewBill.billNo}</Text>
+                </div>
+                <div>
+                  <Text type="secondary">Date</Text>
+                  <Text>{new Date(viewBill.date).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</Text>
+                </div>
+                <div>
+                  <Text type="secondary">Customer</Text>
+                  <Text className="billing-item-name">{viewBill.customer}</Text>
+                </div>
+                <div>
+                  <Text type="secondary">Phone</Text>
+                  <Text>{viewBill.phone || 'N/A'}</Text>
+                </div>
+                <div>
+                  <Text type="secondary">Payment</Text>
+                  <Tag color="green">{viewBill.payment}</Tag>
+                </div>
+                <div>
+                  <Text type="secondary">Billed By</Text>
+                  <Text>{viewBill.by || 'System'}</Text>
+                </div>
+              </div>
+
+              <Table
+                rowKey={(_, index) => `${_.name}-${index}`}
+                columns={billDetailColumns}
+                dataSource={viewBill.items || []}
+                pagination={false}
+                scroll={{ x: 580, y: 220 }}
+                tableLayout="fixed"
+                className="billing-preview-table"
+              />
+
+              <div className="billing-totals billing-preview-totals">
+                <div className="billing-total-row">
+                  <span>Subtotal</span>
+                  <span>{formatCurrency(viewBill.subtotal)}</span>
+                </div>
+                <div className="billing-total-row">
+                  <span>CGST</span>
+                  <span>{formatCurrency(viewBill.cgst)}</span>
+                </div>
+                <div className="billing-total-row">
+                  <span>SGST</span>
+                  <span>{formatCurrency(viewBill.sgst)}</span>
+                </div>
+                <div className="billing-total-row billing-grand-row">
+                  <span>Total</span>
+                  <span>{formatCurrency(viewBill.grand)}</span>
+                </div>
+              </div>
+            </>
+          )}
+        </Modal>
+
+        <Modal
+          title="Select Products"
+          open={showProductPopup}
+          onCancel={() => {
+            setShowProductPopup(false);
+            setSelectedProducts({});
+          }}
+          onOk={handleAddSelected}
+          okText="Add Selected to Cart"
+          cancelText="Cancel"
+          okButtonProps={{ disabled: Object.keys(selectedProducts).length === 0 }}
+          width={780}
+          centered
+          destroyOnHidden
+          className="billing-modal billing-product-modal"
+          styles={modalStyles}
+        >
+          <Input
+            autoFocus
+            prefix={<SearchOutlined />}
+            placeholder="Search by name or code..."
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            className="billing-product-search"
+          />
+
+          <List
+            className="billing-product-list"
+            dataSource={popupProducts}
+            locale={{
+              emptyText: (
+                <Empty
+                  description={
+                    availableProductCount === 0
+                      ? 'No products are currently available for billing.'
+                      : 'No matching products found'
+                  }
+                />
+              ),
+            }}
+            renderItem={(product) => {
+              const isSelected = selectedProducts[product.id] !== undefined;
+              const currentStock = getProductStock(product);
+              const remainingStock = getRemainingStockForCart(product);
+              const isDisabled = currentStock <= 0 || remainingStock <= 0;
+
+              return (
+                <List.Item
+                  className={`billing-product-row ${isSelected ? 'selected' : ''} ${isDisabled ? 'disabled' : ''}`}
+                  onClick={() => toggleProductSelection(product)}
+                >
+                  <Space className="billing-product-info">
+                    <Checkbox
+                      checked={isSelected}
+                      disabled={isDisabled}
+                      onClick={(event) => event.stopPropagation()}
+                      onChange={() => toggleProductSelection(product)}
+                    />
+                    <Space direction="vertical" size={2}>
+                      <Text className="billing-item-name">{product.name}</Text>
+                      {product.code && <Text type="secondary">{product.code}</Text>}
+                      {currentStock > 0 ? (
+                        <Tag color="green">Available Stock: {currentStock}</Tag>
+                      ) : (
+                        <Tag color="red">Out of Stock</Tag>
+                      )}
+                    </Space>
+                  </Space>
+                  <Space onClick={(event) => event.stopPropagation()}>
+                    <Text className="billing-money">{formatCurrency(product.price)}</Text>
+                    {isSelected && (
+                      <InputNumber
+                        min={1}
+                        max={remainingStock}
+                        precision={0}
+                        value={selectedProducts[product.id]}
+                        className="billing-product-qty"
+                        onChange={(value) => {
+                          const parsed = Number(value || 1);
+                          const nextValue = Math.max(1, Math.min(remainingStock, parsed));
+                          if (nextValue < parsed) {
+                            showToast(`Only ${remainingStock} item(s) are available in stock.`, 'error');
+                          }
+                          setSelectedProducts((prev) => ({
+                            ...prev,
+                            [product.id]: nextValue,
+                          }));
+                        }}
+                      />
+                    )}
+                  </Space>
+                </List.Item>
+              );
+            }}
+          />
+
+          <Text type="secondary" className="billing-selected-count">
+            Selected: <Text className="billing-bill-no">{Object.keys(selectedProducts).length}</Text> product(s)
+          </Text>
+        </Modal>
+      </div>
+    </ConfigProvider>
   );
 }

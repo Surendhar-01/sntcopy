@@ -1,113 +1,330 @@
-.dashboard-summary-card {
-  min-height: 86px;
-  border-radius: 0px;
-  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.08);
-  padding: 12px 20px;
+.dashboard-antd-wrap {
+  padding-bottom: 24px;
 }
 
-.dashboard-summary-card .stat-label {
+.dashboard-antd-wrap .page-title,
+.dashboard-antd-wrap .ant-typography.page-title {
+  color: var(--text, #111827) !important;
+}
+
+.dashboard-antd-wrap .page-description {
+  color: var(--text2, #64748b) !important;
+}
+
+:root[data-theme='dark'] .dashboard-antd-wrap .page-title,
+:root[data-theme='dark'] .dashboard-antd-wrap .ant-typography.page-title {
+  color: #f8fafc !important;
+}
+
+:root[data-theme='dark'] .dashboard-antd-wrap .page-description {
+  color: #cbd5e1 !important;
+}
+
+/* ─── Stat Cards ─── */
+.dashboard-stat-card.ant-card {
+  border-radius: 12px !important;
+  border: 1px solid var(--border) !important;
+  background: var(--card, #1e293b) !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+  overflow: visible !important;
+}
+
+.dashboard-stat-card.ant-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 28px rgba(0,0,0,0.15) !important;
+}
+
+.dashboard-stat-card .ant-card-body {
+  padding: 20px !important;
+  min-height: 100px;
+}
+
+.stat-card-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  height: 100%;
+  min-height: 76px;
+}
+
+.stat-card-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.stat-card-label {
   font-size: 0.76rem;
   letter-spacing: 0.12em;
-  color: var(--text2);
+  color: var(--text2, #94a3b8);
   font-weight: 700;
+  text-transform: uppercase;
+  margin-bottom: 6px;
 }
 
-.dashboard-summary-card .stat-value {
-  font-size: 1.6rem;
-  letter-spacing: -0.03em;
+.stat-card-text-value {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text, #f1f5f9);
+  line-height: 1.35;
   margin-top: 4px;
-  line-height: 1.1;
-  color: var(--text);
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.dashboard-summary-card .stat-sub {
+.stat-card-sub {
   font-size: 0.75rem;
-  color: var(--text3);
-  margin-top: 6px;
+  color: var(--text3, #64748b);
+  margin-top: 4px;
 }
 
-.dashboard-summary-card .dashboard-text-stat {
-  font-size: 1.1rem;
-  line-height: 1.2;
-  max-width: calc(100% - 60px);
+.stat-card-icon-wrap {
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
 }
 
-.dashboard-summary-card .stat-icon {
-  right: 16px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 44px;
-  height: 44px;
+/* antd Statistic override inside stat card */
+.dashboard-stat-card .ant-statistic-content {
+  color: var(--text, #f1f5f9) !important;
+}
+
+.dashboard-stat-card .ant-statistic-content-value {
+  font-size: 1.6rem !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.03em !important;
+  line-height: 1.1 !important;
+}
+
+.dashboard-stat-card .ant-statistic-content-prefix {
+  font-size: 1rem !important;
+  font-weight: 700 !important;
+  margin-right: 2px !important;
+}
+
+/* ─── Chart Cards ─── */
+.dashboard-chart-card.ant-card {
+  border-radius: 12px !important;
+  border: 1px solid var(--border) !important;
+  background: var(--card, #1e293b) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+  min-height: 390px !important;
+}
+
+.dashboard-chart-card .ant-card-head {
+  border-bottom: 1px solid var(--border) !important;
+  color: var(--text, #f1f5f9) !important;
+  font-weight: 600 !important;
+  font-size: 0.95rem !important;
+  min-height: 48px !important;
+  background: transparent !important;
+}
+
+.dashboard-chart-card .ant-card-head-title {
+  color: var(--text, #f1f5f9) !important;
+}
+
+.dashboard-chart-card .ant-card-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding: 16px 20px !important;
+}
+
+.dashboard-chart-canvas {
+  flex: 1;
+  min-height: 296px;
+}
+
+/* ─── Performer rank badge ─── */
+.performer-rank-badge {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #8692a6;
-  color: #111827;
-  opacity: 1;
-  font-size: 1.2rem;
   font-weight: 600;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  font-size: 0.82rem;
+  color: #fff;
+  flex-shrink: 0;
 }
 
-.dashboard-summary-card .stat-icon svg {
-  width: 22px;
-  height: 22px;
-  stroke: currentColor;
-  stroke-width: 1.8;
-  fill: none;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+.top-product-trend {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  flex: 1;
+  min-height: 296px;
 }
 
-.dashboard-summary-card .dashboard-currency-icon {
-  font-size: 1.5rem;
+.top-product-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.top-product-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.top-product-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.top-product-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.top-product-name {
+  color: var(--text, #111827);
+  display: block;
+  flex: 1;
+  font-size: 0.92rem;
+  font-weight: 800;
+  line-height: 1.35;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.top-product-score {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 10px;
+  font-weight: 800;
+}
+
+.top-product-count {
+  color: var(--text2, #64748b) !important;
+  font-size: 0.78rem;
   font-weight: 700;
-  line-height: 1;
 }
 
-.dashboard-summary-card.orange .stat-icon {
-  background: #d2c27c;
-  color: #111827;
+.top-product-percent {
+  color: #10b981;
+  min-width: 42px;
+  text-align: right;
 }
 
-.dashboard-summary-card.green .stat-icon {
-  background: #86efac;
-  color: #111827;
+:root[data-theme='dark'] .top-product-name {
+  color: #f8fafc;
 }
 
-.dashboard-summary-card.blue .stat-icon {
-  background: #82d2f7;
-  color: #111827;
+:root[data-theme='dark'] .top-product-count {
+  color: #cbd5e1 !important;
 }
 
-.dashboard-summary-card.red .stat-icon {
-  background: #ef97a1;
-  color: #111827;
+/* ─── Tables ─── */
+.dashboard-antd-table .ant-table {
+  background: transparent !important;
+  color: var(--text, #f1f5f9) !important;
 }
 
-.dashboard-summary-card.purple .stat-icon {
-  background: #c4b5fd;
-  color: #111827;
+.dashboard-antd-table .ant-table-thead > tr > th {
+  background: rgba(255,255,255,0.04) !important;
+  color: var(--text2, #94a3b8) !important;
+  border-bottom: 1px solid var(--border) !important;
+  font-size: 0.8rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.06em !important;
 }
 
-.dashboard-refill-modal {
-  width: min(520px, 95vw);
+.dashboard-antd-table .ant-table-tbody > tr > td {
+  border-bottom: 1px solid var(--border, rgba(255,255,255,0.06)) !important;
+  color: var(--text, #f1f5f9) !important;
+  font-size: 0.88rem !important;
 }
 
-/* Chart wrapper to add horizontal padding so charts don't touch card edges */
-.card .chart-wrap {
-  padding: 0 10px;
+.dashboard-antd-table .ant-table-tbody > tr:hover > td {
+  background: rgba(255,255,255,0.035) !important;
 }
 
-.card .chart-wrap canvas {
-  display: block !important;
-  max-width: 100% !important;
+.dashboard-antd-table .ant-empty-description {
+  color: var(--text3, #64748b) !important;
+}
+
+/* ─── Modals ─── */
+.dashboard-antd-modal .ant-modal-content {
+  background: var(--card, #1e293b) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 12px !important;
+  color: var(--text, #f1f5f9) !important;
+}
+
+.dashboard-antd-modal .ant-modal-header {
+  background: transparent !important;
+  border-bottom: 1px solid var(--border) !important;
+}
+
+.dashboard-antd-modal .ant-modal-title {
+  color: var(--text, #f1f5f9) !important;
+  font-weight: 700 !important;
+}
+
+.dashboard-antd-modal .ant-modal-close {
+  color: var(--text2, #94a3b8) !important;
+}
+
+.dashboard-antd-modal .ant-modal-footer {
+  border-top: 1px solid var(--border) !important;
+  background: transparent !important;
+}
+
+/* ─── Progress bar color inherit fix ─── */
+.ant-progress-line .ant-progress-bg {
+  transition: width 1s ease-out !important;
+}
+
+/* ─── InputNumber in refill form ─── */
+.dashboard-antd-modal .ant-input-number {
+  background: var(--bg2, #0f172a) !important;
+  border-color: var(--border) !important;
+  color: var(--text, #f1f5f9) !important;
+}
+
+.dashboard-antd-modal .ant-input-number-input {
+  color: var(--text, #f1f5f9) !important;
+}
+
+.dashboard-antd-modal .ant-form-item-label > label {
+  color: var(--text2, #e2e8f0) !important;
 }
 
 @media (max-width: 768px) {
-  .grid.dashboard-cards-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
+  .dashboard-stat-card .ant-statistic-content-value {
+    font-size: 1.3rem !important;
+  }
+
+  .dashboard-chart-card.ant-card {
+    min-height: 0 !important;
+  }
+
+  .dashboard-chart-canvas,
+  .top-product-trend {
+    min-height: 260px;
   }
 }
-

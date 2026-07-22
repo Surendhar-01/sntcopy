@@ -1,17 +1,143 @@
-import React, { useEffect, useState } from 'react';
-import ClearConfirmModal from '../ClearConfirmModal';
-import './Settings.css';
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  CloudDownloadOutlined,
+  DeleteOutlined,
+  DatabaseOutlined,
+  LockOutlined,
+  PlusOutlined,
+  SaveOutlined,
+  SettingOutlined,
+  ShopOutlined,
+  TeamOutlined,
+  UploadOutlined,
+} from "@ant-design/icons";
+import {
+  Button,
+  Card,
+  ConfigProvider,
+  Form,
+  Input,
+  InputNumber,
+  Modal,
+  Popconfirm,
+  Select,
+  Space,
+  Table,
+  Tag,
+  Tooltip,
+  Typography,
+  message,
+  theme as antdTheme,
+} from "antd";
+import { useTheme } from "../../context/useTheme";
+import "./Settings.css";
+
+const { Text } = Typography;
+
+const EMPTY_ACCOUNTS = [];
+const DEFAULT_SETTINGS = {
+  shop: "",
+  addr: "",
+  gstin: "",
+  phone: "",
+  gst: 0,
+};
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+
+const getRoleColor = (role) => {
+  if (role === "Admin") return "purple";
+  if (role === "Manager") return "green";
+  return "blue";
+};
 
 export default function Settings({ db, erp }) {
+  const [staffForm] = Form.useForm();
+  const [resetForm] = Form.useForm();
+  const { effectiveTheme } = useTheme();
   const [showStaffModal, setShowStaffModal] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
-  const [resetTarget, setResetTarget] = useState('');
-  const [resetPasswordValue, setResetPasswordValue] = useState('');
-  const [resetError, setResetError] = useState('');
+  const [resetTarget, setResetTarget] = useState("");
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [isSavingGst, setIsSavingGst] = useState(false);
+  const [isAddingStaff, setIsAddingStaff] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
-  const [newStaff, setNewStaff] = useState({ user: '', pass: '', role: 'Staff' });
-  const [shopSettings, setShopSettings] = useState(() => db.settings);
-  const [gstValue, setGstValue] = useState(() => String(db.settings?.gst ?? 0));
+  const [isBackingUp, setIsBackingUp] = useState(false);
+  const [deletingUser, setDeletingUser] = useState("");
+  const [shopSettings, setShopSettings] = useState(
+    () => db.settings || DEFAULT_SETTINGS,
+  );
+  const [gstValue, setGstValue] = useState(() => Number(db.settings?.gst ?? 0));
+
+  const accounts = Array.isArray(db.accounts) ? db.accounts : EMPTY_ACCOUNTS;
+  const isDarkTheme = effectiveTheme === "dark";
+
+  const settingsAntTheme = useMemo(
+    () => ({
+      algorithm: isDarkTheme
+        ? antdTheme.darkAlgorithm
+        : antdTheme.defaultAlgorithm,
+      token: {
+        borderRadius: 6,
+        colorPrimary: "#f97316",
+        colorBgBase: isDarkTheme ? "#111827" : "#ffffff",
+        colorBgContainer: isDarkTheme ? "#1b2433" : "#ffffff",
+        colorBgElevated: isDarkTheme ? "#111827" : "#ffffff",
+        colorBorder: isDarkTheme ? "#334155" : "#e2e5ea",
+        colorText: isDarkTheme ? "#f8fafc" : "#1a1f2e",
+        colorTextSecondary: isDarkTheme ? "#cbd5e1" : "#5a6278",
+      },
+      components: {
+        Button: {
+          defaultBg: isDarkTheme ? "#111827" : "#ffffff",
+          defaultBorderColor: isDarkTheme ? "#334155" : "#d9d9d9",
+          defaultColor: isDarkTheme ? "#f8fafc" : "#1a1f2e",
+        },
+        Card: {
+          colorBgContainer: isDarkTheme ? "#1b2433" : "#ffffff",
+        },
+        Input: {
+          activeBg: isDarkTheme ? "#111827" : "#ffffff",
+          colorBgContainer: isDarkTheme ? "#111827" : "#ffffff",
+        },
+        InputNumber: {
+          activeBg: isDarkTheme ? "#111827" : "#ffffff",
+          colorBgContainer: isDarkTheme ? "#111827" : "#ffffff",
+        },
+        Modal: {
+          contentBg: isDarkTheme ? "#1b2433" : "#ffffff",
+          footerBg: isDarkTheme ? "#1b2433" : "#ffffff",
+          headerBg: isDarkTheme ? "#1b2433" : "#ffffff",
+        },
+        Select: {
+          colorBgContainer: isDarkTheme ? "#111827" : "#ffffff",
+        },
+        Table: {
+          headerBg: isDarkTheme ? "#111827" : "#f4f6f9",
+          rowHoverBg: isDarkTheme ? "#263244" : "#fafafa",
+        },
+      },
+    }),
+    [isDarkTheme],
+  );
+
+  const modalStyles = {
+    content: {
+      background: isDarkTheme ? "#1b2433" : "#ffffff",
+      border: `1px solid ${isDarkTheme ? "#334155" : "#e2e5ea"}`,
+      padding: 0,
+    },
+    header: {
+      background: isDarkTheme ? "#1b2433" : "#ffffff",
+      borderBottom: `1px solid ${isDarkTheme ? "#334155" : "#e2e5ea"}`,
+    },
+    body: {
+      background: isDarkTheme ? "#1b2433" : "#ffffff",
+    },
+    footer: {
+      background: isDarkTheme ? "#1b2433" : "#ffffff",
+      borderTop: `1px solid ${isDarkTheme ? "#334155" : "#e2e5ea"}`,
+    },
+  };
 
   useEffect(() => {
     if (erp) {
@@ -21,175 +147,205 @@ export default function Settings({ db, erp }) {
   }, [erp]);
 
   useEffect(() => {
-    setShopSettings(db.settings);
-    setGstValue(String(db.settings?.gst ?? 0));
+    setShopSettings(db.settings || DEFAULT_SETTINGS);
+    setGstValue(Number(db.settings?.gst ?? 0));
   }, [db.settings]);
 
   const saveSettings = async (nextSettings, successMessage) => {
-    try {
-      await erp.updateSettings(nextSettings);
-      setShopSettings(nextSettings);
-      setGstValue(String(nextSettings?.gst ?? 0));
-      alert(successMessage);
-    } catch (error) {
-      alert(error.message || 'Failed to update settings');
-    }
+    await erp.updateSettings(nextSettings);
+    setShopSettings(nextSettings);
+    setGstValue(Number(nextSettings?.gst ?? 0));
+    message.success(successMessage);
   };
 
   const handleSaveSettings = async () => {
-    await saveSettings(
-      {
-        ...db.settings,
-        ...shopSettings,
-        gst: Number(gstValue) || 0
-      },
-      'Settings updated successfully!'
-    );
+    setIsSavingSettings(true);
+    try {
+      await saveSettings(
+        {
+          ...db.settings,
+          ...shopSettings,
+          gst: Number(gstValue) || 0,
+        },
+        "Settings updated successfully",
+      );
+    } catch (error) {
+      message.error(error.message || "Failed to update settings");
+    } finally {
+      setIsSavingSettings(false);
+    }
   };
 
   const handleUpdateGst = async () => {
     const parsedGst = Number(gstValue);
 
     if (Number.isNaN(parsedGst) || parsedGst < 0) {
-      alert('Enter a valid GST percentage.');
+      message.error("Enter a valid GST percentage");
       return;
     }
 
-    await saveSettings(
-      {
-        ...db.settings,
-        ...shopSettings,
-        gst: parsedGst
-      },
-      'GST updated successfully!'
-    );
+    setIsSavingGst(true);
+    try {
+      await saveSettings(
+        {
+          ...db.settings,
+          ...shopSettings,
+          gst: parsedGst,
+        },
+        "GST updated successfully",
+      );
+    } catch (error) {
+      message.error(error.message || "Failed to update GST");
+    } finally {
+      setIsSavingGst(false);
+    }
   };
 
   const updateShopField = (key, value) => {
-    setShopSettings(prev => ({
+    setShopSettings((prev) => ({
       ...prev,
-      [key]: value
+      [key]: value,
     }));
   };
 
-  const getRoleBadgeClass = (role) => {
-    if (role === 'Admin') {
-      return 'badge-purple';
-    }
-
-    if (role === 'Manager') {
-      return 'badge-green';
-    }
-
-    return 'badge-blue';
+  const openStaffModal = () => {
+    staffForm.setFieldsValue({ user: "", pass: "", role: "Staff" });
+    setShowStaffModal(true);
   };
 
   const addStaff = async () => {
-    const username = newStaff.user.trim();
-
-    if (!username || !newStaff.pass.trim()) {
-      return;
-    }
-
-    if (db.accounts.some(account => account.user.toLowerCase() === username.toLowerCase())) {
-      alert('Username already exists.');
-      return;
-    }
-
     try {
-      await erp.addStaff({ ...newStaff, user: username });
+      const values = await staffForm.validateFields();
+      const username = values.user.trim();
+
+      if (
+        accounts.some(
+          (account) => account.user.toLowerCase() === username.toLowerCase(),
+        )
+      ) {
+        message.error("Username already exists");
+        return;
+      }
+
+      setIsAddingStaff(true);
+      await erp.addStaff({ ...values, user: username });
+      message.success("Account added");
       setShowStaffModal(false);
-      setNewStaff({ user: '', pass: '', role: 'Staff' });
+      staffForm.resetFields();
     } catch (error) {
-      alert(error.message || 'Failed to add staff');
+      if (!error?.errorFields) {
+        message.error(error.message || "Failed to add staff");
+      }
+    } finally {
+      setIsAddingStaff(false);
     }
   };
 
   const deleteStaff = async (username) => {
-    if (username === 'admin') {
+    if (username === "admin") return;
+
+    if (accounts.length <= 1) {
+      message.error("At least one account is required");
       return;
     }
 
-    if (db.accounts.length <= 1) {
-      alert('At least one account is required.');
-      return;
-    }
-
+    setDeletingUser(username);
     try {
       await erp.deleteStaff(username);
+      message.success("Account deleted");
     } catch (error) {
-      alert(error.message || 'Failed to delete staff');
+      message.error(error.message || "Failed to delete staff");
+    } finally {
+      setDeletingUser("");
     }
   };
 
-  const resetStaffPassword = async (username) => {
+  const resetStaffPassword = (username) => {
     setResetTarget(username);
-    setResetPasswordValue('');
-    setResetError('');
+    resetForm.resetFields();
     setShowResetModal(true);
   };
 
   const closeResetModal = () => {
-    if (isResetting) {
-      return;
-    }
+    if (isResetting) return;
     setShowResetModal(false);
-    setResetTarget('');
-    setResetPasswordValue('');
-    setResetError('');
+    setResetTarget("");
+    resetForm.resetFields();
   };
 
   const handleConfirmResetPassword = async () => {
-    const nextPassword = resetPasswordValue.trim();
-    if (!nextPassword) {
-      setResetError('Password is required.');
-      return;
-    }
-
-    if (nextPassword.length < 8) {
-      setResetError('Password must be at least 8 characters.');
-      return;
-    }
-
-    setIsResetting(true);
     try {
-      await erp.updateStaffPassword(resetTarget, nextPassword);
+      const values = await resetForm.validateFields();
+      setIsResetting(true);
+      await erp.updateStaffPassword(resetTarget, values.password.trim());
+      message.success(`Password updated for ${resetTarget}`);
       closeResetModal();
-      alert(`Password updated for ${resetTarget}.`);
     } catch (error) {
-      setResetError(error.message || 'Failed to update password');
+      if (!error?.errorFields) {
+        message.error(error.message || "Failed to update password");
+      }
     } finally {
       setIsResetting(false);
     }
   };
 
-  const backupDB = () => {
-    const blob = new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' });
-    const anchor = document.createElement('a');
+  const downloadBackupFile = (backupData) => {
+    const blob = new Blob([JSON.stringify(backupData, null, 2)], {
+      type: "application/json",
+    });
+    const anchor = document.createElement("a");
     anchor.href = URL.createObjectURL(blob);
-    anchor.download = `snt_backup_${new Date().toISOString().split('T')[0]}.json`;
+    anchor.download = `snt_backup_${new Date().toISOString().split("T")[0]}.json`;
     anchor.click();
+    URL.revokeObjectURL(anchor.href);
+  };
+
+  const backupDB = async () => {
+    setIsBackingUp(true);
+    try {
+      if (erp?.refreshData) {
+        await erp.refreshData();
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/db`);
+      if (!response.ok) {
+        throw new Error(`Backup failed: ${response.status}`);
+      }
+
+      const freshDb = await response.json();
+      downloadBackupFile({
+        ...freshDb,
+        products: Array.isArray(freshDb.products) ? freshDb.products : [],
+      });
+      message.success(`Backup downloaded with ${freshDb.products?.length || 0} products`);
+    } catch (error) {
+      downloadBackupFile({
+        ...db,
+        products: Array.isArray(db.products) ? db.products : [],
+      });
+      message.warning(error.message || "Downloaded local backup");
+    } finally {
+      setIsBackingUp(false);
+    }
   };
 
   const restoreDB = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json';
-    input.onchange = event => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
+    input.onchange = (event) => {
       const file = event.target.files?.[0];
-      if (!file) {
-        return;
-      }
+      if (!file) return;
 
       const reader = new FileReader();
-      reader.onload = loadEvent => {
+      reader.onload = (loadEvent) => {
         try {
           const data = JSON.parse(loadEvent.target.result);
           erp.restoreDatabase(data);
-          alert('Database restored successfully! Refreshing...');
+          message.success("Database restored successfully");
           window.location.reload();
         } catch {
-          alert('Invalid backup file!');
+          message.error("Invalid backup file");
         }
       };
       reader.readAsText(file);
@@ -197,218 +353,303 @@ export default function Settings({ db, erp }) {
     input.click();
   };
 
-
+  const accountColumns = [
+    {
+      title: "User",
+      dataIndex: "user",
+      key: "user",
+      width: 220,
+      render: (username) => <Text className="settings-user-name">{username}</Text>,
+    },
+    {
+      title: "Role",
+      dataIndex: "role",
+      key: "role",
+      width: 150,
+      render: (role) => <Tag color={getRoleColor(role)}>{role || "Staff"}</Tag>,
+    },
+    {
+      title: "Password",
+      key: "password",
+      width: 190,
+      render: (_, account) =>
+        account.user === "admin" ? (
+          <Text type="secondary">Protected</Text>
+        ) : (
+          <Button
+            icon={<LockOutlined />}
+            onClick={() => resetStaffPassword(account.user)}
+          >
+            Reset
+          </Button>
+        ),
+    },
+    {
+      title: "Action",
+      key: "action",
+      align: "center",
+      width: 110,
+      render: (_, account) =>
+        account.user === "admin" ? (
+          <Text type="secondary">-</Text>
+        ) : (
+          <Popconfirm
+            title="Delete account?"
+            description={`${account.user} will lose login access.`}
+            okText="Delete"
+            cancelText="Cancel"
+            okButtonProps={{ danger: true }}
+            onConfirm={() => deleteStaff(account.user)}
+          >
+            <Tooltip title="Delete account">
+              <Button
+                danger
+                type="text"
+                icon={<DeleteOutlined />}
+                loading={deletingUser === account.user}
+              />
+            </Tooltip>
+          </Popconfirm>
+        ),
+    },
+  ];
 
   return (
-    <>
+    <ConfigProvider theme={settingsAntTheme}>
       <div className="page-header">
         <h1 className="page-title">Settings & Staff</h1>
-        <p className="page-description">Manage staff credentials and store details.</p>
-      </div>
-    <div className="grid grid-2 settings-page">
-      <div className="settings-column">
-        <div className="card mb-4 settings-top-card settings-shop-card">
-          <div className="section-title">Shop Details</div>
-          <div className="form-group mb-2">
-            <label>Shop Name</label>
-            <input
-              value={shopSettings.shop || ''}
-              onChange={event => updateShopField('shop', event.target.value)}
-            />
-          </div>
-          <div className="form-group mb-2">
-            <label>Address</label>
-            <textarea
-              rows="2"
-              value={shopSettings.addr || ''}
-              onChange={event => updateShopField('addr', event.target.value)}
-            />
-          </div>
-          <div className="form-group mb-2">
-            <label>GSTIN</label>
-            <input
-              value={shopSettings.gstin || ''}
-              onChange={event => updateShopField('gstin', event.target.value)}
-            />
-          </div>
-          <div className="form-group mb-3">
-            <label>Phone</label>
-            <input
-              value={shopSettings.phone || ''}
-              onChange={event => updateShopField('phone', event.target.value)}
-            />
-          </div>
-          <button className="btn btn-primary" onClick={handleSaveSettings}>Update</button>
-        </div>
-
-        <div className="card settings-bottom-card settings-db-card">
-          <div className="section-title">Database Tools</div>
-          <div className="flex gap-2">
-            <button className="btn btn-blue flex-1" onClick={backupDB}>Download Backup</button>
-            <button className="btn btn-secondary flex-1" onClick={restoreDB}>Restore Database</button>
-          </div>
-          <p className="text-muted text-xs mt-3">Restore will overwrite all current data.</p>
-        </div>
+        <p className="page-description">
+          Manage staff credentials and store details.
+        </p>
       </div>
 
-      <div className="settings-column">
-        <div className="card mb-4 settings-top-card settings-staff-card">
-          <div className="settings-staff-header">
-            <div>
-              <div className="section-title" style={{ marginBottom: 6 }}>User Accounts</div>
-              <div className="text-muted text-sm">{db.accounts.length} account{db.accounts.length === 1 ? '' : 's'} configured</div>
-            </div>
-            <button className="btn btn-action btn-sm" onClick={() => setShowStaffModal(true)}>Add Account</button>
-          </div>
+      <div className="settings-page">
+        <div className="settings-grid">
+          <Card
+            className="settings-card settings-shop-card"
+            title={
+              <Space>
+                <ShopOutlined />
+                <span>Shop Details</span>
+              </Space>
+            }
+          >
+            <Form layout="vertical" requiredMark={false}>
+              <Form.Item label="Shop Name">
+                <Input
+                  value={shopSettings.shop || ""}
+                  onChange={(event) =>
+                    updateShopField("shop", event.target.value)
+                  }
+                />
+              </Form.Item>
+              <Form.Item label="Address">
+                <Input.TextArea
+                  rows={3}
+                  value={shopSettings.addr || ""}
+                  onChange={(event) =>
+                    updateShopField("addr", event.target.value)
+                  }
+                />
+              </Form.Item>
+              <Form.Item label="GSTIN">
+                <Input
+                  value={shopSettings.gstin || ""}
+                  onChange={(event) =>
+                    updateShopField("gstin", event.target.value)
+                  }
+                />
+              </Form.Item>
+              <Form.Item label="Phone">
+                <Input
+                  value={shopSettings.phone || ""}
+                  onChange={(event) =>
+                    updateShopField("phone", event.target.value)
+                  }
+                />
+              </Form.Item>
+              <Button
+                type="primary"
+                icon={<SaveOutlined />}
+                loading={isSavingSettings}
+                onClick={handleSaveSettings}
+              >
+                Update
+              </Button>
+            </Form>
+          </Card>
 
-          <div className="table-wrap mb-3 settings-staff-table-wrap">
-            <table className="data-table" style={{ minWidth: '100%' }}>
-              <thead>
-                <tr>
-                  <th>User</th>
-                  <th>Role</th>
-                  <th>Password</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {db.accounts.map(account => (
-                  <tr key={account.user}>
-                    <td>
-                      <div className="settings-staff-user">{account.user}</div>
-                    </td>
-                    <td>
-                      <span className={`badge ${getRoleBadgeClass(account.role)}`}>
-                        {account.role}
-                      </span>
-                    </td>
-                    <td>
-                      <div className="settings-staff-action-group">
-                        {account.user !== 'admin' && (
-                          <button className="btn btn-secondary btn-sm" onClick={() => resetStaffPassword(account.user)}>Reset Password</button>
-                        )}
-                      </div>
-                    </td>
-                    <td>
-                      <div className="settings-staff-action-group">
-                        {account.user !== 'admin' && (
-                          <button className="settings-staff-delete" onClick={() => deleteStaff(account.user)}>Delete</button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div className="card settings-bottom-card settings-gst-card">
-          <div className="section-title">GST Context</div>
-          <div className="form-group mb-2 settings-gst-row">
-            <label>GST % (Global)</label>
-            <input
-              type="number"
-              min="0"
-              step="0.1"
-              value={gstValue}
-              onChange={event => setGstValue(event.target.value)}
+          <Card
+            className="settings-card settings-staff-card"
+            title={
+              <Space>
+                <TeamOutlined />
+                <span>User Accounts</span>
+              </Space>
+            }
+            extra={
+              <Space size={12}>
+                <Text type="secondary">
+                  {accounts.length} account{accounts.length === 1 ? "" : "s"}
+                </Text>
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={openStaffModal}
+                >
+                  Add Account
+                </Button>
+              </Space>
+            }
+          >
+            <Table
+              rowKey="user"
+              columns={accountColumns}
+              dataSource={accounts}
+              pagination={{ pageSize: 6, showSizeChanger: false }}
+              scroll={{ x: 670 }}
+              tableLayout="fixed"
             />
-          </div>
-          <button className="btn btn-primary" onClick={handleUpdateGst}>Update GST</button>
-        </div>
-      </div>
+          </Card>
 
-      {showStaffModal && (
-        <div className="modal-overlay open" onClick={() => setShowStaffModal(false)}>
-          <div className="modal settings-staff-modal" onClick={event => event.stopPropagation()}>
-            <div className="modal-header">
-              <div>
-                <div className="modal-title">Add Account</div>
-                <div className="text-muted text-sm">Create a new login for your team.</div>
-              </div>
-              <button className="modal-close" type="button" onClick={() => setShowStaffModal(false)}>x</button>
-            </div>
-            <div className="form-group mb-3">
-              <label>Username</label>
-              <input
-                autoComplete="off"
-                placeholder="Enter username"
-                value={newStaff.user}
-                onChange={event => setNewStaff(prev => ({ ...prev, user: event.target.value }))}
+          <Card
+            className="settings-card settings-db-card"
+            title={
+              <Space>
+                <DatabaseOutlined />
+                <span>Database Tools</span>
+              </Space>
+            }
+          >
+            <Space.Compact block>
+              <Button
+                type="primary"
+                icon={<CloudDownloadOutlined />}
+                onClick={backupDB}
+                loading={isBackingUp}
+              >
+                Download Backup
+              </Button>
+              <Button icon={<UploadOutlined />} onClick={restoreDB}>
+                Restore Database
+              </Button>
+            </Space.Compact>
+            <Text type="secondary" className="settings-helper-text">
+              Restore will overwrite all current data.
+            </Text>
+          </Card>
+
+          <Card
+            className="settings-card settings-gst-card"
+            title={
+              <Space>
+                <SettingOutlined />
+                <span>GST Context</span>
+              </Space>
+            }
+          >
+            <Space.Compact block>
+              <InputNumber
+                min={0}
+                step={0.1}
+                value={gstValue}
+                addonAfter="%"
+                className="settings-gst-input"
+                onChange={(value) => setGstValue(Number(value ?? 0))}
               />
-            </div>
-            <div className="form-group mb-3">
-              <label>Password</label>
-              <input
-                type="password"
+              <Button
+                type="primary"
+                icon={<SaveOutlined />}
+                loading={isSavingGst}
+                onClick={handleUpdateGst}
+              >
+                Update GST
+              </Button>
+            </Space.Compact>
+          </Card>
+        </div>
+
+        <Modal
+          title="Add Account"
+          open={showStaffModal}
+          onCancel={() => setShowStaffModal(false)}
+          onOk={addStaff}
+          okText="Save Account"
+          cancelText="Cancel"
+          confirmLoading={isAddingStaff}
+          centered
+          destroyOnHidden
+          className="settings-modal"
+          styles={modalStyles}
+        >
+          <Form
+            form={staffForm}
+            layout="vertical"
+            requiredMark={false}
+            initialValues={{ role: "Staff" }}
+          >
+            <Form.Item
+              label="Username"
+              name="user"
+              rules={[{ required: true, message: "Enter username" }]}
+            >
+              <Input autoComplete="off" placeholder="Enter username" />
+            </Form.Item>
+            <Form.Item
+              label="Password"
+              name="pass"
+              rules={[{ required: true, message: "Enter password" }]}
+            >
+              <Input.Password
                 autoComplete="new-password"
                 placeholder="Enter password"
-                value={newStaff.pass}
-                onChange={event => setNewStaff(prev => ({ ...prev, pass: event.target.value }))}
               />
-            </div>
-            <div className="form-group mb-4">
-              <label>Role</label>
-              <select
-                value={newStaff.role}
-                onChange={event => setNewStaff(prev => ({ ...prev, role: event.target.value }))}
-              >
-                <option>Staff</option>
-                <option>Manager</option>
-              </select>
-            </div>
-            <div className="flex gap-2">
-              <button className="btn btn-primary flex-1" onClick={addStaff}>Save Account</button>
-              <button className="btn btn-secondary" type="button" onClick={() => setShowStaffModal(false)}>Cancel</button>
-            </div>
-          </div>
-        </div>
-      )}
+            </Form.Item>
+            <Form.Item label="Role" name="role">
+              <Select
+                options={[
+                  { label: "Staff", value: "Staff" },
+                  { label: "Manager", value: "Manager" },
+                ]}
+              />
+            </Form.Item>
+          </Form>
+        </Modal>
 
-      {showResetModal && (
-        <div className="modal-overlay open" onClick={closeResetModal}>
-          <div className="modal settings-reset-modal" onClick={event => event.stopPropagation()}>
-            <div className="modal-header">
-              <div>
-                <div className="modal-title">Reset Password</div>
-                <div className="text-muted text-sm">Set a new password for <b>{resetTarget}</b>.</div>
-              </div>
-              <button className="modal-close" type="button" onClick={closeResetModal}>x</button>
-            </div>
-            <div className="form-group mb-3">
-              <label>New Password</label>
-              <input
-                type="password"
+        <Modal
+          title="Reset Password"
+          open={showResetModal}
+          onCancel={closeResetModal}
+          onOk={handleConfirmResetPassword}
+          okText="Update Password"
+          cancelText="Cancel"
+          confirmLoading={isResetting}
+          centered
+          destroyOnHidden
+          className="settings-modal"
+          styles={modalStyles}
+        >
+          <Text type="secondary" className="settings-reset-copy">
+            Set a new password for <Text strong>{resetTarget}</Text>.
+          </Text>
+          <Form form={resetForm} layout="vertical" requiredMark={false}>
+            <Form.Item
+              label="New Password"
+              name="password"
+              rules={[
+                { required: true, message: "Password is required" },
+                { min: 8, message: "Password must be at least 8 characters" },
+              ]}
+            >
+              <Input.Password
                 placeholder="Enter new password"
-                value={resetPasswordValue}
-                onChange={event => {
-                  setResetPasswordValue(event.target.value);
-                  setResetError('');
-                }}
                 autoFocus
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') {
-                    handleConfirmResetPassword();
-                  }
-                }}
+                onPressEnter={handleConfirmResetPassword}
               />
-            </div>
-            {resetError && (
-              <div className="text-red text-sm mb-3">{resetError}</div>
-            )}
-            <div className="flex gap-2 justify-end">
-              <button className="btn btn-primary" type="button" onClick={handleConfirmResetPassword} disabled={isResetting}>
-                {isResetting ? 'Updating...' : 'Update Password'}
-              </button>
-              <button className="btn btn-secondary" type="button" onClick={closeResetModal} disabled={isResetting}>Cancel</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-
-    </div>
-    </>
+            </Form.Item>
+          </Form>
+        </Modal>
+      </div>
+    </ConfigProvider>
   );
 }

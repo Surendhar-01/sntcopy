@@ -85,7 +85,6 @@
 :root[data-theme='dark'] .billing-product-modal,
 :root[data-theme='dark'] .customers-filters,
 :root[data-theme='dark'] .sales-controls,
-:root[data-theme='dark'] .page-placeholder,
 :root[data-theme='dark'] .flipkart-card,
 :root[data-theme='dark'] .fc-image-box,
 :root[data-theme='dark'] .fc-delete-btn,
@@ -139,9 +138,6 @@
 :root[data-theme='dark'] .revenue-cell {
   background: var(--bg3);
 }
-
-:root[data-theme='dark'] .page-placeholder { background: linear-gradient(180deg, #151b27 0%, #192132 100%); }
-
 
 :root[data-theme='dark'] .reports-card-sales,
 :root[data-theme='dark'] .reports-card-stock,
@@ -221,10 +217,6 @@
   color: var(--text);
 }
 
-:root[data-theme='dark'] .manager-portal {
-  background: radial-gradient(circle at top right, rgba(34, 197, 94, 0.08), transparent 28%), linear-gradient(135deg, #0e1623 0%, #111827 100%);
-}
-
 :root[data-theme='dark'] .topbar,
 :root[data-theme='dark'] .user-pill,
 :root[data-theme='dark'] .customers-filters,
@@ -244,7 +236,6 @@
 :root[data-theme='dark'] .login-box,
 :root[data-theme='dark'] .chip:hover,
 :root[data-theme='dark'] .login-eye-btn,
-:root[data-theme='dark'] .page-placeholder,
 :root[data-theme='dark'] .login-activity-empty,
 :root[data-theme='dark'] .flipkart-card,
 :root[data-theme='dark'] .fc-image-box,

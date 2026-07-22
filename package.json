@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "concurrently \"npm run server\" \"npm run dev:client\"",
     "dev:client": "vite",
-    "server": "npm run start:dev --prefix server/nest-backend",
+    "server": "npm run start:mongo --prefix server",
+    "server:mysql": "node server/index.js",
+    "dev:mongo": "concurrently \"npm run server\" \"npm run dev:client\"",
     "start:all": "npm run dev",
     "export-db": "node scripts/export_db_from_api.js",
     "build": "vite build",
@@ -14,12 +16,15 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@ant-design/icons": "^6.3.2",
     "@fontsource/poppins": "^5.2.7",
+    "antd": "^6.5.1",
     "chart.js": "^4.5.1",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "exceljs": "^4.4.0",
     "express": "^5.1.0",
+    "mongodb": "^7.5.0",
     "mysql2": "^3.15.3",
     "nodemailer": "^9.0.1",
     "react": "^19.2.4",

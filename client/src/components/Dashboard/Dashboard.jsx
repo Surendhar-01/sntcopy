@@ -1,5 +1,28 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import {
+  Card,
+  Col,
+  Row,
+  Statistic,
+  Table,
+  Tag,
+  Modal,
+  Form,
+  InputNumber,
+  Button,
+  Progress,
+  Empty,
+  Typography,
+} from 'antd';
+import {
+  DollarOutlined,
+  FileTextOutlined,
+  TrophyOutlined,
+  WarningOutlined,
+  CalendarOutlined,
+  InboxOutlined,
+} from '@ant-design/icons';
+import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
@@ -12,11 +35,13 @@ import {
   Legend,
   Filler
 } from 'chart.js';
-import { Line, Bar, Pie } from 'react-chartjs-2';
+import { Line, Pie } from 'react-chartjs-2';
 import './Dashboard.css';
 import { hasAdminAccess } from '../../utils/roles';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend, Filler);
+
+const { Title: AntTitle, Text } = Typography;
 
 function getWeekStart(date) {
   const result = new Date(date);
@@ -28,102 +53,77 @@ function getWeekStart(date) {
 }
 
 function formatCurrency(value) {
-  return `\u20B9${Number(value || 0).toFixed(2)}`;
+  return `₹${Number(value || 0).toFixed(2)}`;
+}
+
+function getDateKey(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+}
+
+function formatShortDate(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleDateString([], { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 function getProductLabel(product) {
-  if (product.name) {
-    return product.name;
-  }
-
-  return product.code;
+  return product.name || product.code;
 }
 
-function DashboardStatIcon({ icon }) {
-  switch (icon) {
-    case 'sales':
-      return <span className="dashboard-currency-icon">{'\u20B9'}</span>;
-    case 'bills':
-      return (
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M7 3h10v18l-2-1.5L13 21l-2-1.5L9 21l-2-1.5L5 21V5a2 2 0 0 1 2-2Z" />
-          <path d="M9 8h6" />
-          <path d="M9 12h6" />
-          <path d="M9 16h4" />
-        </svg>
-      );
-    case 'trophy':
-      return (
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M8 4h8v3a4 4 0 0 1-8 0Z" />
-          <path d="M6 5H4a2 2 0 0 0 2 5h1" />
-          <path d="M18 5h2a2 2 0 0 1-2 5h-1" />
-          <path d="M12 11v4" />
-          <path d="M9 21h6" />
-          <path d="M10 15h4v3h-4z" />
-        </svg>
-      );
-    case 'warning':
-      return (
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M12 4 3 20h18Z" />
-          <path d="M12 9v4" />
-          <path d="M12 17h.01" />
-        </svg>
-      );
-    case 'calendar-week':
-      return (
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M7 3v3" />
-          <path d="M17 3v3" />
-          <rect x="4" y="5" width="16" height="15" rx="2" />
-          <path d="M4 10h16" />
-          <path d="M8 14h3" />
-          <path d="M13 14h3" />
-        </svg>
-      );
-    case 'calendar-month':
-      return (
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M7 3v3" />
-          <path d="M17 3v3" />
-          <rect x="4" y="5" width="16" height="15" rx="2" />
-          <path d="M4 10h16" />
-          <path d="M8 14h8" />
-        </svg>
-      );
-    case 'calendar-year':
-      return (
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M7 3v3" />
-          <path d="M17 3v3" />
-          <rect x="4" y="5" width="16" height="15" rx="2" />
-          <path d="M4 10h16" />
-          <path d="M8 14h2" />
-          <path d="M12 14h2" />
-          <path d="M16 14h2" />
-        </svg>
-      );
-    case 'package':
-      return (
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="m12 3 8 4.5v9L12 21l-8-4.5v-9Z" />
-          <path d="m12 12 8-4.5" />
-          <path d="m12 12-8-4.5" />
-          <path d="M12 12v9" />
-        </svg>
-      );
-    default:
-      return null;
-  }
+function isSameUserName(left, right) {
+  return String(left || '').trim().toLowerCase() === String(right || '').trim().toLowerCase();
+}
+
+/* ── Stat card wrapper using antd Card + Statistic ── */
+function StatCard({ title, value, prefix, suffix, sub, icon, color, onClick, isText }) {
+  const colorMap = {
+    orange: '#f97316',
+    green:  '#22c55e',
+    blue:   '#3b82f6',
+    red:    '#ef4444',
+    purple: '#8b5cf6',
+  };
+  const bg = colorMap[color] || '#6366f1';
+
+  return (
+    <Card
+      className={`dashboard-stat-card dashboard-stat-card-${color}`}
+      onClick={onClick}
+      style={{ cursor: onClick ? 'pointer' : 'default' }}
+      variant="borderless"
+    >
+      <div className="stat-card-inner">
+        <div className="stat-card-body">
+          <div className="stat-card-label">{title}</div>
+          {isText ? (
+            <div className="stat-card-text-value" title={value}>{value}</div>
+          ) : (
+            <Statistic
+              value={value}
+              prefix={prefix}
+              suffix={suffix}
+              valueStyle={{ color: 'inherit', fontSize: '1.6rem', fontWeight: 700 }}
+            />
+          )}
+          <div className="stat-card-sub">{sub}</div>
+        </div>
+        <div className="stat-card-icon-wrap" style={{ color: bg }}>
+          {icon}
+        </div>
+      </div>
+    </Card>
+  );
 }
 
 export default function Dashboard({ db, erp, user }) {
   const [showLowStockPopup, setShowLowStockPopup] = useState(false);
   const [showTodaySalesPopup, setShowTodaySalesPopup] = useState(false);
   const [refillProduct, setRefillProduct] = useState(null);
-  const [refillQty, setRefillQty] = useState('');
   const [isRefilling, setIsRefilling] = useState(false);
+  const [refillForm] = Form.useForm();
+
   const canManageAdminPages = hasAdminAccess(user);
   const isAdmin = user?.role === 'Admin';
   const isManager = user?.role === 'Manager';
@@ -131,44 +131,28 @@ export default function Dashboard({ db, erp, user }) {
 
   const bills = useMemo(() => (db.bills || []).filter((bill) => {
     if (canManageAdminPages) return true;
-    return (bill.by || bill.by_user) === user?.user;
+    return isSameUserName(bill.by || bill.by_user, user?.user);
   }), [db.bills, canManageAdminPages, user?.user]);
 
   const products = useMemo(() => db.products || [], [db.products]);
   const fetchProducts = erp?.fetchProducts;
 
   useEffect(() => {
-    if (!fetchProducts) {
-      return undefined;
-    }
-
+    if (!fetchProducts) return undefined;
     fetchProducts(true).catch(() => {});
-
-    const handleWindowFocus = () => {
-      fetchProducts(true).catch(() => {});
-    };
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        fetchProducts(true).catch(() => {});
-      }
-    };
-
-    window.addEventListener('focus', handleWindowFocus);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
+    const onFocus = () => fetchProducts(true).catch(() => {});
+    const onVisible = () => { if (document.visibilityState === 'visible') fetchProducts(true).catch(() => {}); };
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVisible);
     return () => {
-      window.removeEventListener('focus', handleWindowFocus);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisible);
     };
   }, [fetchProducts]);
 
-  const submitRefill = async () => {
-    const qty = Number.parseInt(refillQty, 10);
-    if (!refillProduct || !Number.isFinite(qty) || qty <= 0 || isRefilling) {
-      return;
-    }
-
+  const submitRefill = async (values) => {
+    const qty = values.qty;
+    if (!refillProduct || !Number.isFinite(qty) || qty <= 0 || isRefilling) return;
     setIsRefilling(true);
     try {
       await erp.addRefill({
@@ -178,9 +162,9 @@ export default function Dashboard({ db, erp, user }) {
         by: user ? user.user : 'Admin'
       });
       setRefillProduct(null);
-      setRefillQty('');
+      refillForm.resetFields();
     } catch (error) {
-      alert(error.message || 'Failed to refill stock');
+      Modal.error({ title: 'Refill Failed', content: error.message || 'Failed to refill stock' });
     } finally {
       setIsRefilling(false);
     }
@@ -195,436 +179,318 @@ export default function Dashboard({ db, erp, user }) {
     startOfTomorrow.setDate(startOfTomorrow.getDate() + 1);
     const weekStart = getWeekStart(now);
 
-    const todayBills = bills.filter((bill) => {
-      if (!bill.date) return false;
+    const todayBills = bills.filter((b) => { if (!b.date) return false; const d = new Date(b.date); return d >= startOfToday && d < startOfTomorrow; });
+    const latestBillDate = bills.reduce((latest, bill) => {
+      if (!bill.date) return latest;
       const billDate = new Date(bill.date);
-      return billDate >= startOfToday && billDate < startOfTomorrow;
-    });
-    const weeklyBills = bills.filter((bill) => {
-      if (!bill.date) return false;
-      return new Date(bill.date) >= weekStart;
-    });
-    const monthlyBills = bills.filter((bill) => {
-      if (!bill.date) return false;
-      const date = new Date(bill.date);
-      return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
-    });
-    const yearlyBills = bills.filter((bill) => {
-      if (!bill.date) return false;
-      return new Date(bill.date).getFullYear() === currentYear;
-    });
+      if (Number.isNaN(billDate.getTime())) return latest;
+      return !latest || billDate > latest ? billDate : latest;
+    }, null);
+    const latestBillDateKey = latestBillDate ? getDateKey(latestBillDate) : '';
+    const latestDayBills = latestBillDateKey
+      ? bills.filter((bill) => getDateKey(bill.date) === latestBillDateKey)
+      : [];
+    const displaySalesBills = todayBills.length > 0 || bills.length === 0 ? todayBills : latestDayBills;
+    const displaySalesDate = todayBills.length > 0 || bills.length === 0 ? now : latestBillDate;
+    const isShowingTodaySales = todayBills.length > 0 || bills.length === 0;
+    const weeklyBills = bills.filter((b) => { if (!b.date) return false; return new Date(b.date) >= weekStart; });
+    const latestWeekStart = latestBillDate ? new Date(latestBillDate) : null;
+    if (latestWeekStart) {
+      latestWeekStart.setDate(latestWeekStart.getDate() - 6);
+      latestWeekStart.setHours(0, 0, 0, 0);
+    }
+    const latestWeekBills = latestWeekStart
+      ? bills.filter((bill) => {
+          if (!bill.date) return false;
+          const billDate = new Date(bill.date);
+          return billDate >= latestWeekStart && billDate <= latestBillDate;
+        })
+      : [];
+    const displayWeeklyBills = weeklyBills.length > 0 || bills.length === 0 ? weeklyBills : latestWeekBills;
+    const isShowingCurrentWeek = weeklyBills.length > 0 || bills.length === 0;
+    const monthlyBills = bills.filter((b) => { if (!b.date) return false; const d = new Date(b.date); return d.getMonth() === currentMonth && d.getFullYear() === currentYear; });
+    const yearlyBills = bills.filter((b) => { if (!b.date) return false; return new Date(b.date).getFullYear() === currentYear; });
 
-    const todaySales = todayBills.reduce((sum, bill) => sum + (bill.grand || 0), 0);
-    const weeklyRevenue = weeklyBills.reduce((sum, bill) => sum + (bill.grand || 0), 0);
-    const monthlyRevenue = monthlyBills.reduce((sum, bill) => sum + (bill.grand || 0), 0);
-    const yearlyRevenue = yearlyBills.reduce((sum, bill) => sum + (bill.grand || 0), 0);
+    const todaySales = todayBills.reduce((s, b) => s + (b.grand || 0), 0);
+    const displaySales = displaySalesBills.reduce((s, b) => s + (b.grand || 0), 0);
+    const weeklyRevenue = weeklyBills.reduce((s, b) => s + (b.grand || 0), 0);
+    const displayWeeklyRevenue = displayWeeklyBills.reduce((s, b) => s + (b.grand || 0), 0);
+    const monthlyRevenue = monthlyBills.reduce((s, b) => s + (b.grand || 0), 0);
+    const yearlyRevenue = yearlyBills.reduce((s, b) => s + (b.grand || 0), 0);
 
-    const lowStock = products
-      .filter((product) => Number(product.stock || 0) < 5)
-      .sort((a, b) => Number(a.stock || 0) - Number(b.stock || 0));
+    const lowStock = [...products].filter((p) => Number(p.stock || 0) < 5).sort((a, b) => Number(a.stock || 0) - Number(b.stock || 0));
     const soldProducts = [...products].sort((a, b) => (b.sold || 0) - (a.sold || 0));
     const topProduct = soldProducts[0] || null;
-    const topSellingProducts = soldProducts
-      .filter((product) => Number(product.sold || 0) > 0)
-      .slice(0, 5);
-    const totalInventoryValue = products.reduce((sum, product) => sum + ((product.stock || 0) * (product.price || 0)), 0);
+    const topSellingProducts = soldProducts.filter((p) => Number(p.sold || 0) > 0).slice(0, 5);
+    const totalInventoryValue = products.reduce((s, p) => s + ((p.stock || 0) * (p.price || 0)), 0);
 
-    return {
-      todayBills,
-      weeklyBills,
-      monthlyBills,
-      yearlyBills,
-      todaySales,
-      weeklyRevenue,
-      monthlyRevenue,
-      yearlyRevenue,
-      lowStock,
-      topProduct,
-      topSellingProducts,
-      totalInventoryValue
-    };
+    return { todayBills, displaySalesBills, displaySalesDate, isShowingTodaySales, weeklyBills, displayWeeklyBills, isShowingCurrentWeek, monthlyBills, yearlyBills, todaySales, displaySales, weeklyRevenue, displayWeeklyRevenue, monthlyRevenue, yearlyRevenue, lowStock, topProduct, topSellingProducts, totalInventoryValue };
   }, [bills, products]);
 
-  const {
-    todayBills,
-    weeklyBills,
-    todaySales,
-    weeklyRevenue,
-    monthlyRevenue,
-    yearlyRevenue,
-    lowStock,
-    topProduct,
-    topSellingProducts,
-    totalInventoryValue
-  } = stats;
+  const { todayBills, displaySalesBills, displaySalesDate, isShowingTodaySales, displayWeeklyBills, isShowingCurrentWeek, displaySales, displayWeeklyRevenue, monthlyRevenue, yearlyRevenue, lowStock, topProduct, topSellingProducts, totalInventoryValue } = stats;
+
+  const sharedAnimation = useMemo(() => ({
+    duration: 1600,
+    easing: 'easeOutQuart',
+    delay: (ctx) => (ctx.type === 'data' && ctx.mode === 'default' ? ctx.dataIndex * 100 : 0)
+  }), []);
 
   const salesTrendData = useMemo(() => ({
     labels: ['6d ago', '5d ago', '4d ago', '3d ago', '2d ago', 'Yesterday', 'Today'],
-    datasets: [
-      {
-        label: 'Sales (\u20B9)',
-        data: [12000, 15000, 8000, 19000, 22000, 17000, todaySales],
-        borderColor: '#6ee7b7',
-        backgroundColor: 'rgba(110, 231, 183, 0.1)',
-        fill: true,
-        tension: 0.4,
-        pointBackgroundColor: '#6ee7b7'
-      }
-    ]
-  }), [todaySales]);
+    datasets: [{ label: 'Sales (₹)', data: [12000, 15000, 8000, 19000, 22000, 17000, displaySales], borderColor: '#6ee7b7', backgroundColor: 'rgba(110, 231, 183, 0.1)', fill: true, tension: 0.4, pointBackgroundColor: '#6ee7b7' }]
+  }), [displaySales]);
 
   const topProductsData = useMemo(() => ({
     labels: topSellingProducts.map(getProductLabel),
-    datasets: [
-      {
-        label: 'Units Sold',
-        data: topSellingProducts.map((product) => product.sold || 0),
-        backgroundColor: ['#f97316', '#22c55e', '#2363eb', '#7c3aed', '#dc2626']
-      }
-    ]
+    datasets: [{ label: 'Units Sold', data: topSellingProducts.map((p) => p.sold || 0), backgroundColor: ['#f97316', '#22c55e', '#2363eb', '#7c3aed', '#dc2626'] }]
   }), [topSellingProducts]);
 
-  const sharedAnimationConfig = useMemo(() => ({
-    duration: 1600,
-    easing: 'easeOutQuart',
-    delay: (context) => {
-      if (context.type === 'data' && context.mode === 'default') {
-        return context.dataIndex * 100;
-      }
-      return 0;
-    }
-  }), []);
+  /* ── Ant Design Table columns ── */
+  const recentTxColumns = [
+    { title: 'Bill No', dataIndex: 'billNo', key: 'billNo', render: (v) => <b>{v}</b> },
+    { title: 'Customer', dataIndex: 'customer', key: 'customer' },
+    { title: 'Amount', dataIndex: 'grand', key: 'grand', render: (v) => <b>{formatCurrency(v)}</b> },
+    { title: 'Method', dataIndex: 'payment', key: 'payment', render: (v) => <Tag color="blue">{v}</Tag> },
+    { title: 'Time', dataIndex: 'date', key: 'date', render: (v) => <Text type="secondary" style={{ fontSize: '0.8rem' }}>{new Date(v).toLocaleTimeString()}</Text> },
+  ];
 
+  const todaySalesColumns = [
+    { title: 'Bill No', dataIndex: 'billNo', key: 'billNo', render: (v) => <b>{v}</b> },
+    { title: 'Customer', dataIndex: 'customer', key: 'customer' },
+    { title: 'Amount', dataIndex: 'grand', key: 'grand', align: 'right', render: (v) => <b>{formatCurrency(v)}</b> },
+    { title: 'Time', dataIndex: 'date', key: 'date', align: 'right', render: (v) => <Text type="secondary" style={{ fontSize: '0.8rem' }}>{new Date(v).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text> },
+  ];
+
+  const lowStockColumns = [
+    { title: 'Code', dataIndex: 'code', key: 'code' },
+    { title: 'Product', dataIndex: 'name', key: 'name' },
+    { title: 'Stock', dataIndex: 'stock', key: 'stock', align: 'right', render: (v) => <b style={{ color: '#ef4444' }}>{Number(v || 0)}</b> },
+    {
+      title: 'Status', key: 'status', render: (_, r) => (
+        Number(r.stock || 0) === 0
+          ? <Tag color="red">Out of Stock</Tag>
+          : <Tag color="orange">Low Stock</Tag>
+      )
+    },
+    {
+      title: 'Action', key: 'action', align: 'right',
+      render: (_, r) => (
+        <Button size="small" type="primary" onClick={() => { setRefillProduct(r); refillForm.resetFields(); }}>
+          Refill
+        </Button>
+      )
+    },
+  ];
 
   return (
-    <div>
+    <div className="dashboard-antd-wrap">
+      {/* Page header */}
       <div className="page-header">
-        <h1 className="page-title">Dashboard</h1>
+        <AntTitle level={2} className="page-title" style={{ margin: 0 }}>Dashboard</AntTitle>
         <p className="page-description">Overview of your business metrics and performance.</p>
       </div>
-      <div className={`grid dashboard-cards-grid ${canManageAdminPages ? 'grid-4' : 'grid-3'} mb-4`}>
-        <div className="stat-card dashboard-summary-card orange" onClick={() => setShowTodaySalesPopup(true)} style={{ cursor: 'pointer' }}>
-          <div className="stat-label">Today Sales</div>
-          <div className="stat-value">{formatCurrency(todaySales)}</div>
-          <div className="stat-sub">{todayBills.length} bills today</div>
-          <div className="stat-icon"><DashboardStatIcon icon="sales" /></div>
-        </div>
-        <div className="stat-card dashboard-summary-card green">
-          <div className="stat-label">Bills Today</div>
-          <div className="stat-value">{todayBills.length}</div>
-          <div className="stat-sub">Total {bills.length} all time</div>
-          <div className="stat-icon"><DashboardStatIcon icon="bills" /></div>
-        </div>
-        <div className="stat-card dashboard-summary-card blue">
-          <div className="stat-label">Top Product</div>
-          <div className="stat-value dashboard-text-stat">{topProduct ? topProduct.name : 'No sales yet'}</div>
-          <div className="stat-sub">{topProduct ? `${topProduct.sold || 0} units sold` : 'Waiting for sales data'}</div>
-          <div className="stat-icon"><DashboardStatIcon icon="trophy" /></div>
-        </div>
+
+      {/* ── Primary stat cards ── */}
+      <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+        <Col xs={24} sm={12} lg={canManageAdminPages ? 6 : 8}>
+          <StatCard
+            title={isShowingTodaySales ? 'Today Sales' : 'Latest Sales'}
+            value={displaySales}
+            prefix="₹"
+            sub={isShowingTodaySales ? `${todayBills.length} bills today` : `${displaySalesBills.length} bills on ${formatShortDate(displaySalesDate)}`}
+            icon={<DollarOutlined style={{ fontSize: 32 }} />}
+            color="orange"
+            onClick={() => setShowTodaySalesPopup(true)}
+          />
+        </Col>
+        <Col xs={24} sm={12} lg={canManageAdminPages ? 6 : 8}>
+          <StatCard title={isShowingTodaySales ? 'Bills Today' : 'Latest Bills'} value={displaySalesBills.length} sub={`Total ${bills.length} all time`} icon={<FileTextOutlined style={{ fontSize: 32 }} />} color="green" />
+        </Col>
+        <Col xs={24} sm={12} lg={canManageAdminPages ? 6 : 8}>
+          <StatCard title="Top Product" value={topProduct ? topProduct.name : 'No sales yet'} isText sub={topProduct ? `${topProduct.sold || 0} units sold` : 'Waiting for sales data'} icon={<TrophyOutlined style={{ fontSize: 32 }} />} color="blue" />
+        </Col>
         {canManageAdminPages && (
-          <div className="stat-card dashboard-summary-card red" onClick={() => setShowLowStockPopup(true)} style={{ cursor: 'pointer' }}>
-            <div className="stat-label">Low Stock Items</div>
-            <div className="stat-value">{lowStock.length}</div>
-            <div className="stat-sub">{products.filter((product) => Number(product.stock || 0) === 0).length} out of stock</div>
-            <div className="stat-icon"><DashboardStatIcon icon="warning" /></div>
-          </div>
+          <Col xs={24} sm={12} lg={6}>
+            <StatCard title="Low Stock Items" value={lowStock.length} sub={`${products.filter((p) => Number(p.stock || 0) === 0).length} out of stock`} icon={<WarningOutlined style={{ fontSize: 32 }} />} color="red" onClick={() => setShowLowStockPopup(true)} />
+          </Col>
         )}
-      </div>
+      </Row>
 
+      {/* Staff extra row */}
       {!canManageAdminPages && (
-        <div className="grid dashboard-cards-grid grid-2 mb-4">
-          <div className="stat-card dashboard-summary-card red" onClick={() => setShowLowStockPopup(true)} style={{ cursor: 'pointer' }}>
-            <div className="stat-label">Low Stock Items</div>
-            <div className="stat-value">{lowStock.length}</div>
-            <div className="stat-sub">{products.filter((product) => Number(product.stock || 0) === 0).length} out of stock</div>
-            <div className="stat-icon"><DashboardStatIcon icon="warning" /></div>
-          </div>
-          <div className="stat-card dashboard-summary-card orange">
-            <div className="stat-label">Stock Value</div>
-            <div className="stat-value">{formatCurrency(totalInventoryValue)}</div>
-            <div className="stat-sub">Current on-hand</div>
-            <div className="stat-icon"><DashboardStatIcon icon="package" /></div>
-          </div>
-        </div>
+        <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+          <Col xs={24} sm={12}>
+            <StatCard title="Low Stock Items" value={lowStock.length} sub={`${products.filter((p) => Number(p.stock || 0) === 0).length} out of stock`} icon={<WarningOutlined style={{ fontSize: 32 }} />} color="red" onClick={() => setShowLowStockPopup(true)} />
+          </Col>
+          <Col xs={24} sm={12}>
+            <StatCard title="Stock Value" value={totalInventoryValue} prefix="₹" sub="Current on-hand" icon={<InboxOutlined style={{ fontSize: 32 }} />} color="orange" />
+          </Col>
+        </Row>
       )}
 
-      {isAdmin ? (
-        <div className="grid dashboard-cards-grid grid-4 mb-4">
-          <div className="stat-card dashboard-summary-card purple">
-            <div className="stat-label">Weekly Revenue</div>
-            <div className="stat-value">{formatCurrency(weeklyRevenue)}</div>
-            <div className="stat-sub">{weeklyBills.length} bills</div>
-            <div className="stat-icon"><DashboardStatIcon icon="calendar-week" /></div>
-          </div>
-          <div className="stat-card dashboard-summary-card orange">
-            <div className="stat-label">Monthly Revenue</div>
-            <div className="stat-value">{formatCurrency(monthlyRevenue)}</div>
-            <div className="stat-sub">This month</div>
-            <div className="stat-icon"><DashboardStatIcon icon="calendar-month" /></div>
-          </div>
-          <div className="stat-card dashboard-summary-card green">
-            <div className="stat-label">Yearly Revenue</div>
-            <div className="stat-value">{formatCurrency(yearlyRevenue)}</div>
-            <div className="stat-sub">This year</div>
-            <div className="stat-icon"><DashboardStatIcon icon="calendar-year" /></div>
-          </div>
-          <div className="stat-card dashboard-summary-card orange">
-            <div className="stat-label">Stock Value</div>
-            <div className="stat-value">{formatCurrency(totalInventoryValue)}</div>
-            <div className="stat-sub">Current on-hand</div>
-            <div className="stat-icon"><DashboardStatIcon icon="package" /></div>
-          </div>
-        </div>
-      ) : null}
+      {/* Admin revenue row */}
+      {isAdmin && (
+        <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+          <Col xs={24} sm={12} lg={6}>
+            <StatCard title={isShowingCurrentWeek ? 'Weekly Revenue' : 'Latest Week'} value={displayWeeklyRevenue} prefix="₹" sub={`${displayWeeklyBills.length} bills`} icon={<CalendarOutlined style={{ fontSize: 32 }} />} color="purple" />
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <StatCard title="Monthly Revenue" value={monthlyRevenue} prefix="₹" sub="This month" icon={<CalendarOutlined style={{ fontSize: 32 }} />} color="orange" />
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <StatCard title="Yearly Revenue" value={yearlyRevenue} prefix="₹" sub="This year" icon={<CalendarOutlined style={{ fontSize: 32 }} />} color="green" />
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <StatCard title="Stock Value" value={totalInventoryValue} prefix="₹" sub="Current on-hand" icon={<InboxOutlined style={{ fontSize: 32 }} />} color="orange" />
+          </Col>
+        </Row>
+      )}
 
-      <div
-        className="grid mb-4"
-        style={{ gridTemplateColumns: (showSalesTrend || isManager) ? 'repeat(2, 1fr)' : '1fr' }}
-      >
-        {showSalesTrend ? (
-          <div className="card">
-            <div className="section-title">Online Trend</div>
-            <div className="chart-wrap" style={{ height: '220px' }}>
-              <Line data={salesTrendData} options={{ maintainAspectRatio: false, animation: sharedAnimationConfig, plugins: { legend: { display: false } } }} />
-            </div>
-          </div>
-        ) : isManager ? (
-          <div className="card">
-            <div className="section-title">Product Share</div>
-            <div className="chart-wrap" style={{ height: '220px' }}>
-              {topSellingProducts.length > 0 ? (
-                <Pie 
-                  data={topProductsData} 
-                  options={{ 
-                    maintainAspectRatio: false, 
-                    animation: sharedAnimationConfig,
-                    plugins: { 
-                      legend: { position: 'right', labels: { color: 'inherit' } } 
-                    } 
-                  }} 
-                />
-              ) : (
-                <div className="empty-state">No sold products yet</div>
-              )}
-            </div>
-          </div>
-        ) : null}
-        <div className="card">
-          <div className="section-title">Top Product Trend</div>
-          <div className="top-performers-list" style={{ minHeight: '220px', display: 'flex', flexDirection: 'column', gap: '20px', paddingTop: '12px' }}>
-            {topSellingProducts.slice(0, 5).map((product, index) => {
-              const maxSold = topSellingProducts[0]?.sold || 1;
-              const percentage = Math.round((product.sold / maxSold) * 100);
-              
-              return (
-                <div key={product.id || index} className="performer-item" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                  <div className="performer-rank" style={{ width: '30px', height: '30px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '600', fontSize: '0.85rem', color: '#fff', flexShrink: 0 }}>
-                    {index + 1}
-                  </div>
-                  <div className="performer-details" style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.85rem', fontWeight: '600', color: '#f8fafc' }}>
-                      <span
-                        title={getProductLabel(product)}
-                        style={{
-                          maxWidth: '70%',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap'
-                        }}
-                      >
-                        {getProductLabel(product)}
-                      </span>
-                      <span style={{ color: '#6ee7b7' }}>
-                        <span style={{ color: 'rgba(255,255,255,0.5)', marginRight: '12px', fontSize: '0.8rem' }}>{product.sold}/{maxSold}</span>
-                        {percentage}%
-                      </span>
-                    </div>
-                    <div className="progress-bg" style={{ height: '4px', background: 'rgba(255,255,255,0.1)', borderRadius: '2px', overflow: 'hidden' }}>
-                      <div className="progress-fill" style={{ height: '100%', background: '#6ee7b7', width: `${percentage}%`, borderRadius: '2px', transition: 'width 1s ease-out' }}></div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-            {topSellingProducts.length === 0 && (
-              <div className="empty-state" style={{ margin: 'auto' }}>No sold products yet</div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {canManageAdminPages && (
-        <div className="card">
-          <div className="section-title">Recent Transactions</div>
-          <div className="table-wrap" style={{ border: 'none', background: 'transparent' }}>
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Bill No</th>
-                  <th>Customer</th>
-                  <th>Amount</th>
-                  <th>Method</th>
-                  <th>Time</th>
-                </tr>
-              </thead>
-              <tbody>
-                {todayBills.slice(0, 5).map((bill) => (
-                  <tr key={bill.id}>
-                    <td><b>{bill.billNo}</b></td>
-                    <td>{bill.customer}</td>
-                    <td className="fw-bold">{formatCurrency(bill.grand)}</td>
-                    <td><span className="badge badge-blue">{bill.payment}</span></td>
-                    <td className="text-muted text-xs">{new Date(bill.date).toLocaleTimeString()}</td>
-                  </tr>
-                ))}
-                {todayBills.length === 0 && (
-                  <tr>
-                    <td colSpan="5" className="text-center text-muted">No transactions today</td>
-                  </tr>
+      {/* ── Charts row ── */}
+      <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+        {(showSalesTrend || isManager) && (
+          <Col xs={24} lg={12}>
+            <Card className="dashboard-chart-card" title={showSalesTrend ? 'Online Trend' : 'Product Share'} variant="borderless">
+              <div className="dashboard-chart-canvas">
+                {showSalesTrend ? (
+                  <Line data={salesTrendData} options={{ maintainAspectRatio: false, animation: sharedAnimation, plugins: { legend: { display: false } } }} />
+                ) : (
+                  topSellingProducts.length > 0 ? (
+                    <Pie data={topProductsData} options={{ maintainAspectRatio: false, animation: sharedAnimation, plugins: { legend: { position: 'right', labels: { color: 'inherit' } } } }} />
+                  ) : (
+                    <Empty description="No sold products yet" />
+                  )
                 )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {showLowStockPopup && (
-        <div className="modal-overlay open" onClick={() => setShowLowStockPopup(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header" style={{ marginBottom: '15px' }}>
-              <h3 className="modal-title" style={{ margin: 0 }}>Low Stock Items</h3>
-              <button className="modal-close" onClick={() => setShowLowStockPopup(false)}>✕</button>
-            </div>
-            <div className="table-wrap" style={{ maxHeight: '300px', overflowY: 'auto' }}>
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Code</th>
-                    <th>Product</th>
-                    <th style={{ textAlign: 'right' }}>Stock</th>
-                    <th>Status</th>
-                    <th style={{ textAlign: 'right' }}>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {lowStock.map((product) => {
-                    const currentStock = Number(product.stock || 0);
-                    const isOutOfStock = currentStock === 0;
-
+              </div>
+            </Card>
+          </Col>
+        )}
+        <Col xs={24} lg={(showSalesTrend || isManager) ? 12 : 24}>
+          <Card className="dashboard-chart-card" title="Top Product Trend" variant="borderless">
+            <div className="top-product-trend">
+              {topSellingProducts.length > 0 ? (
+                <div className="top-product-list">
+                  {topSellingProducts.map((product, index) => {
+                    const maxSold = topSellingProducts[0]?.sold || 1;
+                    const pct = Math.round((product.sold / maxSold) * 100);
+                    const colors = ['#f97316', '#22c55e', '#3b82f6', '#8b5cf6', '#ef4444'];
                     return (
-                      <tr key={product.id}>
-                        <td>{product.code}</td>
-                        <td>{product.name}</td>
-                        <td style={{ textAlign: 'right' }} className="text-red fw-bold">{currentStock}</td>
-                        <td>
-                          <span className={`badge ${isOutOfStock ? 'badge-red' : 'badge-orange'}`}>
-                            {isOutOfStock ? 'Out of Stock' : 'Low Stock'}
-                          </span>
-                        </td>
-                        <td style={{ textAlign: 'right' }}>
-                          <button
-                            type="button"
-                            className="btn btn-sm btn-action"
-                            onClick={() => {
-                              setRefillProduct(product);
-                              setRefillQty('');
-                            }}
-                          >
-                            Refill
-                          </button>
-                        </td>
-                      </tr>
+                      <div key={product.id || index} className="top-product-row">
+                        <div className="performer-rank-badge" style={{ background: colors[index] }}>
+                          {index + 1}
+                        </div>
+                        <div className="top-product-content">
+                          <div className="top-product-meta">
+                            <span className="top-product-name" title={getProductLabel(product)}>
+                              {getProductLabel(product)}
+                            </span>
+                            <span className="top-product-score">
+                              <Text type="secondary" className="top-product-count">{product.sold}/{maxSold}</Text>
+                              <span className="top-product-percent">{pct}%</span>
+                            </span>
+                          </div>
+                          <Progress percent={pct} strokeColor={colors[index]} showInfo={false} size={['100%', 4]} />
+                        </div>
+                      </div>
                     );
                   })}
-                  {lowStock.length === 0 && (
-                    <tr>
-                      <td colSpan="5" className="text-center text-muted">No low stock items.</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                </div>
+              ) : (
+                <Empty description="No sold products yet" />
+              )}
             </div>
-            <div className="flex justify-end mt-4">
-              <button className="btn btn-secondary" onClick={() => setShowLowStockPopup(false)}>Close</button>
-            </div>
-          </div>
-        </div>
+          </Card>
+        </Col>
+      </Row>
+
+      {/* ── Recent Transactions ── */}
+      {canManageAdminPages && (
+        <Card className="dashboard-chart-card" title="Recent Transactions" variant="borderless" style={{ marginBottom: 16 }}>
+          <Table
+            columns={recentTxColumns}
+            dataSource={displaySalesBills.slice(0, 5)}
+            rowKey="id"
+            pagination={false}
+            size="small"
+            locale={{ emptyText: 'No transactions found' }}
+            className="dashboard-antd-table"
+          />
+        </Card>
       )}
 
-      {refillProduct && (
-        <div className="modal-overlay open" onClick={() => { setRefillProduct(null); setRefillQty(''); }}>
-          <div className="modal dashboard-refill-modal" onClick={(event) => event.stopPropagation()}>
-            <div className="modal-header">
-              <h3 className="modal-title">Refill Stock</h3>
-              <button className="modal-close" type="button" onClick={() => { setRefillProduct(null); setRefillQty(''); }}>x</button>
-            </div>
-            <p className="text-sm mb-3">
+      {/* ── Low Stock Modal ── */}
+      <Modal
+        open={showLowStockPopup}
+        onCancel={() => setShowLowStockPopup(false)}
+        title="Low Stock Items"
+        footer={<Button onClick={() => setShowLowStockPopup(false)}>Close</Button>}
+        width={680}
+        className="dashboard-antd-modal"
+      >
+        <Table
+          columns={lowStockColumns}
+          dataSource={lowStock}
+          rowKey="id"
+          pagination={false}
+          size="small"
+          scroll={{ y: 300 }}
+          locale={{ emptyText: 'No low stock items' }}
+          className="dashboard-antd-table"
+        />
+      </Modal>
+
+      {/* ── Refill Modal ── */}
+      <Modal
+        open={!!refillProduct}
+        onCancel={() => { setRefillProduct(null); refillForm.resetFields(); }}
+        title="Refill Stock"
+        footer={null}
+        className="dashboard-antd-modal"
+      >
+        {refillProduct && (
+          <>
+            <p style={{ marginBottom: 16 }}>
               Add stock for <b>{refillProduct.name}</b>. Current stock: <b>{Number(refillProduct.stock || 0)}</b>
             </p>
-            <div className="form-group mb-4">
-              <label>Refill Quantity</label>
-              <input
-                type="number"
-                value={refillQty}
-                onChange={(event) => setRefillQty(event.target.value)}
-                min="1"
-                placeholder="Enter quantity"
-                autoFocus
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') submitRefill();
-                }}
-              />
-            </div>
-            <div className="flex gap-2">
-              <button className="btn btn-primary flex-1" onClick={submitRefill} disabled={isRefilling}>
-                {isRefilling ? 'Saving...' : 'Save Refill'}
-              </button>
-              <button className="btn btn-secondary" onClick={() => { setRefillProduct(null); setRefillQty(''); }}>Cancel</button>
-            </div>
-          </div>
-        </div>
-      )}
+            <Form form={refillForm} layout="vertical" onFinish={submitRefill}>
+              <Form.Item
+                name="qty"
+                label="Refill Quantity"
+                rules={[{ required: true, message: 'Enter quantity' }, { type: 'number', min: 1, message: 'Must be at least 1' }]}
+              >
+                <InputNumber min={1} placeholder="Enter quantity" style={{ width: '100%' }} autoFocus size="large" />
+              </Form.Item>
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                <Button onClick={() => { setRefillProduct(null); refillForm.resetFields(); }}>Cancel</Button>
+                <Button type="primary" htmlType="submit" loading={isRefilling}>
+                  {isRefilling ? 'Saving...' : 'Save Refill'}
+                </Button>
+              </div>
+            </Form>
+          </>
+        )}
+      </Modal>
 
-      {showTodaySalesPopup && (
-        <div className="modal-overlay open" onClick={() => setShowTodaySalesPopup(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header" style={{ marginBottom: '15px' }}>
-              <h3 className="modal-title" style={{ margin: 0 }}>Today's Sales</h3>
-              <button className="modal-close" onClick={() => setShowTodaySalesPopup(false)}>✕</button>
-            </div>
-            <div className="table-wrap" style={{ maxHeight: '300px', overflowY: 'auto' }}>
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Bill No</th>
-                    <th>Customer</th>
-                    <th style={{ textAlign: 'right' }}>Amount</th>
-                    <th style={{ textAlign: 'right' }}>Time</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {todayBills.map((bill) => (
-                    <tr key={bill.id}>
-                      <td><b>{bill.billNo}</b></td>
-                      <td>{bill.customer}</td>
-                      <td style={{ textAlign: 'right' }} className="fw-bold">{formatCurrency(bill.grand)}</td>
-                      <td style={{ textAlign: 'right' }} className="text-muted text-xs">{new Date(bill.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
-                    </tr>
-                  ))}
-                  {todayBills.length === 0 && (
-                    <tr>
-                      <td colSpan="4" className="text-center text-muted">No sales today</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-            <div className="flex justify-end mt-4">
-              <button className="btn btn-secondary" onClick={() => setShowTodaySalesPopup(false)}>Close</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* ── Today's Sales Modal ── */}
+      <Modal
+        open={showTodaySalesPopup}
+        onCancel={() => setShowTodaySalesPopup(false)}
+        title={isShowingTodaySales ? "Today's Sales" : `Latest Sales - ${formatShortDate(displaySalesDate)}`}
+        footer={<Button onClick={() => setShowTodaySalesPopup(false)}>Close</Button>}
+        width={600}
+        className="dashboard-antd-modal"
+      >
+        <Table
+          columns={todaySalesColumns}
+          dataSource={displaySalesBills}
+          rowKey="id"
+          pagination={false}
+          size="small"
+          scroll={{ y: 300 }}
+          locale={{ emptyText: 'No sales found' }}
+          className="dashboard-antd-table"
+        />
+      </Modal>
     </div>
   );
 }

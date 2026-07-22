@@ -1,4 +1,3 @@
-const path = require('path');
 const app = require('./app');
 const { initializeDatabase } = require('./db');
 const { migrateLegacyAccountPasswords } = require('./services/authService');

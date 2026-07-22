@@ -382,7 +382,121 @@
 
 :root[data-theme='light'] .login-btn:hover {
   background: #6366f1;
-}/* Responsive */
+}
+
+/* ─── Ant Design overrides for dark login theme ─── */
+
+/* Form labels */
+.antd-label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #e2e8f0;
+  letter-spacing: 0.3px;
+}
+
+:root[data-theme='light'] .antd-label {
+  color: #475569;
+}
+
+/* Input fields */
+.antd-input.ant-input,
+.antd-input .ant-input {
+  background: rgba(15, 23, 42, 0.4) !important;
+  border-color: #64748b !important;
+  color: #ffffff !important;
+  font-size: 0.95rem;
+}
+
+.antd-input.ant-input:hover,
+.antd-input:hover .ant-input,
+.ant-input-affix-wrapper.antd-input:hover {
+  border-color: #818cf8 !important;
+}
+
+.antd-input.ant-input:focus,
+.ant-input-affix-wrapper.antd-input:focus-within {
+  border-color: #818cf8 !important;
+  background: rgba(15, 23, 42, 0.7) !important;
+  box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.15) !important;
+}
+
+.ant-input-affix-wrapper.antd-input {
+  background: rgba(15, 23, 42, 0.4) !important;
+  border-color: #64748b !important;
+}
+
+.ant-input-affix-wrapper.antd-input:focus-within {
+  border-color: #818cf8 !important;
+  box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.15) !important;
+}
+
+/* prefix icons */
+.antd-input-icon {
+  color: #64748b;
+}
+
+/* Password visibility toggle svg */
+.ant-input-password-icon {
+  color: #94a3b8 !important;
+}
+.ant-input-password-icon:hover {
+  color: #e2e8f0 !important;
+}
+
+/* Placeholder */
+.antd-input.ant-input::placeholder,
+.antd-input .ant-input::placeholder {
+  color: #475569 !important;
+}
+
+/* Light theme input overrides */
+:root[data-theme='light'] .antd-input.ant-input,
+:root[data-theme='light'] .antd-input .ant-input,
+:root[data-theme='light'] .ant-input-affix-wrapper.antd-input {
+  background: #ffffff !important;
+  border-color: #94a3b8 !important;
+  color: #0f172a !important;
+}
+
+:root[data-theme='light'] .antd-input.ant-input:focus,
+:root[data-theme='light'] .ant-input-affix-wrapper.antd-input:focus-within {
+  border-color: #6366f1 !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15) !important;
+}
+
+/* Form item validation message */
+.ant-form-item-explain-error {
+  color: #ef4444 !important;
+  font-size: 0.82rem !important;
+}
+
+/* Login button */
+.antd-login-btn.ant-btn {
+  background: #8b96f5 !important;
+  border-color: #8b96f5 !important;
+  color: #0f172a !important;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  border-radius: 8px;
+  height: 44px;
+  transition: all 0.2s ease !important;
+}
+
+.antd-login-btn.ant-btn:hover {
+  background: #6366f1 !important;
+  border-color: #6366f1 !important;
+  color: #ffffff !important;
+}
+
+/* Ant Design Form vertical layout label spacing */
+.ant-form-item-label {
+  padding-bottom: 6px !important;
+}
+
+/* ─────────────────────────────────────────────────── */
+
+/* Responsive */
 @media (max-width: 900px) {
   #loginPage {
     flex-direction: column;

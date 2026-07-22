@@ -23,7 +23,7 @@ export function getVisibleLoginActivityRoles(userOrRole) {
   const normalizedRole = normalizeRole(resolveRole(userOrRole));
 
   if (normalizedRole === 'admin') {
-    return ['Staff', 'Manager'];
+    return ['Admin', 'Manager', 'Staff'];
   }
 
   if (normalizedRole === 'manager') {

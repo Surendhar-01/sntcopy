@@ -1,259 +1,439 @@
-.bill-header { background: linear-gradient(135deg, var(--surface-hover), var(--accent3)); border: 1px solid var(--accent3); border-radius: 10px; padding: 16px; margin-bottom: 16px; text-align: center; }
-.bill-shop-name { font-size: 1.6rem; font-weight: 700; }
-.bill-address { font-size: .78rem; color: var(--text2); margin-top: 4px; line-height: 1.5; font-weight: 500; }
-.bill-meta { font-size: .72rem; color: var(--text3); margin-top: 6px; }
-.product-row { display: flex; gap: 8px; align-items: flex-end; margin-bottom: 8px; padding: 10px; background: var(--surface); border-radius: 8px; border: 1px solid var(--border); }
-.product-row .rm-btn { background: var(--danger-soft); color: var(--red); border: none; border-radius: 6px; padding: 8px 10px; cursor: pointer; font-size: 1rem; }
-.totals-box { background: var(--surface); border-radius: 8px; padding: 14px; margin-top: 10px; border: 1px solid var(--border); }
-.total-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: .88rem; color: var(--text); }
-.total-row.grand { font-family: 'Ubuntu', sans-serif; font-size: 1.2rem; font-weight: 700; color: var(--accent); border-top: 1px solid var(--border); margin-top: 6px; padding-top: 8px; }
-.recent-bills-list { display: flex; flex-direction: column; gap: 10px; max-height: 80vh; overflow-y: auto; overflow-x: hidden; padding-right: 4px; }
-.recent-bills-list > .card { padding: 12px 14px !important; margin-bottom: 0 !important; border-radius: 12px; cursor: pointer; transition: box-shadow 0.2s ease, transform 0.2s ease; }
-.recent-bills-list > .card:hover { box-shadow: 0 10px 24px rgba(15, 23, 42, 0.10); transform: translateY(-2px); }
-.recent-bills-list > .card > .flex:first-child { align-items: center; margin-bottom: 6px !important; }
-.recent-bills-list > .card > .flex:first-child b { color: var(--accent); font-size: 1.02rem; font-weight: 700; }
-.recent-bills-list > .card > .flex:first-child .text-xs { font-size: 0.88rem; color: var(--text2); }
-.recent-bills-list > .card > .text-sm.fw-600 { font-size: 1rem; font-weight: 500; color: var(--text); margin-bottom: 10px; }
-.recent-bills-list > .card > .flex:last-child { align-items: center; margin-top: 0 !important; }
-.recent-bills-list .badge { padding: 2px 8px !important; font-size: 0.82rem !important; }
-.recent-bills-list > .card > .flex:last-child b { font-size: 1.05rem; font-weight: 700; color: var(--text); }
-@media print {
-  body * { visibility: hidden; }
-  #printArea, #printArea * { visibility: visible; }
-  #printArea { position: absolute; left: 0; top: 0; width: 80mm; background: #fff; color: #000; font-family: monospace; font-size: 10px; padding: 4mm; }
-  .no-print { display: none !important; }
-}
-#printArea { display: none; }
-
-/* Toast Notification */
-.toast-msg {
-  position: fixed;
-  top: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--text);
-  color: #fff;
-  padding: 12px 24px;
-  border-radius: 12px;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-weight: 500;
-  animation: slideDownToast 0.35s ease forwards;
-}
-
-.toast-msg.success { border-bottom: 4px solid rgba(255,255,255,0.3); background: #10b981; }
-.toast-msg.error { border-bottom: 4px solid rgba(255,255,255,0.3); background: #ef4444; }
-
-@keyframes slideDownToast {
-  0% { transform: translate(-50%, -100%); opacity: 0; }
-  100% { transform: translate(-50%, 0); opacity: 1; }
-}
-
-.billing-product-modal {
-  width: min(760px, 96vw);
-  max-height: min(80vh, 720px);
+.billing-page {
   display: flex;
   flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+  width: 100%;
+}
+
+.billing-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(340px, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.billing-main {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
+
+.billing-page .ant-card {
+  background: var(--card);
+  border-color: var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px var(--shadow-soft);
+}
+
+.billing-page .ant-card-body,
+.billing-page .ant-card-head,
+.billing-page .ant-typography {
+  color: var(--text) !important;
+}
+
+.billing-page .ant-card-head {
+  min-height: 52px;
+  padding: 0 20px;
+  border-bottom-color: var(--border);
+}
+
+.billing-page .ant-card-head-title {
+  color: var(--text);
+  font-weight: 800;
+}
+
+.billing-shop-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 16px;
+}
+
+.billing-form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0 14px;
+}
+
+.billing-form .ant-form-item:nth-last-child(-n + 2) {
+  grid-column: span 1;
+}
+
+.billing-page .ant-form-item {
+  margin-bottom: 14px;
+}
+
+.billing-page .ant-form-item-label > label {
+  color: var(--text) !important;
+  font-weight: 700;
+}
+
+.billing-bill-no-input,
+.billing-bill-no {
+  color: var(--accent) !important;
+  font-weight: 800;
+}
+
+.billing-cart-card {
+  overflow: hidden;
+}
+
+.billing-cart-card .ant-card-body {
+  padding: 0;
+}
+
+.billing-product-trigger {
+  margin: 16px;
+  width: calc(100% - 32px);
+}
+
+.billing-cart-card .ant-table,
+.billing-preview-table .ant-table {
+  background: transparent;
+  color: var(--text);
+  table-layout: fixed;
+}
+
+.billing-cart-card .ant-table-thead > tr > th,
+.billing-preview-table .ant-table-thead > tr > th {
+  background: var(--surface) !important;
+  color: var(--text2) !important;
+  border-bottom-color: var(--border);
+  font-weight: 800;
+  padding: 13px 22px;
+  vertical-align: middle;
+}
+
+.billing-cart-card .ant-table-thead > tr > th::before,
+.billing-preview-table .ant-table-thead > tr > th::before {
+  display: none !important;
+}
+
+.billing-cart-card .ant-table-tbody > tr > td,
+.billing-preview-table .ant-table-tbody > tr > td {
+  background: var(--card);
+  border-bottom-color: var(--border);
+  color: var(--text);
+  height: 58px;
+  padding: 10px 22px;
+  vertical-align: middle;
+}
+
+.billing-cart-card .ant-table-tbody > tr:hover > td,
+.billing-preview-table .ant-table-tbody > tr:hover > td {
+  background: var(--surface-hover) !important;
+}
+
+.billing-item-cell {
+  max-width: 100%;
+}
+
+.billing-item-name,
+.billing-money {
+  color: var(--text) !important;
+  display: block;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.billing-money {
+  white-space: nowrap;
+}
+
+.billing-qty-control .ant-btn {
+  width: 34px;
+}
+
+.billing-qty-control .billing-qty-value {
+  width: 42px;
+  pointer-events: none;
+}
+
+.billing-totals {
+  display: grid;
+  gap: 6px;
+  margin: 16px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.billing-total-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.billing-grand-row {
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  color: var(--accent);
+  font-size: 1.12rem;
+  font-weight: 800;
+}
+
+.billing-actions {
+  margin: 0 16px 16px;
+}
+
+.billing-recent-card {
+  overflow: hidden;
+}
+
+.billing-recent-card .ant-card-body {
+  padding: 10px;
+}
+
+.billing-recent-card .ant-list-empty-text {
+  padding: 28px 0;
+}
+
+.billing-recent-item {
+  align-items: flex-start !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-bottom: 10px;
+  padding: 12px !important;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.billing-recent-item:hover {
+  background: var(--surface-hover);
+  border-color: var(--accent3) !important;
+}
+
+.billing-recent-title,
+.billing-recent-copy {
+  width: 100%;
+}
+
+.billing-modal .ant-modal-content {
+  padding: 0 !important;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.billing-modal .ant-modal-header {
+  margin: 0;
+  padding: 20px 24px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.billing-modal .ant-modal-body {
+  padding: 20px 24px;
+}
+
+.billing-modal .ant-modal-footer {
+  margin: 0;
+  padding: 16px 24px 20px;
+  border-top: 1px solid var(--border);
+}
+
+.billing-modal .ant-modal-title,
+.billing-modal .ant-typography {
+  color: var(--text) !important;
+}
+
+.billing-preview-meta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.billing-preview-meta > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.billing-preview-totals {
+  margin: 16px 0 0;
+}
+
+.billing-product-search {
+  margin-bottom: 14px;
 }
 
 .billing-product-list {
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  overflow: auto;
   max-height: min(56vh, 460px);
-  background: var(--card);
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
 }
 
 .billing-product-row {
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 11px 14px;
-  border: 0;
-  border-bottom: 1px solid var(--border);
-  background: transparent;
-  color: var(--text);
-  text-align: left;
+  align-items: center !important;
   cursor: pointer;
-}
-
-.billing-product-row:last-child {
-  border-bottom: 0;
+  gap: 12px;
+  padding: 12px 14px !important;
+  transition: background 0.2s ease;
 }
 
 .billing-product-row.selected {
   background: var(--surface-hover);
-  border-left: 4px solid var(--accent);
+  box-shadow: inset 4px 0 0 var(--accent);
 }
-
-.billing-product-row:hover { background: var(--surface-hover); }
 
 .billing-product-row.disabled {
-  opacity: 0.55;
-  background: var(--surface);
-  color: var(--text3);
-}
-
-.billing-product-row.disabled:hover {
-  background: var(--surface);
-}
-
-.billing-product-name {
-  font-weight: 500;
-}
-
-.billing-stock-text {
-  color: var(--green);
-  font-size: 0.78rem;
-  font-weight: 700;
-  margin-top: 3px;
-}
-
-.billing-stock-badge {
-  align-self: flex-start;
-  color: var(--red);
-  background: rgba(239, 68, 68, 0.12);
-  border: 1px solid rgba(239, 68, 68, 0.25);
-  border-radius: 6px;
-  font-size: 0.74rem;
-  font-weight: 800;
-  margin-top: 4px;
-  padding: 2px 7px;
-}
-
-.billing-product-price {
-  color: var(--accent);
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.qty-stepper {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 2px;
-  background: var(--card);
-}
-
-.qty-stepper-btn {
-  width: 24px;
-  height: 24px;
-  border: 0;
-  border-radius: 50%;
-  background: var(--surface-muted);
-  color: var(--text);
-  font-size: 1rem;
-  font-weight: 700;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.qty-stepper-btn:hover:not(:disabled) {
-  background: var(--bg4);
-}
-
-.qty-stepper-btn:disabled {
-  opacity: 0.5;
   cursor: not-allowed;
+  opacity: 0.55;
 }
 
-.qty-stepper-value {
-  min-width: 18px;
-  text-align: center;
-  font-weight: 600;
+.billing-product-info {
+  min-width: 0;
 }
 
-@media (max-width: 640px) {
-  .billing-product-modal {
-    width: 96vw;
+.billing-product-qty {
+  width: 80px;
+}
+
+.billing-selected-count {
+  display: block;
+  margin-top: 14px;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  #printArea,
+  #printArea * {
+    visibility: visible;
+  }
+
+  #printArea {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 80mm;
+    background: #fff;
+    color: #000;
+    font-family: monospace;
+    font-size: 10px;
+    padding: 4mm;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}
+
+#printArea {
+  display: none;
+}
+
+:root[data-theme='dark'] .billing-page .ant-card {
+  background: #1b2433;
+  border-color: #334155;
+  box-shadow: none;
+}
+
+:root[data-theme='dark'] .billing-page,
+:root[data-theme='dark'] .billing-page .ant-card-body,
+:root[data-theme='dark'] .billing-page .ant-card-head,
+:root[data-theme='dark'] .billing-page .ant-card-head-title,
+:root[data-theme='dark'] .billing-page .ant-typography,
+:root[data-theme='dark'] .billing-item-name,
+:root[data-theme='dark'] .billing-money {
+  color: #f8fafc !important;
+}
+
+:root[data-theme='dark'] .billing-cart-card .ant-table,
+:root[data-theme='dark'] .billing-cart-card .ant-table-container,
+:root[data-theme='dark'] .billing-cart-card .ant-table-content,
+:root[data-theme='dark'] .billing-preview-table .ant-table,
+:root[data-theme='dark'] .billing-preview-table .ant-table-container,
+:root[data-theme='dark'] .billing-preview-table .ant-table-content {
+  background: #1b2433 !important;
+}
+
+:root[data-theme='dark'] .billing-cart-card .ant-table-thead > tr > th,
+:root[data-theme='dark'] .billing-preview-table .ant-table-thead > tr > th {
+  background: #111827 !important;
+  color: #e5e7eb !important;
+  border-bottom-color: #334155 !important;
+}
+
+:root[data-theme='dark'] .billing-cart-card .ant-table-tbody > tr > td,
+:root[data-theme='dark'] .billing-preview-table .ant-table-tbody > tr > td {
+  background: #1b2433 !important;
+  border-bottom-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+:root[data-theme='dark'] .billing-cart-card .ant-table-tbody > tr:hover > td,
+:root[data-theme='dark'] .billing-preview-table .ant-table-tbody > tr:hover > td {
+  background: #263244 !important;
+}
+
+html[data-theme='dark'] body .billing-modal .ant-modal-content,
+html[data-theme='dark'] body .billing-modal .ant-modal-header,
+html[data-theme='dark'] body .billing-modal .ant-modal-body,
+html[data-theme='dark'] body .billing-modal .ant-modal-footer {
+  background-color: #1b2433 !important;
+  border-color: #334155 !important;
+}
+
+html[data-theme='dark'] body .billing-modal .ant-modal-title,
+html[data-theme='dark'] body .billing-modal .ant-typography {
+  color: #f8fafc !important;
+}
+
+html[data-theme='dark'] body .billing-modal .ant-modal-close,
+html[data-theme='dark'] body .billing-modal .ant-modal-close-x {
+  color: #cbd5e1 !important;
+}
+
+html[data-theme='dark'] body .billing-page .ant-input,
+html[data-theme='dark'] body .billing-page .ant-input-number,
+html[data-theme='dark'] body .billing-page .ant-input-number-input,
+html[data-theme='dark'] body .billing-page .ant-select-selector,
+html[data-theme='dark'] body .billing-modal .ant-input,
+html[data-theme='dark'] body .billing-modal .ant-input-number,
+html[data-theme='dark'] body .billing-modal .ant-input-number-input {
+  background-color: #111827 !important;
+  color: #f8fafc !important;
+  border-color: #334155 !important;
+}
+
+html[data-theme='dark'] body .billing-page .ant-input::placeholder,
+html[data-theme='dark'] body .billing-modal .ant-input::placeholder {
+  color: #94a3b8 !important;
+}
+
+@media (max-width: 1100px) {
+  .billing-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .billing-form,
+  .billing-preview-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .billing-page .ant-card-head {
+    padding: 0 14px;
   }
 
   .billing-product-row {
-    padding: 10px 12px;
-    font-size: 0.92rem;
+    align-items: flex-start !important;
+    flex-direction: column;
   }
-}
-/* Customer History Section */
-.customer-history-card {
-  border: 1px solid var(--accent3);
-  background: linear-gradient(180deg, var(--card) 0%, var(--surface) 100%);
-}
-
-.customer-history-info {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 10px 12px;
-  background: var(--surface);
-  border-radius: 8px;
-  margin-bottom: 12px;
-  border: 1px solid var(--border);
-}
-
-.customer-history-name {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--text);
-}
-
-.customer-history-name svg { color: var(--accent); flex-shrink: 0; }
-
-.customer-history-phone {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: .88rem;
-  color: var(--text2);
-}
-
-.customer-history-phone svg { color: var(--text3); flex-shrink: 0; }
-
-.customer-history-total {
-  font-size: .85rem;
-  color: var(--text2);
-  margin-top: 2px;
-}
-
-.customer-history-total b { color: var(--accent); }
-
-.customer-history-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  max-height: 280px;
-  overflow-y: auto;
-  padding-right: 4px;
-}
-
-.customer-history-item {
-  padding: 10px 12px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  cursor: pointer;
-  transition: box-shadow 0.2s ease, transform 0.15s ease;
-}
-
-.customer-history-item:hover {
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.10);
-  transform: translateY(-1px);
-  border-color: var(--accent3);
-}
-
-.btn-review{
-  background-color: greenyellow;
-}
-.btn-review:hover{
-  background-color: greenyellow;
-  color: black;
-  border-color: greenyellow;
 }
