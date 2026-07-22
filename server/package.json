@@ -4,6 +4,7 @@
   "description": "Backend server for the application",
   "main": "index.js",
   "scripts": {
+    "build": "node -e \"console.log('No server build step required')\"",
     "start": "node mongo-server.js",
     "start:mongo": "node mongo-server.js",
     "start:mysql": "node index.js",
