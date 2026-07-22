@@ -1,10 +1,12 @@
 # Dependencies
 /node_modules
+**/node_modules
 /.pnp
 .pnp.js
 
 # Build output
 /dist
+/client/dist
 /dist-ssr
 /build
 
@@ -57,3 +59,15 @@ lerna-debug.log*
 
 # Temporary files
 /tmp
+/tmp/**/*
+
+# Generated root build artifacts
+/index-*.js
+/index-*.css
+
+# Local agent/editor scratch
+/.agents
+/.agent.md
+
+# Local database dumps / sensitive exports
+/schema.sql
