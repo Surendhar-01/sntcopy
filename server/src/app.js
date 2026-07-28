@@ -9,6 +9,7 @@ const categoriesRoutes = require('./routes/categories');
 const settingsRoutes = require('./routes/settings');
 const usersRoutes = require('./routes/users');
 const dashboardRoutes = require('./routes/dashboard');
+const { verifyToken } = require('./middlewares/authMiddleware');
 
 const app = express();
 app.use(cors());
@@ -44,13 +45,13 @@ app.get('/docs', (req, res) => {
 });
 
 app.use('/api', authRoutes);
-app.use('/api', dbRoutes);
-app.use('/api', dashboardRoutes);
-app.use('/api', categoriesRoutes);
-app.use('/api', ordersRoutes);
-app.use('/api', productsRoutes);
-app.use('/api', usersRoutes);
-app.use('/api', settingsRoutes);
+app.use('/api', verifyToken, dbRoutes);
+app.use('/api', verifyToken, dashboardRoutes);
+app.use('/api', verifyToken, categoriesRoutes);
+app.use('/api', verifyToken, ordersRoutes);
+app.use('/api', verifyToken, productsRoutes);
+app.use('/api', verifyToken, usersRoutes);
+app.use('/api', verifyToken, settingsRoutes);
 
 app.use(errorHandler);
 

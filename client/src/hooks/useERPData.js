@@ -73,6 +73,7 @@ async function apiRequest(path, options = {}) {
   const response = await fetch(apiUrl(path), {
     headers: {
       'Content-Type': 'application/json',
+      ...(localStorage.getItem('sri_nikil_token') ? { 'Authorization': `Bearer ${localStorage.getItem('sri_nikil_token')}` } : {}),
       ...(options.headers || {})
     },
     ...options

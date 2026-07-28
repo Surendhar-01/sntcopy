@@ -1,5 +1,8 @@
 const { pool } = require('../db');
 const { verifyPassword, hashPassword } = require('../utils');
+const jwt = require('jsonwebtoken');
+
+const JWT_SECRET = process.env.JWT_SECRET || 'sri_nikil_erp_secret_key';
 
 async function login(username, password) {
   if (!username || !password) {
@@ -31,7 +34,13 @@ async function login(username, password) {
     await pool.query('UPDATE accounts SET pass = ? WHERE id = ?', [updatedHash, account.id]);
   }
 
-  return { user: account.user, role: account.role };
+  const token = jwt.sign(
+    { user: account.user, role: account.role, id: account.id },
+    JWT_SECRET,
+    { expiresIn: '24h' }
+  );
+
+  return { user: account.user, role: account.role, token };
 }
 
 async function migrateLegacyAccountPasswords() {
