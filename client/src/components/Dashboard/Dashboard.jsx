@@ -37,7 +37,7 @@ import {
 } from 'chart.js';
 import { Line, Pie } from 'react-chartjs-2';
 import './Dashboard.css';
-import { hasAdminAccess } from '../../utils/roles';
+import { hasAdminAccess, isRole, USER_ROLES } from '../../utils/roles';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend, Filler);
 
@@ -62,11 +62,7 @@ function getDateKey(value) {
   return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
 }
 
-function formatShortDate(value) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
-  return date.toLocaleDateString([], { day: '2-digit', month: 'short', year: 'numeric' });
-}
+
 
 function getProductLabel(product) {
   return product.name || product.code;
@@ -74,6 +70,48 @@ function getProductLabel(product) {
 
 function isSameUserName(left, right) {
   return String(left || '').trim().toLowerCase() === String(right || '').trim().toLowerCase();
+}
+
+function getBillDate(bill) {
+  return bill?.date || bill?.created_at || bill?.createdAt || null;
+}
+
+function sortBillsNewestFirst(left, right) {
+  return new Date(getBillDate(right) || 0) - new Date(getBillDate(left) || 0);
+}
+
+function aggregateSoldProductsFromBills(sourceBills, products) {
+  const productsById = new Map((products || []).map((product) => [String(product.id), product]));
+  const productsByName = new Map((products || []).map((product) => [String(product.name || '').trim().toLowerCase(), product]));
+  const soldByKey = new Map();
+
+  (sourceBills || []).forEach((bill) => {
+    (Array.isArray(bill.items) ? bill.items : []).forEach((item) => {
+      const qty = Number(item.qty || item.quantity || 0);
+      if (!Number.isFinite(qty) || qty <= 0) return;
+
+      const itemId = item.id ?? item.product_id ?? item.productId;
+      const itemName = String(item.name || item.product || '').trim();
+      const matchedProduct = itemId != null
+        ? productsById.get(String(itemId))
+        : productsByName.get(itemName.toLowerCase());
+      const key = matchedProduct?.id != null ? `id:${matchedProduct.id}` : `name:${itemName.toLowerCase()}`;
+      const current = soldByKey.get(key) || {
+        ...(matchedProduct || {}),
+        id: matchedProduct?.id ?? itemId ?? key,
+        code: matchedProduct?.code || item.code,
+        name: matchedProduct?.name || itemName || item.code || 'Unknown Product',
+        sold: 0
+      };
+
+      current.sold += qty;
+      soldByKey.set(key, current);
+    });
+  });
+
+  return [...soldByKey.values()]
+    .filter((product) => Number(product.sold || 0) > 0)
+    .sort((a, b) => Number(b.sold || 0) - Number(a.sold || 0));
 }
 
 /* ── Stat card wrapper using antd Card + Statistic ── */
@@ -125,9 +163,9 @@ export default function Dashboard({ db, erp, user }) {
   const [refillForm] = Form.useForm();
 
   const canManageAdminPages = hasAdminAccess(user);
-  const isAdmin = user?.role === 'Admin';
-  const isManager = user?.role === 'Manager';
-  const showSalesTrend = !isManager;
+  const isAdmin = isRole(user, USER_ROLES.ADMIN);
+
+
 
   const bills = useMemo(() => (db.bills || []).filter((bill) => {
     if (canManageAdminPages) return true;
@@ -178,22 +216,39 @@ export default function Dashboard({ db, erp, user }) {
     const startOfTomorrow = new Date(startOfToday);
     startOfTomorrow.setDate(startOfTomorrow.getDate() + 1);
     const weekStart = getWeekStart(now);
+    
+    const lastShiftEndStr = localStorage.getItem('snt_last_shift_end');
+    let currentShiftStart = startOfToday;
+    if (lastShiftEndStr) {
+      const lse = new Date(lastShiftEndStr);
+      if (lse > startOfToday) {
+        currentShiftStart = lse;
+      }
+    }
 
-    const todayBills = bills.filter((b) => { if (!b.date) return false; const d = new Date(b.date); return d >= startOfToday && d < startOfTomorrow; });
+    const todayBills = bills
+      .filter((b) => {
+        const dateValue = getBillDate(b);
+        if (!dateValue) return false;
+        const d = new Date(dateValue);
+        return d >= currentShiftStart && d < startOfTomorrow;
+      })
+      .sort(sortBillsNewestFirst);
     const latestBillDate = bills.reduce((latest, bill) => {
-      if (!bill.date) return latest;
-      const billDate = new Date(bill.date);
+      const dateValue = getBillDate(bill);
+      if (!dateValue) return latest;
+      const billDate = new Date(dateValue);
       if (Number.isNaN(billDate.getTime())) return latest;
       return !latest || billDate > latest ? billDate : latest;
     }, null);
     const latestBillDateKey = latestBillDate ? getDateKey(latestBillDate) : '';
     const latestDayBills = latestBillDateKey
-      ? bills.filter((bill) => getDateKey(bill.date) === latestBillDateKey)
+      ? bills.filter((bill) => getDateKey(getBillDate(bill)) === latestBillDateKey).sort(sortBillsNewestFirst)
       : [];
     const displaySalesBills = todayBills.length > 0 || bills.length === 0 ? todayBills : latestDayBills;
     const displaySalesDate = todayBills.length > 0 || bills.length === 0 ? now : latestBillDate;
     const isShowingTodaySales = todayBills.length > 0 || bills.length === 0;
-    const weeklyBills = bills.filter((b) => { if (!b.date) return false; return new Date(b.date) >= weekStart; });
+    const weeklyBills = bills.filter((b) => { const dateValue = getBillDate(b); if (!dateValue) return false; return new Date(dateValue) >= weekStart; });
     const latestWeekStart = latestBillDate ? new Date(latestBillDate) : null;
     if (latestWeekStart) {
       latestWeekStart.setDate(latestWeekStart.getDate() - 6);
@@ -201,15 +256,16 @@ export default function Dashboard({ db, erp, user }) {
     }
     const latestWeekBills = latestWeekStart
       ? bills.filter((bill) => {
-          if (!bill.date) return false;
-          const billDate = new Date(bill.date);
+          const dateValue = getBillDate(bill);
+          if (!dateValue) return false;
+          const billDate = new Date(dateValue);
           return billDate >= latestWeekStart && billDate <= latestBillDate;
         })
       : [];
     const displayWeeklyBills = weeklyBills.length > 0 || bills.length === 0 ? weeklyBills : latestWeekBills;
     const isShowingCurrentWeek = weeklyBills.length > 0 || bills.length === 0;
-    const monthlyBills = bills.filter((b) => { if (!b.date) return false; const d = new Date(b.date); return d.getMonth() === currentMonth && d.getFullYear() === currentYear; });
-    const yearlyBills = bills.filter((b) => { if (!b.date) return false; return new Date(b.date).getFullYear() === currentYear; });
+    const monthlyBills = bills.filter((b) => { const dateValue = getBillDate(b); if (!dateValue) return false; const d = new Date(dateValue); return d.getMonth() === currentMonth && d.getFullYear() === currentYear; });
+    const yearlyBills = bills.filter((b) => { const dateValue = getBillDate(b); if (!dateValue) return false; return new Date(dateValue).getFullYear() === currentYear; });
 
     const todaySales = todayBills.reduce((s, b) => s + (b.grand || 0), 0);
     const displaySales = displaySalesBills.reduce((s, b) => s + (b.grand || 0), 0);
@@ -219,15 +275,19 @@ export default function Dashboard({ db, erp, user }) {
     const yearlyRevenue = yearlyBills.reduce((s, b) => s + (b.grand || 0), 0);
 
     const lowStock = [...products].filter((p) => Number(p.stock || 0) < 5).sort((a, b) => Number(a.stock || 0) - Number(b.stock || 0));
-    const soldProducts = [...products].sort((a, b) => (b.sold || 0) - (a.sold || 0));
+    const soldProductsFromBills = aggregateSoldProductsFromBills(bills, products);
+    const soldProductsFromInventory = [...products]
+      .filter((p) => Number(p.sold || 0) > 0)
+      .sort((a, b) => (b.sold || 0) - (a.sold || 0));
+    const soldProducts = soldProductsFromBills.length > 0 ? soldProductsFromBills : soldProductsFromInventory;
     const topProduct = soldProducts[0] || null;
-    const topSellingProducts = soldProducts.filter((p) => Number(p.sold || 0) > 0).slice(0, 5);
+    const topSellingProducts = soldProducts.slice(0, 5);
     const totalInventoryValue = products.reduce((s, p) => s + ((p.stock || 0) * (p.price || 0)), 0);
 
     return { todayBills, displaySalesBills, displaySalesDate, isShowingTodaySales, weeklyBills, displayWeeklyBills, isShowingCurrentWeek, monthlyBills, yearlyBills, todaySales, displaySales, weeklyRevenue, displayWeeklyRevenue, monthlyRevenue, yearlyRevenue, lowStock, topProduct, topSellingProducts, totalInventoryValue };
   }, [bills, products]);
 
-  const { todayBills, displaySalesBills, displaySalesDate, isShowingTodaySales, displayWeeklyBills, isShowingCurrentWeek, displaySales, displayWeeklyRevenue, monthlyRevenue, yearlyRevenue, lowStock, topProduct, topSellingProducts, totalInventoryValue } = stats;
+  const { todayBills, todaySales, displayWeeklyBills, isShowingCurrentWeek, displayWeeklyRevenue, monthlyRevenue, yearlyRevenue, lowStock, topProduct, topSellingProducts, totalInventoryValue } = stats;
 
   const sharedAnimation = useMemo(() => ({
     duration: 1600,
@@ -235,15 +295,19 @@ export default function Dashboard({ db, erp, user }) {
     delay: (ctx) => (ctx.type === 'data' && ctx.mode === 'default' ? ctx.dataIndex * 100 : 0)
   }), []);
 
-  const salesTrendData = useMemo(() => ({
-    labels: ['6d ago', '5d ago', '4d ago', '3d ago', '2d ago', 'Yesterday', 'Today'],
-    datasets: [{ label: 'Sales (₹)', data: [12000, 15000, 8000, 19000, 22000, 17000, displaySales], borderColor: '#6ee7b7', backgroundColor: 'rgba(110, 231, 183, 0.1)', fill: true, tension: 0.4, pointBackgroundColor: '#6ee7b7' }]
-  }), [displaySales]);
-
-  const topProductsData = useMemo(() => ({
-    labels: topSellingProducts.map(getProductLabel),
-    datasets: [{ label: 'Units Sold', data: topSellingProducts.map((p) => p.sold || 0), backgroundColor: ['#f97316', '#22c55e', '#2363eb', '#7c3aed', '#dc2626'] }]
-  }), [topSellingProducts]);
+  const topProductsData = useMemo(() => {
+    // Generate brown shades
+    const brownColors = ['#5c2314', '#8a351e', '#bd4728', '#d95b3d', '#e3826b'];
+    return {
+      labels: topSellingProducts.map(getProductLabel),
+      datasets: [{
+        label: 'Units Sold',
+        data: topSellingProducts.map((p) => p.sold || 0),
+        backgroundColor: brownColors.slice(0, topSellingProducts.length),
+        borderColor: 'transparent'
+      }]
+    };
+  }, [topSellingProducts]);
 
   /* ── Ant Design Table columns ── */
   const recentTxColumns = [
@@ -294,17 +358,17 @@ export default function Dashboard({ db, erp, user }) {
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
         <Col xs={24} sm={12} lg={canManageAdminPages ? 6 : 8}>
           <StatCard
-            title={isShowingTodaySales ? 'Today Sales' : 'Latest Sales'}
-            value={displaySales}
+            title="Today Sales"
+            value={todaySales}
             prefix="₹"
-            sub={isShowingTodaySales ? `${todayBills.length} bills today` : `${displaySalesBills.length} bills on ${formatShortDate(displaySalesDate)}`}
+            sub={`${todayBills.length} bills today`}
             icon={<DollarOutlined style={{ fontSize: 32 }} />}
             color="orange"
             onClick={() => setShowTodaySalesPopup(true)}
           />
         </Col>
         <Col xs={24} sm={12} lg={canManageAdminPages ? 6 : 8}>
-          <StatCard title={isShowingTodaySales ? 'Bills Today' : 'Latest Bills'} value={displaySalesBills.length} sub={`Total ${bills.length} all time`} icon={<FileTextOutlined style={{ fontSize: 32 }} />} color="green" />
+          <StatCard title="Today Bills" value={todayBills.length} sub={`${todayBills.length} bills today`} icon={<FileTextOutlined style={{ fontSize: 32 }} />} color="green" />
         </Col>
         <Col xs={24} sm={12} lg={canManageAdminPages ? 6 : 8}>
           <StatCard title="Top Product" value={topProduct ? topProduct.name : 'No sales yet'} isText sub={topProduct ? `${topProduct.sold || 0} units sold` : 'Waiting for sales data'} icon={<TrophyOutlined style={{ fontSize: 32 }} />} color="blue" />
@@ -348,32 +412,26 @@ export default function Dashboard({ db, erp, user }) {
 
       {/* ── Charts row ── */}
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-        {(showSalesTrend || isManager) && (
           <Col xs={24} lg={12}>
-            <Card className="dashboard-chart-card" title={showSalesTrend ? 'Online Trend' : 'Product Share'} variant="borderless">
+            <Card className="dashboard-chart-card" title="Top Product Trend" variant="borderless">
               <div className="dashboard-chart-canvas">
-                {showSalesTrend ? (
-                  <Line data={salesTrendData} options={{ maintainAspectRatio: false, animation: sharedAnimation, plugins: { legend: { display: false } } }} />
+                {topSellingProducts.length > 0 ? (
+                  <Pie data={topProductsData} options={{ maintainAspectRatio: false, animation: sharedAnimation, plugins: { legend: { position: 'right', labels: { color: 'inherit' } } } }} />
                 ) : (
-                  topSellingProducts.length > 0 ? (
-                    <Pie data={topProductsData} options={{ maintainAspectRatio: false, animation: sharedAnimation, plugins: { legend: { position: 'right', labels: { color: 'inherit' } } } }} />
-                  ) : (
-                    <Empty description="No sold products yet" />
-                  )
+                  <Empty description="No sold products yet" />
                 )}
               </div>
             </Card>
           </Col>
-        )}
-        <Col xs={24} lg={(showSalesTrend || isManager) ? 12 : 24}>
-          <Card className="dashboard-chart-card" title="Top Product Trend" variant="borderless">
+        <Col xs={24} lg={12}>
+          <Card className="dashboard-chart-card" title="Products Share By Volume" variant="borderless">
             <div className="top-product-trend">
               {topSellingProducts.length > 0 ? (
                 <div className="top-product-list">
                   {topSellingProducts.map((product, index) => {
                     const maxSold = topSellingProducts[0]?.sold || 1;
                     const pct = Math.round((product.sold / maxSold) * 100);
-                    const colors = ['#f97316', '#22c55e', '#3b82f6', '#8b5cf6', '#ef4444'];
+                    const colors = ['#5c2314', '#8a351e', '#bd4728', '#d95b3d', '#e3826b'];
                     return (
                       <div key={product.id || index} className="top-product-row">
                         <div className="performer-rank-badge" style={{ background: colors[index] }}>
@@ -405,14 +463,14 @@ export default function Dashboard({ db, erp, user }) {
 
       {/* ── Recent Transactions ── */}
       {canManageAdminPages && (
-        <Card className="dashboard-chart-card" title="Recent Transactions" variant="borderless" style={{ marginBottom: 16 }}>
+        <Card className="dashboard-chart-card" title="Recent Transactions - Today" variant="borderless" style={{ marginBottom: 16 }}>
           <Table
             columns={recentTxColumns}
-            dataSource={displaySalesBills.slice(0, 5)}
+            dataSource={todayBills.slice(0, 5)}
             rowKey="id"
             pagination={false}
             size="small"
-            locale={{ emptyText: 'No transactions found' }}
+            locale={{ emptyText: 'No transactions today' }}
             className="dashboard-antd-table"
           />
         </Card>
@@ -475,14 +533,14 @@ export default function Dashboard({ db, erp, user }) {
       <Modal
         open={showTodaySalesPopup}
         onCancel={() => setShowTodaySalesPopup(false)}
-        title={isShowingTodaySales ? "Today's Sales" : `Latest Sales - ${formatShortDate(displaySalesDate)}`}
+        title="Today's Sales"
         footer={<Button onClick={() => setShowTodaySalesPopup(false)}>Close</Button>}
         width={600}
         className="dashboard-antd-modal"
       >
         <Table
           columns={todaySalesColumns}
-          dataSource={displaySalesBills}
+          dataSource={todayBills}
           rowKey="id"
           pagination={false}
           size="small"

@@ -11,6 +11,7 @@ import {
 } from '@ant-design/icons';
 import ClearConfirmModal from './ClearConfirmModal';
 import { useTheme } from '../context/useTheme';
+import { normalizeRole, USER_ROLES } from '../utils/roles';
 import './Topbar.css';
 
 function isClearedSessionError(error) {
@@ -24,7 +25,23 @@ function isClearedSessionError(error) {
   );
 }
 
-export default function Topbar({ user, erp, session, setUser, setSession, onLogout }) {
+function getEndShiftMessage(response) {
+  if (response?.emailStatus === 'sent' && response?.attachmentCount > 0) {
+    return `Shift closed and report sent successfully. Excel attached: ${response.attachmentName || 'Shift report'}`;
+  }
+
+  if (response?.emailStatus === 'failed' && response?.emailError) {
+    return `Shift closed, but mail failed: ${response.emailError}`;
+  }
+
+  if (response?.emailStatus === 'skipped' && response?.emailError) {
+    return `Shift closed, but mail was not sent: ${response.emailError}`;
+  }
+
+  return response?.message || 'Shift closed and report sent successfully';
+}
+
+export default function Topbar({ user, roleLayout, erp, session, setUser, setSession, onLogout }) {
   const { setTheme, theme } = useTheme();
   const [currentTime, setCurrentTime] = useState(Date.now());
   const [isEndingShift, setIsEndingShift] = useState(false);
@@ -40,8 +57,8 @@ export default function Topbar({ user, erp, session, setUser, setSession, onLogo
 
   useEffect(() => {
     if (!shiftActive || !user?.loginTime) return;
-    const lowerRole = user?.role?.toLowerCase();
-    if (lowerRole === 'admin') return;
+    const lowerRole = normalizeRole(user?.role);
+    if (lowerRole === USER_ROLES.ADMIN) return;
 
     const loginTimestamp = new Date(user.loginTime).getTime();
     if (Number.isNaN(loginTimestamp)) return;
@@ -66,9 +83,9 @@ export default function Topbar({ user, erp, session, setUser, setSession, onLogo
     if (Number.isNaN(loginTimestamp)) return '00:00:00';
 
     const elapsedSeconds = Math.max(0, Math.floor((currentTime - loginTimestamp) / 1000));
-    const lowerRole = user?.role?.toLowerCase();
+    const lowerRole = normalizeRole(user?.role);
 
-    if (lowerRole === 'admin') {
+    if (lowerRole === USER_ROLES.ADMIN) {
       const hours = String(Math.floor(elapsedSeconds / 3600)).padStart(2, '0');
       const minutes = String(Math.floor((elapsedSeconds % 3600) / 60)).padStart(2, '0');
       const seconds = String(elapsedSeconds % 60).padStart(2, '0');
@@ -131,25 +148,36 @@ export default function Topbar({ user, erp, session, setUser, setSession, onLogo
       localStorage.setItem('sri_nikil_user', JSON.stringify(closedUser));
       setSession(null);
       setCanStartNextShift(Boolean(response?.promptNextShift));
-      alert(response?.message || 'Shift closed and report sent successfully');
-      if (response?.promptNextShift) {
+      alert(getEndShiftMessage(response));
+      
+      const lowerRole = normalizeRole(user?.role);
+
+      // Refresh the local App state so Today Bills and Sales immediately become 0
+      // User wanted this to only happen for Admins (avoid "admin maari dashboard changes")
+      if (lowerRole === USER_ROLES.ADMIN) {
+        localStorage.setItem('snt_last_shift_end', new Date().toISOString());
+        if (typeof erp?.refreshData === 'function') {
+          erp.refreshData({ showLoading: true }).catch(console.error);
+        }
+      }
+
+      if (response?.promptNextShift || lowerRole === USER_ROLES.STAFF) {
         setShowNextShiftPrompt(true);
       } else {
-        const lowerRole = user?.role?.toLowerCase();
-        if (lowerRole === 'manager' && onLogout) onLogout();
+        if (lowerRole === USER_ROLES.MANAGER && onLogout) onLogout();
       }
     } catch (error) {
       if (isClearedSessionError(error)) {
         const closedUser = { ...user, loginTime: null };
-        const lowerRole = user?.role?.toLowerCase();
+        const lowerRole = normalizeRole(user?.role);
         setUser(closedUser);
         localStorage.setItem('sri_nikil_user', JSON.stringify(closedUser));
         setSession(null);
-        setCanStartNextShift(lowerRole === 'staff');
-        if (lowerRole === 'staff') {
+        setCanStartNextShift(lowerRole === USER_ROLES.STAFF);
+        if (lowerRole === USER_ROLES.STAFF) {
           setShowNextShiftPrompt(true);
           alert('Old shift history was cleared. Shift closed locally; you can start the next shift.');
-        } else if (lowerRole === 'manager' && onLogout) {
+        } else if (lowerRole === USER_ROLES.MANAGER && onLogout) {
           onLogout();
         } else {
           alert('Old shift history was cleared. Shift closed locally.');
@@ -173,7 +201,7 @@ export default function Topbar({ user, erp, session, setUser, setSession, onLogo
 
   const primaryButtonLabel = canStartNextShift ? 'Next Shift' : 'End Shift';
   const isBusy = isEndingShift || isStartingShift;
-  const showShiftWrap = ['admin', 'manager', 'staff'].includes(user?.role?.toLowerCase());
+  const showShiftWrap = Object.values(USER_ROLES).includes(normalizeRole(user?.role));
 
   /* ── Theme Segmented options ── */
   const themeOptions = [
@@ -217,7 +245,7 @@ export default function Topbar({ user, erp, session, setUser, setSession, onLogo
 
   return (
     <>
-      <div className="topbar">
+      <div className="topbar" data-role={roleLayout?.key || USER_ROLES.STAFF}>
         {/* Shift controls */}
         {showShiftWrap && (
           <div className="shift-action-wrap">
@@ -236,7 +264,10 @@ export default function Topbar({ user, erp, session, setUser, setSession, onLogo
         )}
 
         {/* Center title */}
-        <div className="topbar-project-title">Sri Nikil Trading Dashboard</div>
+        <div className="topbar-project-title">
+          <span>{roleLayout?.title || 'Sri Nikil Trading Dashboard'}</span>
+          <small>{roleLayout?.subtitle || 'Business workspace'}</small>
+        </div>
 
         {/* Right section */}
         <div className="topbar-right">

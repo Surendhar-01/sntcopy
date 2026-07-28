@@ -22,7 +22,7 @@ import {
   message,
   theme as antdTheme,
 } from "antd";
-import { getVisibleLoginActivityRoles } from "../../utils/roles";
+import { getRoleLabel, getVisibleLoginActivityRoles, isRole, USER_ROLES } from "../../utils/roles";
 import { useTheme } from "../../context/useTheme";
 import "./LoginActivity.css";
 
@@ -52,8 +52,8 @@ const formatDateTime = (value) => {
 };
 
 const getRoleColor = (role) => {
-  if (role === "Admin") return "purple";
-  if (role === "Manager") return "green";
+  if (isRole(role, USER_ROLES.ADMIN)) return "purple";
+  if (isRole(role, USER_ROLES.MANAGER)) return "green";
   return "blue";
 };
 
@@ -78,7 +78,7 @@ export default function LoginActivity({ db, erp, user }) {
     [normalizedVisibleRoles, sourceLogs],
   );
 
-  const isAdmin = user?.role === "Admin";
+  const isAdmin = isRole(user, USER_ROLES.ADMIN);
   const clearLabel = isAdmin ? "Clear All" : "Clear Staff Logs";
   const clearMessage = isAdmin
     ? "Clear all visible login activity records permanently?"
@@ -95,7 +95,7 @@ export default function LoginActivity({ db, erp, user }) {
         : antdTheme.defaultAlgorithm,
       token: {
         borderRadius: 6,
-        colorPrimary: "#f97316",
+        colorPrimary: "#d95b3d",
         colorBgBase: isDarkTheme ? "#111827" : "#ffffff",
         colorBgContainer: isDarkTheme ? "#1b2433" : "#ffffff",
         colorBgElevated: isDarkTheme ? "#111827" : "#ffffff",
@@ -197,7 +197,7 @@ export default function LoginActivity({ db, erp, user }) {
       key: "role",
       align: "center",
       width: "13%",
-      render: (role) => <Tag color={getRoleColor(role)}>{role || "Staff"}</Tag>,
+      render: (role) => <Tag color={getRoleColor(role)}>{role || getRoleLabel(USER_ROLES.STAFF)}</Tag>,
     },
     {
       title: "Login",

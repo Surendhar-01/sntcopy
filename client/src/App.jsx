@@ -15,7 +15,9 @@ import SettingsPage from './components/Settings/Settings';
 import Login from './components/Login';
 import { SidebarProvider } from './context/SidebarContext';
 import { useERPData } from './hooks/useERPData';
-import { canAccessCustomers, canAccessSettings, hasAdminAccess } from './utils/roles';
+import { hasAdminAccess, normalizeRole, USER_ROLES } from './utils/roles';
+import { canRoleOpenPage, getRoleLayout } from './config/roleLayouts';
+import './App.css';
 
 // Memoize page components outside render loop to maintain component identities
 const Dashboard = React.memo(DashboardPage);
@@ -33,24 +35,11 @@ const Settings = React.memo(SettingsPage);
 
 
 function getDefaultPageForRole(role) {
-  const normalized = String(role || '').trim().toLowerCase();
-  
-  if (normalized === 'staff') {
-    return 'billing';
-  }
-  return 'dashboard';
+  return getRoleLayout(role).defaultPage;
 }
 
 function resolvePageForRole(page, user) {
-  if (page === 'customers' && !canAccessCustomers(user)) {
-    return 'dashboard';
-  }
-
-  if (page === 'settings' && !canAccessSettings(user)) {
-    return 'dashboard';
-  }
-
-  return page;
+  return canRoleOpenPage(user, page) ? page : getRoleLayout(user).defaultPage;
 }
 
 function App() {
@@ -126,7 +115,7 @@ function App() {
         if (!isMounted) return;
 
         if (activeShift && activeShift.success) {
-          if (activeShift.active || user.role.toLowerCase() === 'admin') {
+          if (activeShift.active || normalizeRole(user.role) === USER_ROLES.ADMIN) {
             if (user.loginTime !== activeShift.shiftStart) {
               const updatedUser = {
                 ...user,
@@ -188,48 +177,42 @@ function App() {
       setCurrentPage(getDefaultPageForRole(userData.role));
       localStorage.setItem('sri_nikil_user', JSON.stringify(userWithSession));
 
-      const lowerRole = userData.role?.toLowerCase();
-      if (lowerRole === 'staff' || lowerRole === 'manager') {
-        try {
-          const activeShift = await erp.startShift({
+      const lowerRole = normalizeRole(userData.role);
+      try {
+        const existingShift = await erp.getActiveShift(userData.user, userData.role);
+        let shiftResult = null;
+
+        if (existingShift && existingShift.success && existingShift.active) {
+          shiftResult = existingShift;
+        } else if (lowerRole === USER_ROLES.STAFF || lowerRole === USER_ROLES.MANAGER) {
+          shiftResult = await erp.startShift({
             user: userData.user,
             role: userData.role,
             shiftStart: defaultLoginTime
           });
-          if (activeShift && activeShift.success) {
-            const updatedUser = {
-              ...userWithSession,
-              loginTime: activeShift.shiftStart
-            };
-            setUser(updatedUser);
-            localStorage.setItem('sri_nikil_user', JSON.stringify(updatedUser));
-            if (activeShift.sessionId) {
-              setSession({
-                id: activeShift.sessionId,
-                user: userData.user,
-                role: userData.role,
-                loginTime: activeShift.shiftStart,
-                logoutTime: null
-              });
-            }
-          }
-        } catch (shiftError) {
-          console.error('Failed to init shift on login:', shiftError);
         }
-      } else if (lowerRole === 'admin') {
-        try {
-          const activeShift = await erp.getActiveShift(userData.user, userData.role);
-          if (activeShift && activeShift.success && activeShift.shiftStart) {
-            const updatedUser = {
-              ...userWithSession,
-              loginTime: activeShift.shiftStart
-            };
-            setUser(updatedUser);
-            localStorage.setItem('sri_nikil_user', JSON.stringify(updatedUser));
+
+        if (shiftResult && (shiftResult.shiftStart || shiftResult.success)) {
+          const actualShiftStart = shiftResult.shiftStart || defaultLoginTime;
+          const updatedUser = {
+            ...userWithSession,
+            loginTime: actualShiftStart
+          };
+          setUser(updatedUser);
+          localStorage.setItem('sri_nikil_user', JSON.stringify(updatedUser));
+          
+          if (shiftResult.sessionId || existingShift?.sessionId) {
+            setSession({
+              id: shiftResult.sessionId || existingShift.sessionId,
+              user: userData.user,
+              role: userData.role,
+              loginTime: actualShiftStart,
+              logoutTime: null
+            });
           }
-        } catch (adminShiftError) {
-          console.error('Failed to resolve admin shift time on login:', adminShiftError);
         }
+      } catch (shiftError) {
+        console.error('Failed to handle shift on login:', shiftError);
       }
     } catch (error) {
       console.error('Login failed:', error);
@@ -374,32 +357,30 @@ function App() {
   }
 
   const resolvedCurrentPage = resolvePageForRole(currentPage, user);
+  const roleLayout = getRoleLayout(user);
 
   const renderPage = () => {
     const canManageAdminPages = hasAdminAccess(user);
-    const canViewCustomers = canAccessCustomers(user);
-    const canViewSettings = canAccessSettings(user);
 
     switch (resolvedCurrentPage) {
       case 'dashboard': return <Dashboard db={dashboardDb} erp={erpDashboard} user={user} />;
-      case 'manager': return <Dashboard db={dashboardDb} erp={erpDashboard} user={user} />;
       case 'billing': return canManageAdminPages ? <Dashboard db={dashboardDb} erp={erpDashboard} user={user} /> : <Billing erp={erpBilling} user={user} />;
       case 'products': return <Products db={productsDb} erp={erpProducts} user={user} />;
       case 'stock': return <Stock db={stockDb} erp={erpStock} user={user} />;
       case 'pricing': return canManageAdminPages ? <Pricing db={pricingDb} erp={erpPricing} user={user} /> : <Dashboard db={dashboardDb} erp={erpDashboard} user={user} />;
       case 'priceboard': return <PriceBoard db={priceBoardDb} fetchPriceHistory={erp.fetchPriceHistory} />;
       case 'sales': return <Sales db={salesDb} fetchBills={erp.fetchBills} user={user} />;
-      case 'customers': return canViewCustomers ? <Customers db={customersDb} fetchCustomers={erp.fetchCustomers} /> : <Dashboard db={dashboardDb} erp={erpDashboard} user={user} />;
+      case 'customers': return <Customers db={customersDb} fetchCustomers={erp.fetchCustomers} />;
       case 'reports': return <Reports db={reportsDb} user={user} />;
       case 'loginlog': return canManageAdminPages ? <LoginActivity db={loginActivityDb} erp={erpLoginActivity} user={user} /> : <Dashboard db={dashboardDb} erp={erpDashboard} user={user} />;
-      case 'settings': return canViewSettings ? <Settings db={settingsDb} erp={erpSettings} user={user} /> : <Dashboard db={dashboardDb} erp={erpDashboard} user={user} />;
+      case 'settings': return <Settings db={settingsDb} erp={erpSettings} user={user} />;
       default: return <Dashboard db={dashboardDb} erp={erpDashboard} user={user} />;
     }
   };
 
   return (
     <SidebarProvider>
-      <div className="flex bg">
+      <div className={`flex bg app-shell role-layout-${roleLayout.key}`} data-role={roleLayout.key}>
         <Sidebar
           currentPage={resolvedCurrentPage}
           setCurrentPage={setCurrentPage}
@@ -408,8 +389,8 @@ function App() {
         />
         <div className="main flex-1">
           <Topbar
-            title={resolvedCurrentPage.charAt(0).toUpperCase() + resolvedCurrentPage.slice(1)}
             user={user}
+            roleLayout={roleLayout}
             erp={erp}
             session={session}
             setUser={setUser}

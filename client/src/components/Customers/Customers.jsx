@@ -69,7 +69,7 @@ export default function Customers({ db, fetchCustomers }) {
         : antdTheme.defaultAlgorithm,
       token: {
         borderRadius: 6,
-        colorPrimary: "#f97316",
+        colorPrimary: "#d95b3d",
         colorBgBase: isDarkTheme ? "#111827" : "#ffffff",
         colorBgContainer: isDarkTheme ? "#1b2433" : "#ffffff",
         colorBgElevated: isDarkTheme ? "#111827" : "#ffffff",

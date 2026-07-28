@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
+import { getRoleLabel, USER_ROLES } from '../utils/roles';
 
 const STORAGE_KEY = 'sri_nikil_erp_db';
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
@@ -207,7 +208,7 @@ function normalizeDb(data) {
     .map((account) => ({
       ...account,
       pass: account.pass || '',
-      role: account.role || (account.user?.toLowerCase() === 'admin' ? 'Admin' : 'Staff')
+      role: account.role || (account.user?.toLowerCase() === USER_ROLES.ADMIN ? getRoleLabel(USER_ROLES.ADMIN) : getRoleLabel(USER_ROLES.STAFF))
     }));
 
   if (merged.accounts.length === 0) {
@@ -540,7 +541,7 @@ export function useERPData() {
         const normalized = (Array.isArray(data) ? data : []).filter((account) => account && account.user).map((account) => ({
           ...account,
           pass: account.pass || '',
-          role: account.role || (account.user?.toLowerCase() === 'admin' ? 'Admin' : 'Staff')
+          role: account.role || (account.user?.toLowerCase() === USER_ROLES.ADMIN ? getRoleLabel(USER_ROLES.ADMIN) : getRoleLabel(USER_ROLES.STAFF))
         }));
         setAccounts(normalized);
         lastFetched.current.accounts = Date.now();

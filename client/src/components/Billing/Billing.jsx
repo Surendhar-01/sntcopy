@@ -34,6 +34,7 @@ import {
   theme as antdTheme,
 } from 'antd';
 import { useTheme } from '../../context/useTheme';
+import { isRole, USER_ROLES } from '../../utils/roles';
 import './Billing.css';
 
 const { Text } = Typography;
@@ -65,7 +66,7 @@ export default function Billing({ erp, user }) {
         : antdTheme.defaultAlgorithm,
       token: {
         borderRadius: 6,
-        colorPrimary: '#f97316',
+        colorPrimary: '#d95b3d',
         colorBgBase: isDarkTheme ? '#111827' : '#ffffff',
         colorBgContainer: isDarkTheme ? '#1b2433' : '#ffffff',
         colorBgElevated: isDarkTheme ? '#111827' : '#ffffff',
@@ -495,7 +496,7 @@ export default function Billing({ erp, user }) {
     setIsReviewMode(true);
   };
 
-  const isAdmin = user?.role === 'Admin';
+  const isAdmin = isRole(user, USER_ROLES.ADMIN);
   const hideRecentBill = (billId) => {
     setHiddenRecentBillIds((prev) => (
       prev.includes(billId) ? prev : [...prev, billId]
@@ -529,13 +530,35 @@ export default function Billing({ erp, user }) {
 
 
 
-  const todayStr = new Date().toDateString();
-  const visibleRecentBills = (db.bills || [])
-    .filter((bill) => (isAdmin || isSameUserName(bill.by || bill.by_user, user?.user)) && !hiddenRecentBillIds.includes(bill.id))
-    .sort((a, b) => new Date(b.date || b.created_at || 0) - new Date(a.date || a.created_at || 0));
-  const todayRecentBills = visibleRecentBills.filter((bill) => new Date(bill.date || bill.created_at).toDateString() === todayStr);
-  const recentBills = (todayRecentBills.length > 0 ? todayRecentBills : visibleRecentBills).slice(0, 6);
-  const recentBillsTitle = todayRecentBills.length > 0 || visibleRecentBills.length === 0 ? "Today's Bills" : 'Latest Bills';
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+  const startOfTomorrow = new Date(startOfToday);
+  startOfTomorrow.setDate(startOfTomorrow.getDate() + 1);
+  
+  const lastShiftEndStr = localStorage.getItem('snt_last_shift_end');
+  let currentShiftStart = startOfToday;
+  if (lastShiftEndStr) {
+    const lse = new Date(lastShiftEndStr);
+    if (lse > startOfToday) {
+      currentShiftStart = lse;
+    }
+  }
+
+  const recentBills = (db.bills || [])
+    .filter((bill) => {
+      const isVisibleUser = isAdmin || isSameUserName(bill.by || bill.by_user, user?.user);
+      const isNotHidden = !hiddenRecentBillIds.includes(bill.id);
+      
+      const billDateStr = bill.date || bill.created_at;
+      if (!billDateStr) return false;
+      const d = new Date(billDateStr);
+      const isCurrentShift = d >= currentShiftStart && d < startOfTomorrow;
+      
+      return isVisibleUser && isNotHidden && isCurrentShift;
+    })
+    .sort((a, b) => new Date(b.date || b.created_at || 0) - new Date(a.date || a.created_at || 0))
+    .slice(0, 6);
+  const recentBillsTitle = "Today's Bills";
 
   const modalStyles = {
     content: {

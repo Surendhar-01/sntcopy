@@ -16,9 +16,9 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
 } from '@ant-design/icons';
-import { sidebarMenu } from '../config/sidebarMenu';
+import { getSidebarMenu } from '../config/sidebarMenu';
 import { useSidebar } from '../context/useSidebar';
-import { hasAdminAccess } from '../utils/roles';
+import { getRoleLayout } from '../config/roleLayouts';
 import './Sidebar.css';
 
 // Map icon name → antd icon component
@@ -76,14 +76,9 @@ export default function Sidebar({ currentPage, setCurrentPage, user, onLogout })
     toggleMobileSidebar,
   } = useSidebar();
 
-  const role = user?.role || 'Staff';
-  const canManageAdminPages = hasAdminAccess(role);
-  const isManager = role === 'Manager';
-  const sidebarRole = canManageAdminPages
-    ? (isManager ? 'manager' : 'admin')
-    : 'staff';
+  const roleLayout = getRoleLayout(user);
 
-  const menu = useMemo(() => filterMenuForUser(sidebarMenu, user), [user]);
+  const menu = useMemo(() => filterMenuForUser(getSidebarMenu(user), user), [user]);
   const menuItems = useMemo(() => buildMenuItems(menu), [menu]);
 
   const handleNavigate = useCallback(({ key }) => {
@@ -123,7 +118,7 @@ export default function Sidebar({ currentPage, setCurrentPage, user, onLogout })
 
       <aside
         className={`sidebar ${isExpanded ? 'expanded' : 'collapsed'} ${isMobileOpen ? 'mobile-open' : ''}`}
-        data-role={sidebarRole}
+        data-role={roleLayout.key}
       >
         {/* Brand */}
         <div className="sidebar-brand">
@@ -142,7 +137,7 @@ export default function Sidebar({ currentPage, setCurrentPage, user, onLogout })
           </div>
           <div className="brand-copy">
             <span className="shop-name">Sri Nikil</span>
-            <span className="brand-subtitle">Tradings</span>
+            <span className="brand-subtitle">{roleLayout.label} Layout</span>
           </div>
         </div>
 
@@ -170,7 +165,7 @@ export default function Sidebar({ currentPage, setCurrentPage, user, onLogout })
             <div className="sidebar-user-info">
               <span className="sidebar-username">{user?.user || 'User'}</span>
               <span className="sidebar-userrole">
-                {role.toLowerCase() === 'admin' ? 'Full Access' : role}
+                {roleLayout.accessLabel}
               </span>
             </div>
             <svg

@@ -4,7 +4,7 @@
 :root {
   --bg: #f0f2f5; --bg2: #ffffff; --bg3: #f8f9fb; --bg4: #eef0f3;
   --border: #e2e5ea; --border2: #ced2d9;
-  --accent: #f97316; --accent2: #ea6a00; --accent3: #fff3e0;
+  --accent: #d95b3d; --accent2: #b84328; --accent3: #fff1ea;
   --green: #16a34a; --red: #dc2626; --blue: #2563eb; --purple: #7c3aed;
   --text: #1a1f2e; --text2: #5a6278; --text3: #9ca3af;
   --card: #ffffff;
@@ -15,17 +15,17 @@
   --input-border: #d2d6dc;
   --surface-hover: #fff7ed;
   --danger-soft: #fee2e2;
-  --focus-ring: rgba(249,115,22,.1);
+  --focus-ring: rgba(217,91,61,.12);
   --shadow: rgba(15, 23, 42, 0.06);
   --shadow-soft: rgba(0, 0, 0, 0.04);
   --sidebar: 210px;
   --sidebar-collapsed: 74px;
   --sidebar-current: var(--sidebar);
-  --sidebar-bg: linear-gradient(180deg, #f8fafc 0%, #f0f7ff 100%);
-  --sidebar-border: #dbe4f0;
-  --sidebar-text: #475569;
-  --sidebar-hover: linear-gradient(90deg, #dbeafe 0%, #f0f7ff 100%);
-  --sidebar-footer-bg: linear-gradient(180deg, #f0f7ff 0%, #e0e7ff 100%);
+  --sidebar-bg: linear-gradient(180deg, #7b2414 0%, #8c2b16 45%, #6f1f10 100%);
+  --sidebar-border: rgba(255, 205, 180, 0.12);
+  --sidebar-text: #f7d8c8;
+  --sidebar-hover: rgba(255, 255, 255, 0.1);
+  --sidebar-footer-bg: linear-gradient(180deg, rgba(83, 32, 22, 0.72) 0%, rgba(58, 25, 20, 0.88) 100%);
   /* Sidebar icon / interaction tokens (light theme) */
   --sidebar-icon-bg: rgba(15, 23, 42, 0.04);
   --sidebar-icon-hover-bg: rgba(15, 23, 42, 0.08);
@@ -40,7 +40,7 @@
 :root[data-theme='dark'] {
   --bg: #10141f; --bg2: #171d2a; --bg3: #1f2635; --bg4: #293244;
   --border: #30394d; --border2: #465168;
-  --accent: #fb923c; --accent2: #f97316; --accent3: rgba(251, 146, 60, 0.16);
+  --accent: #f2a184; --accent2: #d95b3d; --accent3: rgba(217, 91, 61, 0.18);
   --green: #22c55e; --red: #f87171; --blue: #60a5fa; --purple: #a78bfa;
   --text: #f8fafc; --text2: #cbd5e1; --text3: #94a3b8;
   --card: #171d2a;
@@ -51,14 +51,14 @@
   --input-border: #30394d;
   --surface-hover: rgba(251, 146, 60, 0.12);
   --danger-soft: rgba(248, 113, 113, 0.14);
-  --focus-ring: rgba(251,146,60,.16);
+  --focus-ring: rgba(217,91,61,.18);
   --shadow: rgba(0, 0, 0, 0.32);
   --shadow-soft: rgba(0, 0, 0, 0.12);
-  --sidebar-bg: linear-gradient(180deg, #121826 0%, #172033 100%);
-  --sidebar-border: #263247;
-  --sidebar-text: #d7deeb;
-  --sidebar-hover: linear-gradient(90deg, rgba(96, 165, 250, 0.18) 0%, rgba(30, 41, 59, 0.62) 100%);
-  --sidebar-footer-bg: linear-gradient(180deg, #172033 0%, #111827 100%);
+  --sidebar-bg: linear-gradient(180deg, #6f2011 0%, #842816 48%, #541b12 100%);
+  --sidebar-border: rgba(255, 205, 180, 0.12);
+  --sidebar-text: #f7d8c8;
+  --sidebar-hover: rgba(255, 255, 255, 0.1);
+  --sidebar-footer-bg: linear-gradient(180deg, rgba(75, 30, 22, 0.72) 0%, rgba(43, 20, 17, 0.9) 100%);
   /* Sidebar icon / interaction tokens (dark theme) */
   --sidebar-icon-bg: rgba(255, 255, 255, 0.04);
   --sidebar-icon-hover-bg: rgba(255, 255, 255, 0.06);
@@ -120,7 +120,7 @@
   box-shadow: 0 0 0 3px rgba(249,115,22,.08);
 }
 
-:root[data-theme='dark'] #loginPage { background: linear-gradient(135deg, #0b1221 0%, #101826 50%, #111827 100%); }
+:root[data-theme='dark'] #loginPage { background: linear-gradient(135deg, #2a100b 0%, #45170e 50%, #1b0c09 100%); }
 :root[data-theme='dark'] .login-box { background: var(--bg2); border-color: var(--border); box-shadow: 0 8px 40px rgba(0,0,0,.26); }
 :root[data-theme='dark'] .login-eye-btn,
 :root[data-theme='dark'] .chip:hover,
@@ -303,16 +303,16 @@ td,
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 24px; border-radius: 0px; border: none; font-family: 'Ubuntu', sans-serif; font-size: 1rem; font-weight: 700; cursor: pointer; transition: all 0.2s ease; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
 .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 12px rgba(0,0,0,0.1); }
 .btn:active { transform: translateY(0); }
-.btn-primary { background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%); color: #fff; box-shadow: 0 4px 12px rgba(249, 115, 22, 0.25); }
-.btn-primary:hover { box-shadow: 0 8px 16px rgba(249, 115, 22, 0.35); }
-.btn-success { background: var(--green); color: #fff; }
+.btn-primary { background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%); color: #fff; box-shadow: 0 4px 12px rgba(217, 91, 61, 0.25); }
+.btn-primary:hover { box-shadow: 0 8px 16px rgba(217, 91, 61, 0.35); }
+.btn-success { background: var(--accent); color: #fff; }
 .btn-danger { background: var(--red); color: #fff; }
 .btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); box-shadow: none; }
 .btn-secondary:hover { border-color: var(--text3); color: var(--text); background: var(--surface-hover); box-shadow: 0 4px 8px var(--shadow-soft); }
-.btn-blue { background: var(--blue); color: #fff; }
-.btn-purple { background: var(--purple); color: #fff; }
-.btn-action { background: #5a75db; color: #ffffff; }
-.btn-action:hover { background: #4b64c4; color: #ffffff; }
+.btn-blue { background: var(--accent); color: #fff; }
+.btn-purple { background: var(--accent); color: #fff; }
+.btn-action { background: var(--accent); color: #ffffff; }
+.btn-action:hover { background: var(--accent2); color: #ffffff; }
 .btn-clear-outline { background: transparent; color: #f87171; border: 1.5px solid #f87171; border-radius: 8px; }
 .btn-clear-outline:hover { background: rgba(248, 113, 113, 0.1); color: #f87171; }
 .btn-sm { padding: 6px 12px; font-size: .85rem; }

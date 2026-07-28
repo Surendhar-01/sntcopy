@@ -70,7 +70,7 @@
   width: 46px;
   height: 46px;
   border-radius: 8px;
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(249, 115, 22, 0.14));
+  background: linear-gradient(135deg, rgba(217, 91, 61, 0.14), rgba(111, 32, 17, 0.08));
   border: 1px solid var(--border);
   color: var(--accent);
   font-size: 1.25rem;
@@ -101,48 +101,48 @@
 }
 
 .reports-download-sales {
-  background: #f97316 !important;
+  background: #d95b3d !important;
 }
 
 .reports-download-sales:hover,
 .reports-download-sales:focus {
-  background: #ea580c !important;
+  background: #b84328 !important;
 }
 
 .reports-download-stock {
-  background: #2563eb !important;
+  background: #d95b3d !important;
 }
 
 .reports-download-stock:hover,
 .reports-download-stock:focus {
-  background: #1d4ed8 !important;
+  background: #b84328 !important;
 }
 
 .reports-download-price {
-  background: #16a34a !important;
+  background: #d95b3d !important;
 }
 
 .reports-download-price:hover,
 .reports-download-price:focus {
-  background: #15803d !important;
+  background: #b84328 !important;
 }
 
 .reports-download-login {
-  background: #7c3aed !important;
+  background: #d95b3d !important;
 }
 
 .reports-download-login:hover,
 .reports-download-login:focus {
-  background: #6d28d9 !important;
+  background: #b84328 !important;
 }
 
 .reports-download-customer {
-  background: #0f766e !important;
+  background: #d95b3d !important;
 }
 
 .reports-download-customer:hover,
 .reports-download-customer:focus {
-  background: #0d5f59 !important;
+  background: #b84328 !important;
 }
 
 :root[data-theme='dark'] .reports-page-wrap .ant-card {

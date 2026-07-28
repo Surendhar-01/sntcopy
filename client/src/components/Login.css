@@ -14,7 +14,7 @@
 /* LEFT PANEL */
 .login-left-panel {
   flex: 2;
-  background: linear-gradient(-45deg, #0f172a, #1e3a8a, #0284c7, #3b82f6);
+  background: linear-gradient(-45deg, #2a100b, #6f2011, #8c2b16, #b84328);
   background-size: 400% 400%;
   animation: gradientFlow 15s ease infinite;
   display: flex;
@@ -37,7 +37,7 @@
   position: absolute;
   width: 500px;
   height: 500px;
-  background: radial-gradient(circle, rgba(56, 189, 248, 0.4) 0%, rgba(37, 99, 235, 0) 70%);
+  background: radial-gradient(circle, rgba(242, 161, 132, 0.36) 0%, rgba(111, 32, 17, 0) 70%);
   border-radius: 50%;
   top: 10%;
   left: 20%;
@@ -87,7 +87,7 @@
   margin-bottom: 20px;
   line-height: 1.1;
   text-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-  background: linear-gradient(135deg, #ffffff, #93c5fd);
+  background: linear-gradient(135deg, #ffffff, #f2c4ae);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -168,7 +168,7 @@
   font-size: 0.75rem;
   text-transform: uppercase;
   font-weight: 800;
-  color: #7dd3fc;
+  color: #f2a184;
   letter-spacing: 1px;
 }
 
@@ -205,7 +205,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-primary, #0f172a);
+  background: #2a100b;
   position: relative;
 }
 
@@ -272,13 +272,13 @@
 }
 
 .field-group input:hover {
-  border-color: #818cf8;
+  border-color: #d95b3d;
 }
 
 .field-group input:focus {
-  border-color: #818cf8;
-  background: rgba(15, 23, 42, 0.7);
-  box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.15);
+  border-color: #d95b3d;
+  background: rgba(42, 16, 11, 0.72);
+  box-shadow: 0 0 0 3px rgba(217, 91, 61, 0.18);
 }
 
 .password-wrapper {
@@ -310,8 +310,8 @@
 }
 
 .login-btn {
-  background: #8b96f5; /* Soft indigo matching screenshot */
-  color: #0f172a;
+  background: #d95b3d;
+  color: #ffffff;
   border: none;
   border-radius: 8px; /* Slightly rounded */
   padding: 10px; /* Reduced vertical padding */
@@ -335,7 +335,7 @@
 }
 
 .login-btn:hover {
-  background: #6366f1;
+  background: #b84328;
   color: #ffffff;
 }
 
@@ -345,7 +345,7 @@
 
 /* Light Theme Support */
 :root[data-theme='light'] .login-right-panel {
-  background: #f1f5f9; /* Softer light bg */
+  background: #fff7f2;
 }
 
 
@@ -371,17 +371,17 @@
 
 :root[data-theme='light'] .field-group input[type="text"]:focus,
 :root[data-theme='light'] .field-group input[type="password"]:focus {
-  border-color: #6366f1;
+  border-color: #d95b3d;
   background: #ffffff;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  box-shadow: 0 0 0 3px rgba(217, 91, 61, 0.16);
 }
 
 :root[data-theme='light'] .field-group input:hover {
-  border-color: #6366f1;
+  border-color: #d95b3d;
 }
 
 :root[data-theme='light'] .login-btn:hover {
-  background: #6366f1;
+  background: #b84328;
 }
 
 /* ─── Ant Design overrides for dark login theme ─── */
@@ -410,14 +410,14 @@
 .antd-input.ant-input:hover,
 .antd-input:hover .ant-input,
 .ant-input-affix-wrapper.antd-input:hover {
-  border-color: #818cf8 !important;
+  border-color: #d95b3d !important;
 }
 
 .antd-input.ant-input:focus,
 .ant-input-affix-wrapper.antd-input:focus-within {
-  border-color: #818cf8 !important;
-  background: rgba(15, 23, 42, 0.7) !important;
-  box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.15) !important;
+  border-color: #d95b3d !important;
+  background: rgba(42, 16, 11, 0.72) !important;
+  box-shadow: 0 0 0 3px rgba(217, 91, 61, 0.18) !important;
 }
 
 .ant-input-affix-wrapper.antd-input {
@@ -426,8 +426,8 @@
 }
 
 .ant-input-affix-wrapper.antd-input:focus-within {
-  border-color: #818cf8 !important;
-  box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.15) !important;
+  border-color: #d95b3d !important;
+  box-shadow: 0 0 0 3px rgba(217, 91, 61, 0.18) !important;
 }
 
 /* prefix icons */
@@ -460,8 +460,8 @@
 
 :root[data-theme='light'] .antd-input.ant-input:focus,
 :root[data-theme='light'] .ant-input-affix-wrapper.antd-input:focus-within {
-  border-color: #6366f1 !important;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15) !important;
+  border-color: #d95b3d !important;
+  box-shadow: 0 0 0 3px rgba(217, 91, 61, 0.16) !important;
 }
 
 /* Form item validation message */
@@ -472,9 +472,9 @@
 
 /* Login button */
 .antd-login-btn.ant-btn {
-  background: #8b96f5 !important;
-  border-color: #8b96f5 !important;
-  color: #0f172a !important;
+  background: #d95b3d !important;
+  border-color: #d95b3d !important;
+  color: #ffffff !important;
   font-size: 1rem;
   font-weight: 600;
   letter-spacing: 0.3px;
@@ -484,8 +484,8 @@
 }
 
 .antd-login-btn.ant-btn:hover {
-  background: #6366f1 !important;
-  border-color: #6366f1 !important;
+  background: #b84328 !important;
+  border-color: #b84328 !important;
   color: #ffffff !important;
 }
 

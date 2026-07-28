@@ -30,6 +30,7 @@ import {
   theme as antdTheme,
 } from "antd";
 import { useTheme } from "../../context/useTheme";
+import { getRoleLabel, isRole, USER_ROLES, USER_ROLE_OPTIONS } from "../../utils/roles";
 import "./Settings.css";
 
 const { Text } = Typography;
@@ -45,8 +46,8 @@ const DEFAULT_SETTINGS = {
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 
 const getRoleColor = (role) => {
-  if (role === "Admin") return "purple";
-  if (role === "Manager") return "green";
+  if (isRole(role, USER_ROLES.ADMIN)) return "purple";
+  if (isRole(role, USER_ROLES.MANAGER)) return "green";
   return "blue";
 };
 
@@ -78,7 +79,7 @@ export default function Settings({ db, erp }) {
         : antdTheme.defaultAlgorithm,
       token: {
         borderRadius: 6,
-        colorPrimary: "#f97316",
+        colorPrimary: "#d95b3d",
         colorBgBase: isDarkTheme ? "#111827" : "#ffffff",
         colorBgContainer: isDarkTheme ? "#1b2433" : "#ffffff",
         colorBgElevated: isDarkTheme ? "#111827" : "#ffffff",
@@ -209,7 +210,7 @@ export default function Settings({ db, erp }) {
   };
 
   const openStaffModal = () => {
-    staffForm.setFieldsValue({ user: "", pass: "", role: "Staff" });
+    staffForm.setFieldsValue({ user: "", pass: "", role: getRoleLabel(USER_ROLES.STAFF) });
     setShowStaffModal(true);
   };
 
@@ -366,7 +367,7 @@ export default function Settings({ db, erp }) {
       dataIndex: "role",
       key: "role",
       width: 150,
-      render: (role) => <Tag color={getRoleColor(role)}>{role || "Staff"}</Tag>,
+      render: (role) => <Tag color={getRoleColor(role)}>{role || getRoleLabel(USER_ROLES.STAFF)}</Tag>,
     },
     {
       title: "Password",
@@ -586,7 +587,7 @@ export default function Settings({ db, erp }) {
             form={staffForm}
             layout="vertical"
             requiredMark={false}
-            initialValues={{ role: "Staff" }}
+            initialValues={{ role: getRoleLabel(USER_ROLES.STAFF) }}
           >
             <Form.Item
               label="Username"
@@ -607,10 +608,7 @@ export default function Settings({ db, erp }) {
             </Form.Item>
             <Form.Item label="Role" name="role">
               <Select
-                options={[
-                  { label: "Staff", value: "Staff" },
-                  { label: "Manager", value: "Manager" },
-                ]}
+                options={USER_ROLE_OPTIONS}
               />
             </Form.Item>
           </Form>

@@ -8,15 +8,33 @@ const cors = require('cors');
 const swaggerUi = require('swagger-ui-express');
 const nodemailer = require('nodemailer');
 const { MongoClient } = require('mongodb');
+const { generateShiftExcelReport } = require('./utils/excelReportGenerator');
 
 const envCandidates = [
   path.resolve(process.cwd(), '.env.development'),
   path.resolve(__dirname, '.env.development'),
+  path.resolve(__dirname, '..', '.env.development'),
   path.resolve(process.cwd(), '.env'),
   path.resolve(__dirname, '.env'),
+  path.resolve(__dirname, '..', '.env'),
 ];
 const envPath = envCandidates.find((candidate) => fs.existsSync(candidate));
 if (envPath) dotenv.config({ path: envPath });
+const runtimeMailEnvKeys = [
+  'SMTP_HOST',
+  'SMTP_PORT',
+  'SMTP_SECURE',
+  'SMTP_USER',
+  'SMTP_SENDER_EMAIL',
+  'SMTP_FROM',
+  'SMTP_PASS',
+  'SMTP_PASSWORD',
+  'MAIL_USER',
+  'MAIL_FROM',
+  'MAIL_APP_PASSWORD',
+  'MAIL_PASSWORD',
+  'SHIFT_REPORT_EMAIL',
+];
 
 const app = express();
 const port = Number(process.env.PORT || 5001);
@@ -44,6 +62,27 @@ const DEFAULT_SETTINGS = {
   fssai: '12424007000946',
   phone: '94875 81302, 0424 2901803',
 };
+
+const USER_ROLES = Object.freeze({
+  ADMIN: 'Admin',
+  MANAGER: 'Manager',
+  STAFF: 'Staff',
+});
+
+const DEFAULT_ACCOUNTS = [
+  {
+    user: 'admin',
+    passwordEnv: 'DEFAULT_ADMIN_PASSWORD',
+    fallbackPassword: 'admin12345',
+    role: USER_ROLES.ADMIN,
+  },
+  {
+    user: 'manager',
+    passwordEnv: 'DEFAULT_MANAGER_PASSWORD',
+    fallbackPassword: 'manager12345',
+    role: USER_ROLES.MANAGER,
+  },
+];
 
 const client = new MongoClient(mongoUri);
 let db;
@@ -155,27 +194,74 @@ function c(name) {
   return db.collection(name);
 }
 
+function userQuery(username) {
+  return { user: { $regex: `^${escapeRegExp(String(username || '').trim())}$`, $options: 'i' } };
+}
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+async function ensureDefaultAccounts() {
+  for (const account of DEFAULT_ACCOUNTS) {
+    const existing = await c('accounts').findOne(userQuery(account.user));
+    if (existing) continue;
+
+    await c('accounts').insertOne({
+      user: account.user,
+      pass: hashPassword(process.env[account.passwordEnv] || account.fallbackPassword),
+      role: account.role,
+      created_at: new Date(),
+    });
+  }
+}
+
 function toNumber(value, fallback = 0) {
   const next = Number(value);
   return Number.isFinite(next) ? next : fallback;
 }
 
+function refreshRuntimeMailEnv() {
+  if (!envPath || !fs.existsSync(envPath)) return;
+
+  let parsedEnv = {};
+  try {
+    parsedEnv = dotenv.parse(fs.readFileSync(envPath));
+  } catch (error) {
+    console.warn('Unable to refresh runtime mail environment:', error.message);
+    return;
+  }
+
+  for (const key of runtimeMailEnvKeys) {
+    if (Object.prototype.hasOwnProperty.call(parsedEnv, key)) {
+      process.env[key] = parsedEnv[key];
+    }
+  }
+}
+
 function getSmtpConfig() {
+  refreshRuntimeMailEnv();
+
   const host = String(process.env.SMTP_HOST || '').trim();
   const port = Number(process.env.SMTP_PORT || 587);
-  const user = String(process.env.SMTP_USER || process.env.MAIL_USER || '').trim();
+  const user = String(
+    process.env.SMTP_USER ||
+    process.env.SMTP_SENDER_EMAIL ||
+    process.env.MAIL_USER ||
+    ''
+  ).trim();
   const pass = String(process.env.SMTP_PASS || process.env.SMTP_PASSWORD || process.env.MAIL_APP_PASSWORD || process.env.MAIL_PASSWORD || '').trim();
   const from = String(process.env.SMTP_FROM || process.env.MAIL_FROM || user).trim();
   const secure = String(process.env.SMTP_SECURE || '').trim().toLowerCase() === 'true' || port === 465;
 
   if (!host || !port || !user || !pass || !from) {
-    throw new Error('SMTP configuration is incomplete');
+    throw new Error('SMTP configuration is incomplete. Set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS and SMTP_FROM in .env.development.');
   }
 
   return { host, port, secure, from, auth: { user, pass } };
 }
 
-async function sendShiftReportEmail({ recipient, subject, text, html }) {
+async function sendShiftReportEmail({ recipient, subject, text, html, attachments }) {
   const smtpConfig = getSmtpConfig();
   const transporter = nodemailer.createTransport({
     host: smtpConfig.host,
@@ -190,6 +276,7 @@ async function sendShiftReportEmail({ recipient, subject, text, html }) {
     subject,
     text,
     html,
+    attachments,
   });
 }
 
@@ -239,18 +326,66 @@ function getShiftItemsSummary(bills) {
   };
 }
 
-function buildShiftReportEmail({ report, shopName, paymentBreakdown, itemSummary }) {
+function getRemainingStockSummary(productRows, soldByProductId, refillByProductName) {
+  const products = (productRows || []).map((product) => {
+    const productName = String(product.name || '').trim();
+    const soldInShift = toNumber(soldByProductId.get(toNumber(product.id)));
+    const refilledInShift = toNumber(refillByProductName.get(productName));
+    const currentStock = toNumber(product.stock);
+    const estimatedOpeningStock = currentStock - refilledInShift + soldInShift;
+    const status = currentStock === 0 ? 'Out of Stock' : currentStock <= 5 ? 'Low Stock' : 'Healthy';
+
+    return {
+      id: toNumber(product.id),
+      name: product.name,
+      category: product.cat || '',
+      unit: product.unit || '',
+      price: toNumber(product.price),
+      estimatedOpeningStock,
+      soldInShift,
+      refilledInShift,
+      currentStock,
+      status,
+    };
+  });
+
+  return {
+    totals: {
+      totalProducts: products.length,
+      healthyCount: products.filter((item) => item.status === 'Healthy').length,
+      lowStockCount: products.filter((item) => item.status === 'Low Stock').length,
+      outOfStockCount: products.filter((item) => item.status === 'Out of Stock').length,
+    },
+    products,
+  };
+}
+
+function buildShiftReportEmail({ report, shopName, paymentBreakdown, itemSummary, remainingStockSummary }) {
   const paymentRows = Object.entries(paymentBreakdown)
     .map(([method, amount]) => `<tr><td>${escapeHtml(method)}</td><td style="text-align:right">Rs. ${toNumber(amount).toFixed(2)}</td></tr>`)
     .join('');
   const itemRows = itemSummary.products
     .map((item) => `<tr><td>${escapeHtml(item.name)}</td><td style="text-align:right">${item.qty}</td><td style="text-align:right">Rs. ${toNumber(item.amount).toFixed(2)}</td></tr>`)
     .join('');
+  const stockTotals = remainingStockSummary?.totals || {};
+  const stockRows = (remainingStockSummary?.products || [])
+    .map((item) => `
+      <tr>
+        <td>${escapeHtml(item.name)}</td>
+        <td>${escapeHtml(item.category || item.cat || '')}</td>
+        <td style="text-align:right">${toNumber(item.estimatedOpeningStock)}</td>
+        <td style="text-align:right">${toNumber(item.soldInShift)}</td>
+        <td style="text-align:right">${toNumber(item.refilledInShift)}</td>
+        <td style="text-align:right">${toNumber(item.currentStock)}</td>
+        <td>${escapeHtml(item.status)}</td>
+      </tr>
+    `)
+    .join('');
 
   const html = `
     <div style="font-family:Arial,sans-serif;color:#111827;line-height:1.45">
       <h2 style="margin:0 0 8px">${escapeHtml(shopName)} - Shift Report</h2>
-      <p style="margin:0 0 16px;color:#4b5563">Generated automatically when shift ended.</p>
+      <p style="margin:0 0 16px;color:#4b5563">Generated automatically when shift ended. Excel attachment includes the full 4 worksheet report.</p>
       <table cellpadding="8" cellspacing="0" style="border-collapse:collapse;width:100%;max-width:720px">
         <tr><td><b>User</b></td><td>${escapeHtml(report.user)} (${escapeHtml(report.role)})</td></tr>
         <tr><td><b>Shift Start</b></td><td>${escapeHtml(report.shiftStartDisplay)}</td></tr>
@@ -258,6 +393,9 @@ function buildShiftReportEmail({ report, shopName, paymentBreakdown, itemSummary
         <tr><td><b>Total Bills</b></td><td>${report.billsCount}</td></tr>
         <tr><td><b>Total Items Sold</b></td><td>${report.totalItemsSold}</td></tr>
         <tr><td><b>Total Sales</b></td><td>Rs. ${toNumber(report.totalSalesAmount).toFixed(2)}</td></tr>
+        <tr><td><b>Healthy Products</b></td><td>${toNumber(stockTotals.healthyCount)}</td></tr>
+        <tr><td><b>Low Stock Products</b></td><td>${toNumber(stockTotals.lowStockCount)}</td></tr>
+        <tr><td><b>Out of Stock Products</b></td><td>${toNumber(stockTotals.outOfStockCount)}</td></tr>
       </table>
       <h3>Payment Summary</h3>
       <table cellpadding="8" cellspacing="0" style="border-collapse:collapse;width:100%;max-width:720px;border:1px solid #e5e7eb">
@@ -268,6 +406,21 @@ function buildShiftReportEmail({ report, shopName, paymentBreakdown, itemSummary
       <table cellpadding="8" cellspacing="0" style="border-collapse:collapse;width:100%;max-width:720px;border:1px solid #e5e7eb">
         <thead><tr style="background:#f3f4f6"><th align="left">Product</th><th align="right">Qty</th><th align="right">Amount</th></tr></thead>
         <tbody>${itemRows || '<tr><td colspan="3">No products sold in this shift</td></tr>'}</tbody>
+      </table>
+      <h3>Remaining Stock</h3>
+      <table cellpadding="8" cellspacing="0" style="border-collapse:collapse;width:100%;max-width:920px;border:1px solid #e5e7eb">
+        <thead>
+          <tr style="background:#f3f4f6">
+            <th align="left">Product</th>
+            <th align="left">Category</th>
+            <th align="right">Opening</th>
+            <th align="right">Sold</th>
+            <th align="right">Refilled</th>
+            <th align="right">Closing</th>
+            <th align="left">Status</th>
+          </tr>
+        </thead>
+        <tbody>${stockRows || '<tr><td colspan="7">No stock details available</td></tr>'}</tbody>
       </table>
     </div>
   `;
@@ -280,9 +433,29 @@ function buildShiftReportEmail({ report, shopName, paymentBreakdown, itemSummary
     `Total Bills: ${report.billsCount}`,
     `Total Items Sold: ${report.totalItemsSold}`,
     `Total Sales: Rs. ${toNumber(report.totalSalesAmount).toFixed(2)}`,
+    `Healthy Products: ${toNumber(stockTotals.healthyCount)}`,
+    `Low Stock Products: ${toNumber(stockTotals.lowStockCount)}`,
+    `Out of Stock Products: ${toNumber(stockTotals.outOfStockCount)}`,
+    '',
+    'Payment Summary:',
+    ...(Object.entries(paymentBreakdown || {}).length
+      ? Object.entries(paymentBreakdown || {}).map(([method, amount]) => `- ${method}: Rs. ${toNumber(amount).toFixed(2)}`)
+      : ['- No payments in this shift']),
+    '',
+    'Products Sold:',
+    ...(itemSummary.products.length
+      ? itemSummary.products.map((item) => `- ${item.name}: ${item.qty} qty, Rs. ${toNumber(item.amount).toFixed(2)}`)
+      : ['- No products sold in this shift']),
+    '',
+    'Remaining Stock:',
+    ...((remainingStockSummary?.products || []).length
+      ? (remainingStockSummary.products || []).map((item) => `- ${item.name}: opening ${toNumber(item.estimatedOpeningStock)}, sold ${toNumber(item.soldInShift)}, refill ${toNumber(item.refilledInShift)}, closing ${toNumber(item.currentStock)} (${item.status})`)
+      : ['- No stock details available']),
+    '',
+    'Excel attachment includes: Shift Summary, Payment Breakdown, Remaining Stock, Sales Details.',
   ].join('\n');
 
-  return { html, text };
+  return { text, html };
 }
 
 function serialize(doc) {
@@ -436,15 +609,7 @@ async function initializeMongo() {
     { upsert: true },
   );
 
-  const accountCount = await c('accounts').countDocuments();
-  if (accountCount === 0) {
-    await c('accounts').insertOne({
-      user: 'admin',
-      pass: hashPassword(process.env.DEFAULT_ADMIN_PASSWORD || 'admin12345'),
-      role: 'Admin',
-      created_at: new Date(),
-    });
-  }
+  await ensureDefaultAccounts();
 
   await syncShiftLoginLogs();
 }
@@ -799,7 +964,7 @@ app.post('/api/accounts', async (req, res, next) => {
     const account = {
       user: String(req.body.user || '').trim(),
       pass: hashPassword(req.body.password || req.body.pass || ''),
-      role: req.body.role || 'Staff',
+      role: req.body.role || USER_ROLES.STAFF,
       created_at: new Date(),
     };
     if (!account.user || !req.body.password) return res.status(400).json({ error: 'User and password are required' });
@@ -835,11 +1000,11 @@ app.delete('/api/accounts/:user', async (req, res, next) => {
 app.post('/api/auth/login', async (req, res, next) => {
   try {
     const username = String(req.body.user || '').trim();
-    const account = await c('accounts').findOne({ user: username });
+    const account = await c('accounts').findOne(userQuery(username));
     if (!account || !verifyPassword(req.body.password, account.pass)) {
       return res.status(401).json({ error: 'Invalid username or password' });
     }
-    res.json({ user: account.user, role: account.role || 'Staff' });
+    res.json({ user: account.user, role: account.role || USER_ROLES.STAFF });
   } catch (error) {
     next(error);
   }
@@ -1023,26 +1188,69 @@ app.post('/api/shifts/end', async (req, res, next) => {
 
     const settings = await c('settings').findOne({ key: 'main' });
     const shopName = settings?.shop || 'Sri Nikil Tradings';
-    const userRegex = new RegExp(`^${user.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');
+    const normalizedRole = role.toLowerCase();
+    
+    let effectiveShiftStart = shiftStart;
+    if (normalizedRole === 'admin') {
+      const lastAdminReport = await c('shift_reports').find({ role: { $regex: /^admin$/i } }).sort({ shift_end: -1 }).limit(1).next();
+      if (lastAdminReport && lastAdminReport.shift_end) {
+        effectiveShiftStart = new Date(lastAdminReport.shift_end);
+      } else {
+        const startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
+        effectiveShiftStart = startOfDay;
+      }
+    }
+
+    const billQuery =
+      normalizedRole === 'admin'
+        ? { date: { $gte: effectiveShiftStart, $lte: shiftEnd } }
+        : { by_user: new RegExp(`^${user.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i'), date: { $gte: shiftStart, $lte: shiftEnd } };
     const bills = await c('bills')
-      .find({ by_user: userRegex, date: { $gte: shiftStart, $lte: shiftEnd } })
+      .find(billQuery)
       .sort({ date: 1 })
       .toArray();
+    // Sync opening stock to current stock and reset sold for the next shift
+    await c('products').updateMany({}, [{ $set: { opening_stock: '$stock', sold: 0 } }]);
+
+    const [productRows, refillRows] = await Promise.all([
+      c('products').find().sort({ name: 1 }).toArray(),
+      c('refills').find({ date: { $gte: normalizedRole === 'admin' ? effectiveShiftStart : shiftStart, $lte: shiftEnd } }).sort({ date: 1 }).toArray(),
+    ]);
     const paymentBreakdown = getPaymentBreakdown(bills);
     const itemSummary = getShiftItemsSummary(bills);
+    const soldByProductId = new Map();
+    for (const bill of bills) {
+      for (const item of normalizeBillItems(bill.items)) {
+        const productId = toNumber(item.id);
+        const qty = toNumber(item.qty);
+        if (!productId || qty <= 0) continue;
+        soldByProductId.set(productId, toNumber(soldByProductId.get(productId)) + qty);
+      }
+    }
+    const refillByProductName = new Map();
+    for (const refill of refillRows) {
+      const productName = String(refill.product || '').trim();
+      const qty = toNumber(refill.qty);
+      if (!productName || qty <= 0) continue;
+      refillByProductName.set(productName, toNumber(refillByProductName.get(productName)) + qty);
+    }
+    const remainingStockSummary = getRemainingStockSummary(productRows, soldByProductId, refillByProductName);
     const totalShiftSales = bills.reduce((sum, bill) => sum + toNumber(bill.grand), 0);
     const report = {
       user,
       role,
-      shiftStart: shiftStart.toISOString(),
+      reportEmail: recipientEmail || 'N/A',
+      shiftStart: effectiveShiftStart.toISOString(),
       shiftEnd: shiftEnd.toISOString(),
-      shiftStartDisplay: shiftStart.toLocaleString('en-GB'),
+      shiftStartDisplay: effectiveShiftStart.toLocaleString('en-GB'),
       shiftEndDisplay: shiftEnd.toLocaleString('en-GB'),
       billsCount: bills.length,
       totalItemsSold: itemSummary.totalItemsSold,
       totalSalesAmount: totalShiftSales,
       paymentBreakdown,
       productsSold: itemSummary.products,
+      remainingStockSummary,
     };
 
     const friendlyDate = shiftEnd.toLocaleDateString('en-GB');
@@ -1050,15 +1258,29 @@ app.post('/api/shifts/end', async (req, res, next) => {
     let emailStatus = 'skipped';
     let emailError = null;
     let emailSentAt = null;
+    let attachmentName = null;
+    let attachmentCount = 0;
 
-    if (recipientEmail) {
+    if (normalizedRole === 'admin' && recipientEmail) {
       try {
-        const emailBody = buildShiftReportEmail({ report, shopName, paymentBreakdown, itemSummary });
+        const emailBody = buildShiftReportEmail({ report, shopName, paymentBreakdown, itemSummary, remainingStockSummary });
+        const excelBuffer = await generateShiftExcelReport(report, bills, remainingStockSummary);
+        const excelAttachment = Buffer.isBuffer(excelBuffer) ? excelBuffer : Buffer.from(excelBuffer);
+        attachmentName = `Shift_Report_${shopName.replace(/\s+/g, '_')}_${friendlyDate.replace(/\//g, '-')}.xlsx`;
+        attachmentCount = 1;
         await sendShiftReportEmail({
           recipient: recipientEmail,
           subject,
           text: emailBody.text,
           html: emailBody.html,
+          attachments: [
+            {
+              filename: attachmentName,
+              content: excelAttachment,
+              contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+              contentDisposition: 'attachment',
+            },
+          ],
         });
         emailStatus = 'sent';
         emailSentAt = new Date();
@@ -1067,6 +1289,9 @@ app.post('/api/shifts/end', async (req, res, next) => {
         emailError = mailError.message || 'Email sending failed';
         console.error('Failed to send shift report mail:', mailError);
       }
+    } else if (normalizedRole !== 'admin') {
+      emailStatus = 'skipped';
+      emailError = 'Email not required for non-admin roles';
     } else {
       emailError = 'Report recipient email is not configured';
     }
@@ -1076,18 +1301,21 @@ app.post('/api/shifts/end', async (req, res, next) => {
       session_id: req.body.sessionId ? toNumber(req.body.sessionId) : null,
       user,
       role,
-      shift_start: shiftStart,
+      shift_start: effectiveShiftStart,
       shift_end: shiftEnd,
       total_bills: bills.length,
       total_items_sold: itemSummary.totalItemsSold,
       total_sales_amount: totalShiftSales,
       payment_breakdown: paymentBreakdown,
       products_sold: itemSummary.products,
+      remaining_stock_summary: remainingStockSummary,
       report_email: recipientEmail || null,
       report_subject: subject,
       email_status: emailStatus,
       email_error: emailError,
       email_sent_at: emailSentAt,
+      attachment_name: attachmentName,
+      attachment_count: attachmentCount,
       status: 'Completed',
       created_at: new Date(),
     });
@@ -1102,12 +1330,15 @@ app.post('/api/shifts/end', async (req, res, next) => {
       emailedTo: emailStatus === 'sent' ? recipientEmail : null,
       emailStatus,
       emailError,
-      shiftStart: shiftStart.toISOString(),
+      attachmentName,
+      attachmentCount,
+      shiftStart: effectiveShiftStart.toISOString(),
       shiftEnd: shiftEnd.toISOString(),
       billsCount: bills.length,
       totalItemsSold: itemSummary.totalItemsSold,
       totalSales: totalShiftSales,
       paymentBreakdown,
+      remainingStockSummary: remainingStockSummary.totals,
       promptNextShift: role.toLowerCase() !== 'admin',
     });
   } catch (error) {

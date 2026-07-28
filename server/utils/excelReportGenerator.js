@@ -9,14 +9,27 @@ async function generateShiftExcelReport(reportData, billRows, remainingStockSumm
   const headerFill = {
     type: 'pattern',
     pattern: 'solid',
-    fgColor: { argb: 'FF324F86' } // Match company color
+    fgColor: { argb: 'FFFFFFFF' }
   };
-  const headerFont = { color: { argb: 'FFFFFFFF' }, bold: true, size: 12 };
+  const headerFont = { color: { argb: 'FF000000' }, bold: true, size: 11 };
   const borderStyle = {
     top: { style: 'thin' },
     left: { style: 'thin' },
     bottom: { style: 'thin' },
     right: { style: 'thin' }
+  };
+
+  const parseBillItems = (rawItems) => {
+    if (Array.isArray(rawItems)) return rawItems;
+    if (typeof rawItems === 'string') {
+      try {
+        const parsed = JSON.parse(rawItems || '[]');
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+    return [];
   };
 
   /**
@@ -194,7 +207,7 @@ async function generateShiftExcelReport(reportData, billRows, remainingStockSumm
   salesSheet.getRow(1).fill = headerFill;
 
   (billRows || []).forEach(bill => {
-    const parsedItems = typeof bill.items === 'string' ? JSON.parse(bill.items || '[]') : (bill.items || []);
+    const parsedItems = parseBillItems(bill.items);
     const dateStr = new Date(bill.date).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' });
     
     // Group and join items. e.g "Paragon x 2, Aqua x 1"

@@ -21,7 +21,7 @@ import {
   theme as antdTheme,
 } from "antd";
 import "./Reports.css";
-import { hasAdminAccess } from "../../utils/roles";
+import { hasAdminAccess, isRole, USER_ROLES } from "../../utils/roles";
 import { useTheme } from "../../context/useTheme";
 
 const { Text } = Typography;
@@ -74,7 +74,7 @@ export default function Reports({ db, user }) {
   const effectiveStartDate = getDateValue(startDate) || today;
   const effectiveEndDate = getDateValue(endDate) || today;
   const canManageAdminPages = hasAdminAccess(user);
-  const isAdmin = user?.role === "Admin";
+  const isAdmin = isRole(user, USER_ROLES.ADMIN);
   const isDarkTheme = effectiveTheme === "dark";
 
   const billsSource = db.bills || EMPTY_BILLS;
@@ -90,7 +90,7 @@ export default function Reports({ db, user }) {
         : antdTheme.defaultAlgorithm,
       token: {
         borderRadius: 6,
-        colorPrimary: "#f97316",
+        colorPrimary: "#d95b3d",
         colorBgBase: isDarkTheme ? "#111827" : "#ffffff",
         colorBgContainer: isDarkTheme ? "#1b2433" : "#ffffff",
         colorBgElevated: isDarkTheme ? "#111827" : "#ffffff",
