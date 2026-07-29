@@ -1195,6 +1195,11 @@ app.post('/api/shifts/end', async (req, res, next) => {
       const lastAdminReport = await c('shift_reports').find({ role: { $regex: /^admin$/i } }).sort({ shift_end: -1 }).limit(1).next();
       if (lastAdminReport && lastAdminReport.shift_end) {
         effectiveShiftStart = new Date(lastAdminReport.shift_end);
+        const startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
+        if (effectiveShiftStart < startOfDay) {
+          effectiveShiftStart = startOfDay;
+        }
       } else {
         const startOfDay = new Date();
         startOfDay.setHours(0, 0, 0, 0);
@@ -1210,9 +1215,6 @@ app.post('/api/shifts/end', async (req, res, next) => {
       .find(billQuery)
       .sort({ date: 1 })
       .toArray();
-    // Sync opening stock to current stock and reset sold for the next shift
-    await c('products').updateMany({}, [{ $set: { opening_stock: '$stock', sold: 0 } }]);
-
     const [productRows, refillRows] = await Promise.all([
       c('products').find().sort({ name: 1 }).toArray(),
       c('refills').find({ date: { $gte: normalizedRole === 'admin' ? effectiveShiftStart : shiftStart, $lte: shiftEnd } }).sort({ date: 1 }).toArray(),

@@ -277,6 +277,12 @@ export function useERPData() {
 
   const initDone = useRef(false);
   const pendingRequests = useRef({});
+  const activeShiftCache = useRef({
+    key: '',
+    value: null,
+    lastFetched: 0,
+    pending: null
+  });
   const noticeTimeout = useRef(null);
   const lastFetched = useRef({
     products: 0,
@@ -288,8 +294,31 @@ export function useERPData() {
     accounts: 0,
     settings: 0
   });
+  const latestData = useRef({
+    products,
+    bills,
+    customers,
+    refills,
+    priceHistory,
+    loginLogs,
+    accounts,
+    settings
+  });
 
-  const CACHE_TTL = 15000; // 15 seconds cache duration
+  useEffect(() => {
+    latestData.current = {
+      products,
+      bills,
+      customers,
+      refills,
+      priceHistory,
+      loginLogs,
+      accounts,
+      settings
+    };
+  }, [products, bills, customers, refills, priceHistory, loginLogs, accounts, settings]);
+
+  const CACHE_TTL = 30000; // 30 seconds cache duration
 
   const shouldFetch = useCallback((resource, force) => {
     if (force) return true;
@@ -315,11 +344,11 @@ export function useERPData() {
   }, []);
 
   const fetchSettings = useCallback(async (force = false) => {
-    if (!shouldFetch('settings', force)) {
-      return settings;
-    }
-    if (pendingRequests.current.settings && !force) {
+    if (pendingRequests.current.settings) {
       return pendingRequests.current.settings;
+    }
+    if (!shouldFetch('settings', force)) {
+      return latestData.current.settings;
     }
     const promise = (async () => {
       try {
@@ -341,14 +370,14 @@ export function useERPData() {
     })();
     pendingRequests.current.settings = promise;
     return promise;
-  }, [shouldFetch, settings]);
+  }, [shouldFetch]);
 
   const fetchProducts = useCallback(async (force = false) => {
-    if (!shouldFetch('products', force)) {
-      return products;
-    }
-    if (pendingRequests.current.products && !force) {
+    if (pendingRequests.current.products) {
       return pendingRequests.current.products;
+    }
+    if (!shouldFetch('products', force)) {
+      return latestData.current.products;
     }
     const promise = (async () => {
       try {
@@ -373,14 +402,14 @@ export function useERPData() {
     })();
     pendingRequests.current.products = promise;
     return promise;
-  }, [shouldFetch, products]);
+  }, [shouldFetch]);
 
   const fetchBills = useCallback(async (force = false) => {
-    if (!shouldFetch('bills', force)) {
-      return bills;
-    }
-    if (pendingRequests.current.bills && !force) {
+    if (pendingRequests.current.bills) {
       return pendingRequests.current.bills;
+    }
+    if (!shouldFetch('bills', force)) {
+      return latestData.current.bills;
     }
     const promise = (async () => {
       try {
@@ -407,14 +436,14 @@ export function useERPData() {
     })();
     pendingRequests.current.bills = promise;
     return promise;
-  }, [shouldFetch, bills]);
+  }, [shouldFetch]);
 
   const fetchCustomers = useCallback(async (force = false) => {
-    if (!shouldFetch('customers', force)) {
-      return customers;
-    }
-    if (pendingRequests.current.customers && !force) {
+    if (pendingRequests.current.customers) {
       return pendingRequests.current.customers;
+    }
+    if (!shouldFetch('customers', force)) {
+      return latestData.current.customers;
     }
     const promise = (async () => {
       try {
@@ -438,14 +467,14 @@ export function useERPData() {
     })();
     pendingRequests.current.customers = promise;
     return promise;
-  }, [shouldFetch, customers]);
+  }, [shouldFetch]);
 
   const fetchRefills = useCallback(async (force = false) => {
-    if (!shouldFetch('refills', force)) {
-      return refills;
-    }
-    if (pendingRequests.current.refills && !force) {
+    if (pendingRequests.current.refills) {
       return pendingRequests.current.refills;
+    }
+    if (!shouldFetch('refills', force)) {
+      return latestData.current.refills;
     }
     const promise = (async () => {
       try {
@@ -467,14 +496,14 @@ export function useERPData() {
     })();
     pendingRequests.current.refills = promise;
     return promise;
-  }, [shouldFetch, refills]);
+  }, [shouldFetch]);
 
   const fetchPriceHistory = useCallback(async (force = false) => {
-    if (!shouldFetch('priceHistory', force)) {
-      return priceHistory;
-    }
-    if (pendingRequests.current.priceHistory && !force) {
+    if (pendingRequests.current.priceHistory) {
       return pendingRequests.current.priceHistory;
+    }
+    if (!shouldFetch('priceHistory', force)) {
+      return latestData.current.priceHistory;
     }
     const promise = (async () => {
       try {
@@ -497,14 +526,14 @@ export function useERPData() {
     })();
     pendingRequests.current.priceHistory = promise;
     return promise;
-  }, [shouldFetch, priceHistory]);
+  }, [shouldFetch]);
 
   const fetchLoginLogs = useCallback(async (force = false) => {
-    if (!shouldFetch('loginLogs', force)) {
-      return loginLogs;
-    }
-    if (pendingRequests.current.loginLogs && !force) {
+    if (pendingRequests.current.loginLogs) {
       return pendingRequests.current.loginLogs;
+    }
+    if (!shouldFetch('loginLogs', force)) {
+      return latestData.current.loginLogs;
     }
     const promise = (async () => {
       try {
@@ -527,14 +556,14 @@ export function useERPData() {
     })();
     pendingRequests.current.loginLogs = promise;
     return promise;
-  }, [shouldFetch, loginLogs]);
+  }, [shouldFetch]);
 
   const fetchAccounts = useCallback(async (force = false) => {
-    if (!shouldFetch('accounts', force)) {
-      return accounts;
-    }
-    if (pendingRequests.current.accounts && !force) {
+    if (pendingRequests.current.accounts) {
       return pendingRequests.current.accounts;
+    }
+    if (!shouldFetch('accounts', force)) {
+      return latestData.current.accounts;
     }
     const promise = (async () => {
       try {
@@ -556,7 +585,7 @@ export function useERPData() {
     })();
     pendingRequests.current.accounts = promise;
     return promise;
-  }, [shouldFetch, accounts]);
+  }, [shouldFetch]);
 
   const refreshData = useCallback(async ({ showLoading = false } = {}) => {
     if (showLoading) {
@@ -826,7 +855,43 @@ export function useERPData() {
   }, [runMutation, fetchLoginLogs]);
 
   const getActiveShift = useCallback(async (user, role) => {
-    return await apiRequest(`/api/shifts/active?user=${encodeURIComponent(user)}&role=${encodeURIComponent(role)}`);
+    const key = `${user || ''}:${role || ''}`;
+    const now = Date.now();
+
+    if (activeShiftCache.current.pending && activeShiftCache.current.key === key) {
+      return activeShiftCache.current.pending;
+    }
+
+    if (
+      activeShiftCache.current.key === key &&
+      activeShiftCache.current.lastFetched > 0 &&
+      now - activeShiftCache.current.lastFetched < CACHE_TTL
+    ) {
+      return activeShiftCache.current.value;
+    }
+
+    const promise = apiRequest(`/api/shifts/active?user=${encodeURIComponent(user)}&role=${encodeURIComponent(role)}`)
+      .then((value) => {
+        activeShiftCache.current = {
+          key,
+          value,
+          lastFetched: Date.now(),
+          pending: null
+        };
+        return value;
+      })
+      .catch((error) => {
+        activeShiftCache.current.pending = null;
+        throw error;
+      });
+
+    activeShiftCache.current = {
+      ...activeShiftCache.current,
+      key,
+      pending: promise
+    };
+
+    return promise;
   }, []);
 
   const startShift = useCallback(async ({ user, role, shiftStart }) => {

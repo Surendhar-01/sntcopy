@@ -185,9 +185,9 @@ export default function Dashboard({ db, erp, user }) {
 
   useEffect(() => {
     if (!fetchProducts) return undefined;
-    fetchProducts(true).catch(() => {});
-    const onFocus = () => fetchProducts(true).catch(() => {});
-    const onVisible = () => { if (document.visibilityState === 'visible') fetchProducts(true).catch(() => {}); };
+    fetchProducts().catch(() => {});
+    const onFocus = () => fetchProducts().catch(() => {});
+    const onVisible = () => { if (document.visibilityState === 'visible') fetchProducts().catch(() => {}); };
     window.addEventListener('focus', onFocus);
     document.addEventListener('visibilitychange', onVisible);
     return () => {

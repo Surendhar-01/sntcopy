@@ -115,38 +115,48 @@ function App() {
     if (!isLoggedIn || !user?.user || !user?.role) return;
 
     let isMounted = true;
+    const userName = user.user;
+    const userRole = user.role;
+    const userLoginTime = user.loginTime;
+    const sessionId = session?.id;
+    const sessionLoginTime = session?.loginTime;
+    const hasSession = Boolean(session);
 
     const syncActiveShift = async () => {
       try {
-        const activeShift = await erp.getActiveShift(user.user, user.role);
+        const activeShift = await erp.getActiveShift(userName, userRole);
         if (!isMounted) return;
 
         if (activeShift && activeShift.success) {
-          if (activeShift.active || normalizeRole(user.role) === USER_ROLES.ADMIN) {
-            if (user.loginTime !== activeShift.shiftStart) {
+          const lowerRole = normalizeRole(userRole);
+
+          if (activeShift.active || lowerRole === USER_ROLES.ADMIN) {
+            const nextLoginTime = activeShift.shiftStart || userLoginTime;
+
+            if (nextLoginTime && userLoginTime !== nextLoginTime) {
               const updatedUser = {
                 ...user,
-                loginTime: activeShift.shiftStart
+                loginTime: nextLoginTime
               };
               setUser(updatedUser);
               localStorage.setItem('sri_nikil_user', JSON.stringify(updatedUser));
             }
 
             if (activeShift.sessionId) {
-              if (!session || session.id !== activeShift.sessionId || session.loginTime !== activeShift.shiftStart) {
+              if (!hasSession || sessionId !== activeShift.sessionId || sessionLoginTime !== nextLoginTime) {
                 setSession({
                   id: activeShift.sessionId,
-                  user: user.user,
-                  role: user.role,
-                  loginTime: activeShift.shiftStart,
+                  user: userName,
+                  role: userRole,
+                  loginTime: nextLoginTime,
                   logoutTime: null
                 });
               }
             } else {
-              if (session !== null) setSession(null);
+              if (hasSession) setSession(null);
             }
           } else {
-            if (user.loginTime !== null) {
+            if (userLoginTime !== null) {
               const updatedUser = {
                 ...user,
                 loginTime: null
@@ -154,7 +164,7 @@ function App() {
               setUser(updatedUser);
               localStorage.setItem('sri_nikil_user', JSON.stringify(updatedUser));
             }
-            if (session !== null) setSession(null);
+            if (hasSession) setSession(null);
           }
         }
       } catch (err) {
@@ -167,7 +177,7 @@ function App() {
     return () => {
       isMounted = false;
     };
-  }, [isLoggedIn, user, session, erp]);
+  }, [isLoggedIn, user?.user, user?.role, user?.loginTime, session?.id, session?.loginTime, erp.getActiveShift]);
 
   useEffect(() => {
     localStorage.setItem('sri_nikil_current_page', currentPage);
