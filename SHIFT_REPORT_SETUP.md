@@ -14,6 +14,16 @@
 6. Enable "Next Shift" button for staff (not admin)
 ```
 
+## Deploy Note
+
+The deployed Vercel link only updates the React frontend. End Shift email and Excel report generation runs from the backend service configured in `vercel.json`:
+
+```txt
+https://snt-backend-raur.onrender.com
+```
+
+If you change End Shift, Excel report, email, stock summary, or any `/api/shifts/end` logic, redeploy the Render backend also. A Vercel-only deploy will not update the Excel report behavior.
+
 ## Current Issue: Gmail SMTP Authentication Failed
 
 **Error**: `535-5.7.8 Username and Password not accepted`
