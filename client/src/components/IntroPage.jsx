@@ -577,8 +577,8 @@ const introStyles = `
 
 .login-popup-card {
   position: relative;
-  width: min(930px, calc(100vw - 36px));
-  max-height: min(720px, calc(100vh - 36px));
+  width: min(1240px, calc(100vw - 36px));
+  max-height: min(780px, calc(100vh - 36px));
   overflow: auto;
   border-radius: 18px;
   background: var(--bg2);
@@ -600,13 +600,13 @@ const introStyles = `
 }
 
 .login-popup-card #loginPage {
-  min-height: 560px;
+  min-height: 640px;
   border-radius: 18px;
 }
 
 .login-popup-card .login-left-panel,
 .login-popup-card .login-right-panel {
-  min-height: 560px;
+  min-height: 640px;
 }
 
 .login-popup-card .login-left-content {

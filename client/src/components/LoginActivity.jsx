@@ -138,17 +138,6 @@ export default function LoginActivity({ db, erp, user }) {
     }
   }, [erp]);
 
-  const activitySummary = useMemo(() => {
-    const online = loginLogs.filter((log) => !(log.logoutTime || log.logout_time)).length;
-    const ended = loginLogs.length - online;
-
-    return {
-      total: loginLogs.length,
-      online,
-      ended,
-    };
-  }, [loginLogs]);
-
   const handleDeleteLog = async (id) => {
     if (!id || deletingId === id) {
       return;
@@ -310,26 +299,16 @@ export default function LoginActivity({ db, erp, user }) {
             </Space>
           }
           extra={
-            <Space className="login-stats-pill" size={10} wrap>
-              <Text type="secondary">Total:</Text>
-              <Text className="login-stats-value">{activitySummary.total}</Text>
-              <span className="login-stats-divider" />
-              <Text type="secondary">Online:</Text>
-              <Text className="login-stats-value">{activitySummary.online}</Text>
-              <span className="login-stats-divider" />
-              <Text type="secondary">Ended:</Text>
-              <Text className="login-stats-value">{activitySummary.ended}</Text>
-              <Button
-                danger
-                icon={<DeleteOutlined />}
-                onClick={() => setShowClearConfirm(true)}
-                disabled={!loginLogs.length || isClearing}
-                loading={isClearing}
-                className="login-clear-btn"
-              >
-                {clearLabel}
-              </Button>
-            </Space>
+            <Button
+              danger
+              icon={<DeleteOutlined />}
+              onClick={() => setShowClearConfirm(true)}
+              disabled={!loginLogs.length || isClearing}
+              loading={isClearing}
+              className="login-clear-btn"
+            >
+              {clearLabel}
+            </Button>
           }
         >
           <Table
