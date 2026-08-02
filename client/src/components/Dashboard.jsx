@@ -83,6 +83,12 @@ function getBillDate(bill) {
   return bill?.date || bill?.created_at || bill?.createdAt || null;
 }
 
+function getBillAmount(bill) {
+  const value = bill?.grand ?? bill?.grandTotal ?? bill?.totalAmount ?? bill?.total ?? bill?.amount ?? 0;
+  const amount = Number(value);
+  return Number.isFinite(amount) ? amount : 0;
+}
+
 function sortBillsNewestFirst(left, right) {
   return new Date(getBillDate(right) || 0) - new Date(getBillDate(left) || 0);
 }
@@ -175,26 +181,33 @@ export default function Dashboard({ db, erp, user }) {
 
 
 
-  const bills = useMemo(() => (db.bills || []).filter((bill) => {
+  const allBills = useMemo(() => db.bills || [], [db.bills]);
+
+  const bills = useMemo(() => allBills.filter((bill) => {
     if (canManageAdminPages) return true;
     return isSameUserName(bill.by || bill.by_user, user?.user);
-  }), [db.bills, canManageAdminPages, user?.user]);
+  }), [allBills, canManageAdminPages, user?.user]);
 
   const products = useMemo(() => db.products || [], [db.products]);
   const fetchProducts = erp?.fetchProducts;
+  const fetchBills = erp?.fetchBills;
 
   useEffect(() => {
-    if (!fetchProducts) return undefined;
-    fetchProducts().catch(() => {});
-    const onFocus = () => fetchProducts().catch(() => {});
-    const onVisible = () => { if (document.visibilityState === 'visible') fetchProducts().catch(() => {}); };
+    if (!fetchProducts && !fetchBills) return undefined;
+    const refreshDashboardData = () => {
+      fetchProducts?.().catch(() => {});
+      fetchBills?.(true).catch(() => {});
+    };
+    refreshDashboardData();
+    const onFocus = refreshDashboardData;
+    const onVisible = () => { if (document.visibilityState === 'visible') refreshDashboardData(); };
     window.addEventListener('focus', onFocus);
     document.addEventListener('visibilitychange', onVisible);
     return () => {
       window.removeEventListener('focus', onFocus);
       document.removeEventListener('visibilitychange', onVisible);
     };
-  }, [fetchProducts]);
+  }, [fetchProducts, fetchBills]);
 
   const submitRefill = async (values) => {
     const qty = values.qty;
@@ -218,12 +231,13 @@ export default function Dashboard({ db, erp, user }) {
 
   const stats = useMemo(() => {
     const now = new Date();
-    const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
     const startOfTomorrow = new Date(startOfToday);
     startOfTomorrow.setDate(startOfTomorrow.getDate() + 1);
     const weekStart = getWeekStart(now);
+    const monthStart = new Date(startOfToday);
+    monthStart.setDate(monthStart.getDate() - 29);
     
     const lastShiftEndStr = localStorage.getItem('snt_last_shift_end');
     let currentShiftStart = startOfToday;
@@ -272,18 +286,36 @@ export default function Dashboard({ db, erp, user }) {
       : [];
     const displayWeeklyBills = weeklyBills.length > 0 || bills.length === 0 ? weeklyBills : latestWeekBills;
     const isShowingCurrentWeek = weeklyBills.length > 0 || bills.length === 0;
-    const monthlyBills = bills.filter((b) => { const dateValue = getBillDate(b); if (!dateValue) return false; const d = new Date(dateValue); return d.getMonth() === currentMonth && d.getFullYear() === currentYear; });
+    const monthlyBills = bills.filter((b) => {
+      const dateValue = getBillDate(b);
+      if (!dateValue) return false;
+      const d = new Date(dateValue);
+      return d >= monthStart && d < startOfTomorrow;
+    });
+    const latestMonthBills = latestBillDate
+      ? bills.filter((bill) => {
+          const dateValue = getBillDate(bill);
+          if (!dateValue) return false;
+          const billDate = new Date(dateValue);
+          const latestRollingMonthStart = new Date(latestBillDate);
+          latestRollingMonthStart.setDate(latestRollingMonthStart.getDate() - 29);
+          latestRollingMonthStart.setHours(0, 0, 0, 0);
+          return billDate >= latestRollingMonthStart && billDate <= latestBillDate;
+        })
+      : [];
+    const displayMonthlyBills = monthlyBills.length > 0 || bills.length === 0 ? monthlyBills : latestMonthBills;
+    const isShowingCurrentMonth = monthlyBills.length > 0 || bills.length === 0;
     const yearlyBills = bills.filter((b) => { const dateValue = getBillDate(b); if (!dateValue) return false; return new Date(dateValue).getFullYear() === currentYear; });
 
-    const todaySales = todayBills.reduce((s, b) => s + (b.grand || 0), 0);
-    const displaySales = displaySalesBills.reduce((s, b) => s + (b.grand || 0), 0);
-    const weeklyRevenue = weeklyBills.reduce((s, b) => s + (b.grand || 0), 0);
-    const displayWeeklyRevenue = displayWeeklyBills.reduce((s, b) => s + (b.grand || 0), 0);
-    const monthlyRevenue = monthlyBills.reduce((s, b) => s + (b.grand || 0), 0);
-    const yearlyRevenue = yearlyBills.reduce((s, b) => s + (b.grand || 0), 0);
+    const todaySales = todayBills.reduce((s, b) => s + getBillAmount(b), 0);
+    const displaySales = displaySalesBills.reduce((s, b) => s + getBillAmount(b), 0);
+    const weeklyRevenue = weeklyBills.reduce((s, b) => s + getBillAmount(b), 0);
+    const displayWeeklyRevenue = displayWeeklyBills.reduce((s, b) => s + getBillAmount(b), 0);
+    const monthlyRevenue = displayMonthlyBills.reduce((s, b) => s + getBillAmount(b), 0);
+    const yearlyRevenue = yearlyBills.reduce((s, b) => s + getBillAmount(b), 0);
 
     const lowStock = [...products].filter((p) => Number(p.stock || 0) < 5).sort((a, b) => Number(a.stock || 0) - Number(b.stock || 0));
-    const soldProductsFromBills = aggregateSoldProductsFromBills(bills, products);
+    const soldProductsFromBills = aggregateSoldProductsFromBills(allBills, products);
     const soldProductsFromInventory = [...products]
       .filter((p) => Number(p.sold || 0) > 0)
       .sort((a, b) => (b.sold || 0) - (a.sold || 0));
@@ -292,10 +324,10 @@ export default function Dashboard({ db, erp, user }) {
     const topSellingProducts = soldProducts.slice(0, 5);
     const totalInventoryValue = products.reduce((s, p) => s + ((p.stock || 0) * (p.price || 0)), 0);
 
-    return { todayBills, displaySalesBills, displaySalesDate, isShowingTodaySales, weeklyBills, displayWeeklyBills, isShowingCurrentWeek, monthlyBills, yearlyBills, todaySales, displaySales, weeklyRevenue, displayWeeklyRevenue, monthlyRevenue, yearlyRevenue, lowStock, topProduct, topSellingProducts, totalInventoryValue };
-  }, [bills, products]);
+    return { todayBills, displaySalesBills, displaySalesDate, isShowingTodaySales, weeklyBills, displayWeeklyBills, isShowingCurrentWeek, monthlyBills, displayMonthlyBills, isShowingCurrentMonth, yearlyBills, todaySales, displaySales, weeklyRevenue, displayWeeklyRevenue, monthlyRevenue, yearlyRevenue, lowStock, topProduct, topSellingProducts, totalInventoryValue };
+  }, [allBills, bills, products]);
 
-  const { todayBills, todaySales, displayWeeklyBills, isShowingCurrentWeek, displayWeeklyRevenue, monthlyRevenue, yearlyRevenue, lowStock, topProduct, topSellingProducts, totalInventoryValue } = stats;
+  const { todayBills, todaySales, displayWeeklyBills, isShowingCurrentWeek, displayWeeklyRevenue, displayMonthlyBills, isShowingCurrentMonth, monthlyRevenue, yearlyRevenue, lowStock, topProduct, topSellingProducts, totalInventoryValue } = stats;
 
   const sharedAnimation = useMemo(() => ({
     duration: 1600,
@@ -407,7 +439,7 @@ export default function Dashboard({ db, erp, user }) {
             <StatCard title={isShowingCurrentWeek ? 'Weekly Revenue' : 'Latest Week'} value={displayWeeklyRevenue} prefix="₹" sub={`${displayWeeklyBills.length} bills`} icon={<CalendarOutlined style={{ fontSize: 32 }} />} color="purple" />
           </Col>
           <Col xs={24} sm={12} lg={6}>
-            <StatCard title="Monthly Revenue" value={monthlyRevenue} prefix="₹" sub="This month" icon={<CalendarOutlined style={{ fontSize: 32 }} />} color="orange" />
+            <StatCard title={isShowingCurrentMonth ? 'Monthly Revenue' : 'Latest Month'} value={monthlyRevenue} prefix="₹" sub={isShowingCurrentMonth ? 'Last 30 days' : `${displayMonthlyBills.length} bills`} icon={<CalendarOutlined style={{ fontSize: 32 }} />} color="orange" />
           </Col>
           <Col xs={24} sm={12} lg={6}>
             <StatCard title="Yearly Revenue" value={yearlyRevenue} prefix="₹" sub="This year" icon={<CalendarOutlined style={{ fontSize: 32 }} />} color="green" />

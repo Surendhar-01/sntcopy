@@ -13,9 +13,10 @@ import ReportsPage from './components/Reports';
 import LoginActivityPage from './components/LoginActivity';
 import SettingsPage from './components/Settings';
 import Login from './components/Login';
+import IntroPage from './components/IntroPage';
 import { SidebarProvider } from './context/SidebarContext';
 import { useERPData } from './hooks/useERPData';
-import { hasAdminAccess, normalizeRole, USER_ROLES } from './utils/roles';
+import { getRoleLabel, hasAdminAccess, normalizeRole, USER_ROLES } from './utils/roles';
 import { canRoleOpenPage, getRoleLayout } from './config/roleLayouts';
 const appStyles = ".counter {\n  font-size: 16px;\n  padding: 5px 10px;\n  border-radius: 5px;\n  color: var(--accent);\n  background: var(--accent-bg);\n  border: 2px solid transparent;\n  transition: border-color 0.3s;\n  margin-bottom: 24px;\n\n  &:hover {\n    border-color: var(--accent-border);\n  }\n  &:focus-visible {\n    outline: 2px solid var(--accent);\n    outline-offset: 2px;\n  }\n}\n\n.hero {\n  position: relative;\n\n  .base,\n  .framework,\n  .vite {\n    inset-inline: 0;\n    margin: 0 auto;\n  }\n\n  .base {\n    width: 170px;\n    position: relative;\n    z-index: 0;\n  }\n\n  .framework,\n  .vite {\n    position: absolute;\n  }\n\n  .framework {\n    z-index: 1;\n    top: 34px;\n    height: 28px;\n    transform: perspective(2000px) rotateZ(300deg) rotateX(44deg) rotateY(39deg)\n      scale(1.4);\n  }\n\n  .vite {\n    z-index: 0;\n    top: 107px;\n    height: 26px;\n    width: auto;\n    transform: perspective(2000px) rotateZ(300deg) rotateX(40deg) rotateY(39deg)\n      scale(0.8);\n  }\n}\n\n#center {\n  display: flex;\n  flex-direction: column;\n  gap: 25px;\n  place-content: center;\n  place-items: center;\n  flex-grow: 1;\n\n  @media (max-width: 1024px) {\n    padding: 32px 20px 24px;\n    gap: 18px;\n  }\n}\n\n#next-steps {\n  display: flex;\n  border-top: 1px solid var(--border);\n  text-align: left;\n\n  & > div {\n    flex: 1 1 0;\n    padding: 32px;\n    @media (max-width: 1024px) {\n      padding: 24px 20px;\n    }\n  }\n\n  .icon {\n    margin-bottom: 16px;\n    width: 22px;\n    height: 22px;\n  }\n\n  @media (max-width: 1024px) {\n    flex-direction: column;\n    text-align: center;\n  }\n}\n\n#docs {\n  border-right: 1px solid var(--border);\n\n  @media (max-width: 1024px) {\n    border-right: none;\n    border-bottom: 1px solid var(--border);\n  }\n}\n\n#next-steps ul {\n  list-style: none;\n  padding: 0;\n  display: flex;\n  gap: 8px;\n  margin: 32px 0 0;\n\n  .logo {\n    height: 18px;\n  }\n\n  a {\n    color: var(--text-h);\n    font-size: 16px;\n    border-radius: 6px;\n    background: var(--social-bg);\n    display: flex;\n    padding: 6px 12px;\n    align-items: center;\n    gap: 8px;\n    text-decoration: none;\n    transition: box-shadow 0.3s;\n\n    &:hover {\n      box-shadow: var(--shadow);\n    }\n    .button-icon {\n      height: 18px;\n      width: 18px;\n    }\n  }\n\n  @media (max-width: 1024px) {\n    margin-top: 20px;\n    flex-wrap: wrap;\n    justify-content: center;\n\n    li {\n      flex: 1 1 calc(50% - 8px);\n    }\n\n    a {\n      width: 100%;\n      justify-content: center;\n      box-sizing: border-box;\n    }\n  }\n}\n\n#spacer {\n  height: 88px;\n  border-top: 1px solid var(--border);\n  @media (max-width: 1024px) {\n    height: 48px;\n  }\n}\n\n.ticks {\n  position: relative;\n  width: 100%;\n\n  &::before,\n  &::after {\n    content: '';\n    position: absolute;\n    top: -4.5px;\n    border: 5px solid transparent;\n  }\n\n  &::before {\n    left: 0;\n    border-left-color: var(--border);\n  }\n  &::after {\n    right: 0;\n    border-right-color: var(--border);\n  }\n}";
 
@@ -79,6 +80,7 @@ function App() {
       return null;
     }
   });
+  const [selectedLoginRole, setSelectedLoginRole] = useState(null);
   const erp = useERPData();
 
 
@@ -183,9 +185,16 @@ function App() {
     localStorage.setItem('sri_nikil_current_page', currentPage);
   }, [currentPage]);
 
-  const handleLogin = async (username, password) => {
+  const handleLogin = async (username, password, expectedRole) => {
     try {
       const userData = await erp.login(username, password);
+      const requiredRole = normalizeRole(expectedRole);
+      const actualRole = normalizeRole(userData.role);
+
+      if (requiredRole && actualRole !== requiredRole) {
+        throw new Error(`Only ${getRoleLabel(expectedRole)} login is allowed. Please choose the correct role.`);
+      }
+
       const defaultLoginTime = new Date().toISOString();
       const userWithSession = { ...userData, loginTime: defaultLoginTime };
 
@@ -195,6 +204,7 @@ function App() {
 
       setUser(userWithSession);
       setIsLoggedIn(true);
+      setSelectedLoginRole(null);
       setCurrentPage(getDefaultPageForRole(userData.role));
       localStorage.setItem('sri_nikil_user', JSON.stringify(userWithSession));
 
@@ -246,6 +256,7 @@ function App() {
     setUser(null);
     setIsLoggedIn(false);
     setSession(null);
+    setSelectedLoginRole(null);
     localStorage.removeItem('sri_nikil_user');
     localStorage.removeItem('sri_nikil_token');
     localStorage.removeItem('sri_nikil_current_page');
@@ -367,15 +378,23 @@ function App() {
   const erpDashboard = useMemo(() => ({
     db: dashboardDb,
     addRefill: erp.addRefill,
-    fetchProducts: erp.fetchProducts
-  }), [dashboardDb, erp.addRefill, erp.fetchProducts]);
+    fetchProducts: erp.fetchProducts,
+    fetchBills: erp.fetchBills
+  }), [dashboardDb, erp.addRefill, erp.fetchProducts, erp.fetchBills]);
 
   if (!erp || erp.loading || !erp.db) {
     return <div className="loading">Initializing System...</div>;
   }
 
   if (!isLoggedIn) {
-    return <Login onLogin={handleLogin} />;
+    return (
+      <IntroPage
+        onRoleSelect={setSelectedLoginRole}
+        onLogin={handleLogin}
+        selectedRole={selectedLoginRole}
+        onCloseLogin={() => setSelectedLoginRole(null)}
+      />
+    );
   }
 
   const resolvedCurrentPage = resolvePageForRole(currentPage, user);

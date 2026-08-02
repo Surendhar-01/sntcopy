@@ -22,6 +22,95 @@ if (typeof document !== "undefined" && !document.getElementById("combined-topbar
   document.head.appendChild(style);
 }
 
+const mobileTopbarFixStyles = `
+@media (max-width: 600px) {
+  .topbar {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    grid-template-areas:
+      "theme user"
+      "shift shift" !important;
+    align-items: center !important;
+    gap: 10px 12px !important;
+    padding: 10px 14px !important;
+    min-height: 110px;
+  }
+
+  .topbar-project-title {
+    display: none !important;
+  }
+
+  .topbar-right {
+    display: contents !important;
+  }
+
+  .topbar .antd-theme-segmented {
+    grid-area: theme !important;
+    justify-self: start !important;
+    max-width: 100%;
+  }
+
+  .topbar .topbar-user-menu {
+    grid-area: user !important;
+    justify-self: end !important;
+  }
+
+  .topbar .shift-action-wrap {
+    grid-area: shift !important;
+    width: 100%;
+    display: grid !important;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 10px;
+  }
+
+  .topbar .shift-duration {
+    justify-self: start;
+    font-size: 0.82rem;
+  }
+
+  .topbar .antd-shift-btn.ant-btn {
+    justify-self: start;
+    min-width: 128px;
+    height: 40px;
+    padding-inline: 18px !important;
+  }
+
+  .topbar .antd-avatar-btn.ant-btn {
+    height: 40px;
+    padding: 2px 6px !important;
+  }
+}
+
+@media (max-width: 380px) {
+  .topbar {
+    gap: 8px !important;
+    padding-inline: 12px !important;
+  }
+
+  .antd-theme-segmented .ant-segmented-item {
+    min-width: 30px;
+  }
+
+  .antd-theme-segmented .ant-segmented-item-label {
+    padding: 0 7px;
+  }
+
+  .topbar .avatar-name {
+    max-width: 72px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+`;
+
+if (typeof document !== "undefined" && !document.getElementById("mobile-topbar-fix-styles")) {
+  const style = document.createElement("style");
+  style.id = "mobile-topbar-fix-styles";
+  style.textContent = mobileTopbarFixStyles;
+  document.head.appendChild(style);
+}
+
 function isClearedSessionError(error) {
   const message = String(error?.message || error || '').toLowerCase();
   return (
@@ -304,7 +393,7 @@ export default function Topbar({ user, roleLayout, erp, session, setUser, setSes
           >
             <Button
               type="text"
-              className="antd-avatar-btn"
+              className="antd-avatar-btn topbar-user-menu"
             >
               <Space size={6}>
                 <Avatar

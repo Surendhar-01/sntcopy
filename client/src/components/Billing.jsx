@@ -22,7 +22,6 @@ import {
   Form,
   Input,
   InputNumber,
-  List,
   Modal,
   Select,
   Space,
@@ -36,12 +35,66 @@ import {
 import { useTheme } from '../context/useTheme';
 import { isRole, USER_ROLES } from '../utils/roles';
 const { Text } = Typography;
-const billingStyles = ".billing-page {\n  display: flex;\n  flex-direction: column;\n  gap: 18px;\n  min-width: 0;\n  width: 100%;\n}\n\n.billing-layout {\n  display: grid;\n  grid-template-columns: minmax(0, 1.7fr) minmax(340px, 1fr);\n  gap: 18px;\n  align-items: start;\n}\n\n.billing-main {\n  display: flex;\n  flex-direction: column;\n  gap: 18px;\n  min-width: 0;\n}\n\n.billing-page .ant-card {\n  background: var(--card);\n  border-color: var(--border);\n  border-radius: 8px;\n  box-shadow: 0 8px 24px var(--shadow-soft);\n}\n\n.billing-page .ant-card-body,\n.billing-page .ant-card-head,\n.billing-page .ant-typography {\n  color: var(--text) !important;\n}\n\n.billing-page .ant-card-head {\n  min-height: 52px;\n  padding: 0 20px;\n  border-bottom-color: var(--border);\n}\n\n.billing-page .ant-card-head-title {\n  color: var(--text);\n  font-weight: 800;\n}\n\n.billing-shop-copy {\n  display: flex;\n  flex-direction: column;\n  gap: 4px;\n  margin-bottom: 16px;\n}\n\n.billing-form {\n  display: grid;\n  grid-template-columns: repeat(3, minmax(0, 1fr));\n  gap: 0 14px;\n}\n\n.billing-form .ant-form-item:nth-last-child(-n + 2) {\n  grid-column: span 1;\n}\n\n.billing-page .ant-form-item {\n  margin-bottom: 14px;\n}\n\n.billing-page .ant-form-item-label > label {\n  color: var(--text) !important;\n  font-weight: 700;\n}\n\n.billing-bill-no-input,\n.billing-bill-no {\n  color: var(--accent) !important;\n  font-weight: 800;\n}\n\n.billing-cart-card {\n  overflow: hidden;\n}\n\n.billing-cart-card .ant-card-body {\n  padding: 0;\n}\n\n.billing-product-trigger {\n  margin: 16px;\n  width: calc(100% - 32px);\n}\n\n.billing-cart-card .ant-table,\n.billing-preview-table .ant-table {\n  background: transparent;\n  color: var(--text);\n  table-layout: fixed;\n}\n\n.billing-cart-card .ant-table-thead > tr > th,\n.billing-preview-table .ant-table-thead > tr > th {\n  background: var(--surface) !important;\n  color: var(--text2) !important;\n  border-bottom-color: var(--border);\n  font-weight: 800;\n  padding: 13px 22px;\n  vertical-align: middle;\n}\n\n.billing-cart-card .ant-table-thead > tr > th::before,\n.billing-preview-table .ant-table-thead > tr > th::before {\n  display: none !important;\n}\n\n.billing-cart-card .ant-table-tbody > tr > td,\n.billing-preview-table .ant-table-tbody > tr > td {\n  background: var(--card);\n  border-bottom-color: var(--border);\n  color: var(--text);\n  height: 58px;\n  padding: 10px 22px;\n  vertical-align: middle;\n}\n\n.billing-cart-card .ant-table-tbody > tr:hover > td,\n.billing-preview-table .ant-table-tbody > tr:hover > td {\n  background: var(--surface-hover) !important;\n}\n\n.billing-item-cell {\n  max-width: 100%;\n}\n\n.billing-item-name,\n.billing-money {\n  color: var(--text) !important;\n  display: block;\n  font-weight: 800;\n  overflow: hidden;\n  text-overflow: ellipsis;\n  white-space: nowrap;\n}\n\n.billing-money {\n  white-space: nowrap;\n}\n\n.billing-qty-control .ant-btn {\n  width: 34px;\n}\n\n.billing-qty-control .billing-qty-value {\n  width: 42px;\n  pointer-events: none;\n}\n\n.billing-totals {\n  display: grid;\n  gap: 6px;\n  margin: 16px;\n  padding: 14px;\n  border: 1px solid var(--border);\n  border-radius: 8px;\n  background: var(--surface);\n}\n\n.billing-total-row {\n  display: flex;\n  justify-content: space-between;\n  gap: 16px;\n  color: var(--text);\n  font-size: 0.9rem;\n}\n\n.billing-grand-row {\n  margin-top: 6px;\n  padding-top: 8px;\n  border-top: 1px solid var(--border);\n  color: var(--accent);\n  font-size: 1.12rem;\n  font-weight: 800;\n}\n\n.billing-actions {\n  margin: 0 16px 16px;\n}\n\n.billing-recent-card {\n  overflow: hidden;\n}\n\n.billing-recent-card .ant-card-body {\n  padding: 10px;\n}\n\n.billing-recent-card .ant-list-empty-text {\n  padding: 28px 0;\n}\n\n.billing-recent-item {\n  align-items: flex-start !important;\n  border: 1px solid var(--border) !important;\n  border-radius: 8px;\n  cursor: pointer;\n  margin-bottom: 10px;\n  padding: 12px !important;\n  transition: background 0.2s ease, border-color 0.2s ease;\n}\n\n.billing-recent-item:hover {\n  background: var(--surface-hover);\n  border-color: var(--accent3) !important;\n}\n\n.billing-recent-title,\n.billing-recent-copy {\n  width: 100%;\n}\n\n.billing-modal .ant-modal-content {\n  padding: 0 !important;\n  overflow: hidden;\n  border: 1px solid var(--border);\n  border-radius: 8px;\n}\n\n.billing-modal .ant-modal-header {\n  margin: 0;\n  padding: 20px 24px 12px;\n  border-bottom: 1px solid var(--border);\n}\n\n.billing-modal .ant-modal-body {\n  padding: 20px 24px;\n}\n\n.billing-modal .ant-modal-footer {\n  margin: 0;\n  padding: 16px 24px 20px;\n  border-top: 1px solid var(--border);\n}\n\n.billing-modal .ant-modal-title,\n.billing-modal .ant-typography {\n  color: var(--text) !important;\n}\n\n.billing-preview-meta {\n  display: grid;\n  grid-template-columns: repeat(3, minmax(0, 1fr));\n  gap: 14px;\n  margin-bottom: 16px;\n  padding-bottom: 16px;\n  border-bottom: 1px solid var(--border);\n}\n\n.billing-preview-meta > div {\n  display: flex;\n  flex-direction: column;\n  gap: 4px;\n  min-width: 0;\n}\n\n.billing-preview-totals {\n  margin: 16px 0 0;\n}\n\n.billing-product-search {\n  margin-bottom: 14px;\n}\n\n.billing-product-list {\n  max-height: min(56vh, 460px);\n  overflow: auto;\n  border: 1px solid var(--border);\n  border-radius: 8px;\n}\n\n.billing-product-row {\n  align-items: center !important;\n  cursor: pointer;\n  gap: 12px;\n  padding: 12px 14px !important;\n  transition: background 0.2s ease;\n}\n\n.billing-product-row.selected {\n  background: var(--surface-hover);\n  box-shadow: inset 4px 0 0 var(--accent);\n}\n\n.billing-product-row.disabled {\n  cursor: not-allowed;\n  opacity: 0.55;\n}\n\n.billing-product-info {\n  min-width: 0;\n}\n\n.billing-product-qty {\n  width: 80px;\n}\n\n.billing-selected-count {\n  display: block;\n  margin-top: 14px;\n}\n\n@media print {\n  body * {\n    visibility: hidden;\n  }\n\n  #printArea,\n  #printArea * {\n    visibility: visible;\n  }\n\n  #printArea {\n    position: absolute;\n    left: 0;\n    top: 0;\n    width: 80mm;\n    background: #fff;\n    color: #000;\n    font-family: monospace;\n    font-size: 10px;\n    padding: 4mm;\n  }\n\n  .no-print {\n    display: none !important;\n  }\n}\n\n#printArea {\n  display: none;\n}\n\n:root[data-theme='dark'] .billing-page .ant-card {\n  background: #1b2433;\n  border-color: #334155;\n  box-shadow: none;\n}\n\n:root[data-theme='dark'] .billing-page,\n:root[data-theme='dark'] .billing-page .ant-card-body,\n:root[data-theme='dark'] .billing-page .ant-card-head,\n:root[data-theme='dark'] .billing-page .ant-card-head-title,\n:root[data-theme='dark'] .billing-page .ant-typography,\n:root[data-theme='dark'] .billing-item-name,\n:root[data-theme='dark'] .billing-money {\n  color: #f8fafc !important;\n}\n\n:root[data-theme='dark'] .billing-cart-card .ant-table,\n:root[data-theme='dark'] .billing-cart-card .ant-table-container,\n:root[data-theme='dark'] .billing-cart-card .ant-table-content,\n:root[data-theme='dark'] .billing-preview-table .ant-table,\n:root[data-theme='dark'] .billing-preview-table .ant-table-container,\n:root[data-theme='dark'] .billing-preview-table .ant-table-content {\n  background: #1b2433 !important;\n}\n\n:root[data-theme='dark'] .billing-cart-card .ant-table-thead > tr > th,\n:root[data-theme='dark'] .billing-preview-table .ant-table-thead > tr > th {\n  background: #111827 !important;\n  color: #e5e7eb !important;\n  border-bottom-color: #334155 !important;\n}\n\n:root[data-theme='dark'] .billing-cart-card .ant-table-tbody > tr > td,\n:root[data-theme='dark'] .billing-preview-table .ant-table-tbody > tr > td {\n  background: #1b2433 !important;\n  border-bottom-color: #334155 !important;\n  color: #f8fafc !important;\n}\n\n:root[data-theme='dark'] .billing-cart-card .ant-table-tbody > tr:hover > td,\n:root[data-theme='dark'] .billing-preview-table .ant-table-tbody > tr:hover > td {\n  background: #263244 !important;\n}\n\nhtml[data-theme='dark'] body .billing-modal .ant-modal-content,\nhtml[data-theme='dark'] body .billing-modal .ant-modal-header,\nhtml[data-theme='dark'] body .billing-modal .ant-modal-body,\nhtml[data-theme='dark'] body .billing-modal .ant-modal-footer {\n  background-color: #1b2433 !important;\n  border-color: #334155 !important;\n}\n\nhtml[data-theme='dark'] body .billing-modal .ant-modal-title,\nhtml[data-theme='dark'] body .billing-modal .ant-typography {\n  color: #f8fafc !important;\n}\n\nhtml[data-theme='dark'] body .billing-modal .ant-modal-close,\nhtml[data-theme='dark'] body .billing-modal .ant-modal-close-x {\n  color: #cbd5e1 !important;\n}\n\nhtml[data-theme='dark'] body .billing-page .ant-input,\nhtml[data-theme='dark'] body .billing-page .ant-input-number,\nhtml[data-theme='dark'] body .billing-page .ant-input-number-input,\nhtml[data-theme='dark'] body .billing-page .ant-select-selector,\nhtml[data-theme='dark'] body .billing-modal .ant-input,\nhtml[data-theme='dark'] body .billing-modal .ant-input-number,\nhtml[data-theme='dark'] body .billing-modal .ant-input-number-input {\n  background-color: #111827 !important;\n  color: #f8fafc !important;\n  border-color: #334155 !important;\n}\n\nhtml[data-theme='dark'] body .billing-page .ant-input::placeholder,\nhtml[data-theme='dark'] body .billing-modal .ant-input::placeholder {\n  color: #94a3b8 !important;\n}\n\n@media (max-width: 1100px) {\n  .billing-layout {\n    grid-template-columns: 1fr;\n  }\n}\n\n@media (max-width: 760px) {\n  .billing-form,\n  .billing-preview-meta {\n    grid-template-columns: 1fr;\n  }\n\n  .billing-page .ant-card-head {\n    padding: 0 14px;\n  }\n\n  .billing-product-row {\n    align-items: flex-start !important;\n    flex-direction: column;\n  }\n}";
+const billingStyles = ".billing-page {\n  display: flex;\n  flex-direction: column;\n  gap: 18px;\n  min-width: 0;\n  width: 100%;\n}\n\n.billing-layout {\n  display: grid;\n  grid-template-columns: minmax(0, 1.7fr) minmax(340px, 1fr);\n  gap: 18px;\n  align-items: start;\n}\n\n.billing-main {\n  display: flex;\n  flex-direction: column;\n  gap: 18px;\n  min-width: 0;\n}\n\n.billing-page .ant-card {\n  background: var(--card);\n  border-color: var(--border);\n  border-radius: 8px;\n  box-shadow: 0 8px 24px var(--shadow-soft);\n}\n\n.billing-page .ant-card-body,\n.billing-page .ant-card-head,\n.billing-page .ant-typography {\n  color: var(--text) !important;\n}\n\n.billing-page .ant-card-head {\n  min-height: 52px;\n  padding: 0 20px;\n  border-bottom-color: var(--border);\n}\n\n.billing-page .ant-card-head-title {\n  color: var(--text);\n  font-weight: 800;\n}\n\n.billing-shop-copy {\n  display: flex;\n  flex-direction: column;\n  gap: 4px;\n  margin-bottom: 16px;\n}\n\n.billing-form {\n  display: grid;\n  grid-template-columns: repeat(3, minmax(0, 1fr));\n  gap: 0 14px;\n}\n\n.billing-form .ant-form-item:nth-last-child(-n + 2) {\n  grid-column: span 1;\n}\n\n.billing-page .ant-form-item {\n  margin-bottom: 14px;\n}\n\n.billing-page .ant-form-item-label > label {\n  color: var(--text) !important;\n  font-weight: 700;\n}\n\n.billing-bill-no-input,\n.billing-bill-no {\n  color: var(--accent) !important;\n  font-weight: 800;\n}\n\n.billing-cart-card {\n  overflow: hidden;\n}\n\n.billing-cart-card .ant-card-body {\n  padding: 0;\n}\n\n.billing-product-trigger {\n  margin: 16px;\n  width: calc(100% - 32px);\n}\n\n.billing-cart-card .ant-table,\n.billing-preview-table .ant-table {\n  background: transparent;\n  color: var(--text);\n  table-layout: fixed;\n}\n\n.billing-cart-card .ant-table-thead > tr > th,\n.billing-preview-table .ant-table-thead > tr > th {\n  background: var(--surface) !important;\n  color: var(--text2) !important;\n  border-bottom-color: var(--border);\n  font-weight: 800;\n  padding: 13px 22px;\n  vertical-align: middle;\n}\n\n.billing-cart-card .ant-table-thead > tr > th::before,\n.billing-preview-table .ant-table-thead > tr > th::before {\n  display: none !important;\n}\n\n.billing-cart-card .ant-table-tbody > tr > td,\n.billing-preview-table .ant-table-tbody > tr > td {\n  background: var(--card);\n  border-bottom-color: var(--border);\n  color: var(--text);\n  height: 58px;\n  padding: 10px 22px;\n  vertical-align: middle;\n}\n\n.billing-cart-card .ant-table-tbody > tr:hover > td,\n.billing-preview-table .ant-table-tbody > tr:hover > td {\n  background: var(--surface-hover) !important;\n}\n\n.billing-item-cell {\n  max-width: 100%;\n}\n\n.billing-item-name,\n.billing-money {\n  color: var(--text) !important;\n  display: block;\n  font-weight: 800;\n  overflow: hidden;\n  text-overflow: ellipsis;\n  white-space: nowrap;\n}\n\n.billing-money {\n  white-space: nowrap;\n}\n\n.billing-qty-control .ant-btn {\n  width: 34px;\n}\n\n.billing-qty-control .billing-qty-value {\n  width: 42px;\n  pointer-events: none;\n}\n\n.billing-totals {\n  display: grid;\n  gap: 6px;\n  margin: 16px;\n  padding: 14px;\n  border: 1px solid var(--border);\n  border-radius: 8px;\n  background: var(--surface);\n}\n\n.billing-total-row {\n  display: flex;\n  justify-content: space-between;\n  gap: 16px;\n  color: var(--text);\n  font-size: 0.9rem;\n}\n\n.billing-grand-row {\n  margin-top: 6px;\n  padding-top: 8px;\n  border-top: 1px solid var(--border);\n  color: var(--accent);\n  font-size: 1.12rem;\n  font-weight: 800;\n}\n\n.billing-actions {\n  margin: 0 16px 16px;\n}\n\n.billing-recent-card {\n  overflow: hidden;\n}\n\n.billing-recent-card .ant-card-body {\n  padding: 10px;\n}\n\n.billing-recent-card .ant-empty {\n  padding: 28px 0;\n}\n\n.billing-recent-list {\n  display: grid;\n  gap: 10px;\n}\n\n.billing-recent-item {\n  align-items: flex-start !important;\n  display: flex;\n  justify-content: space-between;\n  gap: 12px;\n  border: 1px solid var(--border) !important;\n  border-radius: 8px;\n  cursor: pointer;\n  margin-bottom: 10px;\n  padding: 12px !important;\n  transition: background 0.2s ease, border-color 0.2s ease;\n}\n\n.billing-recent-item:hover {\n  background: var(--surface-hover);\n  border-color: var(--accent3) !important;\n}\n\n.billing-recent-title,\n.billing-recent-copy {\n  width: 100%;\n}\n\n.billing-modal .ant-modal-content {\n  padding: 0 !important;\n  overflow: hidden;\n  border: 1px solid var(--border);\n  border-radius: 8px;\n}\n\n.billing-modal .ant-modal-header {\n  margin: 0;\n  padding: 20px 24px 12px;\n  border-bottom: 1px solid var(--border);\n}\n\n.billing-modal .ant-modal-body {\n  padding: 20px 24px;\n}\n\n.billing-modal .ant-modal-footer {\n  margin: 0;\n  padding: 16px 24px 20px;\n  border-top: 1px solid var(--border);\n}\n\n.billing-modal .ant-modal-title,\n.billing-modal .ant-typography {\n  color: var(--text) !important;\n}\n\n.billing-preview-meta {\n  display: grid;\n  grid-template-columns: repeat(3, minmax(0, 1fr));\n  gap: 14px;\n  margin-bottom: 16px;\n  padding-bottom: 16px;\n  border-bottom: 1px solid var(--border);\n}\n\n.billing-preview-meta > div {\n  display: flex;\n  flex-direction: column;\n  gap: 4px;\n  min-width: 0;\n}\n\n.billing-preview-totals {\n  margin: 16px 0 0;\n}\n\n.billing-product-search {\n  margin-bottom: 14px;\n}\n\n.billing-product-list {\n  max-height: min(56vh, 460px);\n  overflow: auto;\n  border: 1px solid var(--border);\n  border-radius: 8px;\n}\n\n.billing-product-row {\n  align-items: center !important;\n  cursor: pointer;\n  gap: 12px;\n  padding: 12px 14px !important;\n  transition: background 0.2s ease;\n}\n\n.billing-product-row.selected {\n  background: var(--surface-hover);\n  box-shadow: inset 4px 0 0 var(--accent);\n}\n\n.billing-product-row.disabled {\n  cursor: not-allowed;\n  opacity: 0.55;\n}\n\n.billing-product-info {\n  min-width: 0;\n}\n\n.billing-product-qty {\n  width: 80px;\n}\n\n.billing-selected-count {\n  display: block;\n  margin-top: 14px;\n}\n\n@media print {\n  body * {\n    visibility: hidden;\n  }\n\n  #printArea,\n  #printArea * {\n    visibility: visible;\n  }\n\n  #printArea {\n    position: absolute;\n    left: 0;\n    top: 0;\n    width: 80mm;\n    background: #fff;\n    color: #000;\n    font-family: monospace;\n    font-size: 10px;\n    padding: 4mm;\n  }\n\n  .no-print {\n    display: none !important;\n  }\n}\n\n#printArea {\n  display: none;\n}\n\n:root[data-theme='dark'] .billing-page .ant-card {\n  background: #1b2433;\n  border-color: #334155;\n  box-shadow: none;\n}\n\n:root[data-theme='dark'] .billing-page,\n:root[data-theme='dark'] .billing-page .ant-card-body,\n:root[data-theme='dark'] .billing-page .ant-card-head,\n:root[data-theme='dark'] .billing-page .ant-card-head-title,\n:root[data-theme='dark'] .billing-page .ant-typography,\n:root[data-theme='dark'] .billing-item-name,\n:root[data-theme='dark'] .billing-money {\n  color: #f8fafc !important;\n}\n\n:root[data-theme='dark'] .billing-cart-card .ant-table,\n:root[data-theme='dark'] .billing-cart-card .ant-table-container,\n:root[data-theme='dark'] .billing-cart-card .ant-table-content,\n:root[data-theme='dark'] .billing-preview-table .ant-table,\n:root[data-theme='dark'] .billing-preview-table .ant-table-container,\n:root[data-theme='dark'] .billing-preview-table .ant-table-content {\n  background: #1b2433 !important;\n}\n\n:root[data-theme='dark'] .billing-cart-card .ant-table-thead > tr > th,\n:root[data-theme='dark'] .billing-preview-table .ant-table-thead > tr > th {\n  background: #111827 !important;\n  color: #e5e7eb !important;\n  border-bottom-color: #334155 !important;\n}\n\n:root[data-theme='dark'] .billing-cart-card .ant-table-tbody > tr > td,\n:root[data-theme='dark'] .billing-preview-table .ant-table-tbody > tr > td {\n  background: #1b2433 !important;\n  border-bottom-color: #334155 !important;\n  color: #f8fafc !important;\n}\n\n:root[data-theme='dark'] .billing-cart-card .ant-table-tbody > tr:hover > td,\n:root[data-theme='dark'] .billing-preview-table .ant-table-tbody > tr:hover > td {\n  background: #263244 !important;\n}\n\nhtml[data-theme='dark'] body .billing-modal .ant-modal-content,\nhtml[data-theme='dark'] body .billing-modal .ant-modal-header,\nhtml[data-theme='dark'] body .billing-modal .ant-modal-body,\nhtml[data-theme='dark'] body .billing-modal .ant-modal-footer {\n  background-color: #1b2433 !important;\n  border-color: #334155 !important;\n}\n\nhtml[data-theme='dark'] body .billing-modal .ant-modal-title,\nhtml[data-theme='dark'] body .billing-modal .ant-typography {\n  color: #f8fafc !important;\n}\n\nhtml[data-theme='dark'] body .billing-modal .ant-modal-close,\nhtml[data-theme='dark'] body .billing-modal .ant-modal-close-x {\n  color: #cbd5e1 !important;\n}\n\nhtml[data-theme='dark'] body .billing-page .ant-input,\nhtml[data-theme='dark'] body .billing-page .ant-input-number,\nhtml[data-theme='dark'] body .billing-page .ant-input-number-input,\nhtml[data-theme='dark'] body .billing-page .ant-select-selector,\nhtml[data-theme='dark'] body .billing-modal .ant-input,\nhtml[data-theme='dark'] body .billing-modal .ant-input-number,\nhtml[data-theme='dark'] body .billing-modal .ant-input-number-input {\n  background-color: #111827 !important;\n  color: #f8fafc !important;\n  border-color: #334155 !important;\n}\n\nhtml[data-theme='dark'] body .billing-page .ant-input::placeholder,\nhtml[data-theme='dark'] body .billing-modal .ant-input::placeholder {\n  color: #94a3b8 !important;\n}\n\n@media (max-width: 1100px) {\n  .billing-layout {\n    grid-template-columns: 1fr;\n  }\n}\n\n@media (max-width: 760px) {\n  .billing-form,\n  .billing-preview-meta {\n    grid-template-columns: 1fr;\n  }\n\n  .billing-page .ant-card-head {\n    padding: 0 14px;\n  }\n\n  .billing-product-row {\n    align-items: flex-start !important;\n    flex-direction: column;\n  }\n}";
 
 if (typeof document !== "undefined" && !document.getElementById("combined-billing-styles")) {
   const style = document.createElement("style");
   style.id = "combined-billing-styles";
   style.textContent = billingStyles;
+  document.head.appendChild(style);
+}
+
+const billingProductModalFixStyles = `
+.billing-product-row {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  column-gap: 18px !important;
+}
+
+.billing-product-info {
+  min-width: 0;
+}
+
+.billing-product-info .ant-space-item:last-child {
+  min-width: 0;
+}
+
+.billing-product-actions {
+  display: grid !important;
+  grid-template-columns: minmax(96px, auto) 84px;
+  align-items: center;
+  justify-content: end;
+  gap: 12px !important;
+  min-width: 204px;
+}
+
+.billing-product-actions .billing-money {
+  text-align: right;
+}
+
+.billing-product-actions .billing-product-qty {
+  width: 84px;
+}
+
+@media (max-width: 760px) {
+  .billing-product-row {
+    grid-template-columns: 1fr !important;
+    row-gap: 10px !important;
+  }
+
+  .billing-product-actions {
+    width: 100%;
+    min-width: 0;
+    grid-template-columns: 1fr 84px;
+  }
+}
+`;
+
+if (typeof document !== "undefined" && !document.getElementById("billing-product-modal-fix-styles")) {
+  const style = document.createElement("style");
+  style.id = "billing-product-modal-fix-styles";
+  style.textContent = billingProductModalFixStyles;
   document.head.appendChild(style);
 }
 
@@ -252,6 +305,7 @@ export default function Billing({ erp, user }) {
           return;
         }
         newItems.push({
+          cartKey: `${product.id}-${Date.now()}-${newItems.length}`,
           id: product.id,
           name: product.name,
           qty: parsedQty,
@@ -782,7 +836,7 @@ export default function Billing({ erp, user }) {
               />
 
               <Table
-                rowKey={(_, index) => `${_.id}-${index}`}
+                rowKey="cartKey"
                 columns={cartColumns}
                 dataSource={items}
                 pagination={false}
@@ -836,32 +890,20 @@ export default function Billing({ erp, user }) {
               </Space>
             }
           >
-            <List
-              dataSource={recentBills}
-              locale={{ emptyText: <Empty description="No recent bills" /> }}
-              renderItem={(bill) => (
-                <List.Item
+            {recentBills.length === 0 ? (
+              <Empty description="No recent bills" />
+            ) : (
+              <div className="billing-recent-list">
+                {recentBills.map((bill) => (
+                  <div
+                    key={bill.id || bill.billNo}
                   className="billing-recent-item"
                   onClick={() => {
                     setViewBill(bill);
                     setIsReviewMode(false);
                   }}
-                  actions={[
-                    <Tooltip title="Remove from recent list" key="remove">
-                      <Button
-                        danger
-                        type="text"
-                        icon={<DeleteOutlined />}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          hideRecentBill(bill.id);
-                        }}
-                      />
-                    </Tooltip>,
-                  ]}
-                >
-                  <List.Item.Meta
-                    title={
+                  >
+                    <div className="billing-recent-meta">
                       <Space className="billing-recent-title">
                         <Text className="billing-bill-no">{bill.billNo}</Text>
                         <Text type="secondary">
@@ -871,8 +913,6 @@ export default function Billing({ erp, user }) {
                           })}
                         </Text>
                       </Space>
-                    }
-                    description={
                       <Space direction="vertical" size={8} className="billing-recent-copy">
                         <Text className="billing-item-name">{bill.customer}</Text>
                         <Space>
@@ -880,11 +920,23 @@ export default function Billing({ erp, user }) {
                           <Text className="billing-money">{formatCurrency(bill.grand)}</Text>
                         </Space>
                       </Space>
-                    }
-                  />
-                </List.Item>
-              )}
-            />
+                    </div>
+
+                    <Tooltip title="Remove from recent list">
+                      <Button
+                        danger
+                        type="text"
+                        icon={<DeleteOutlined />}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          hideRecentBill(bill.id);
+                        }}
+                      />
+                    </Tooltip>
+                  </div>
+                ))}
+              </div>
+            )}
           </Card>
         </div>
 
@@ -942,7 +994,7 @@ export default function Billing({ erp, user }) {
               </div>
 
               <Table
-                rowKey={(_, index) => `${_.name}-${index}`}
+                rowKey={(item) => `${item.id || item.product_id || item.name}-${item.price}-${item.qty}-${item.total}`}
                 columns={billDetailColumns}
                 dataSource={viewBill.items || []}
                 pagination={false}
@@ -999,28 +1051,25 @@ export default function Billing({ erp, user }) {
             className="billing-product-search"
           />
 
-          <List
-            className="billing-product-list"
-            dataSource={popupProducts}
-            locale={{
-              emptyText: (
-                <Empty
-                  description={
-                    availableProductCount === 0
-                      ? 'No products are currently available for billing.'
-                      : 'No matching products found'
-                  }
-                />
-              ),
-            }}
-            renderItem={(product) => {
-              const isSelected = selectedProducts[product.id] !== undefined;
-              const currentStock = getProductStock(product);
-              const remainingStock = getRemainingStockForCart(product);
-              const isDisabled = currentStock <= 0 || remainingStock <= 0;
+          <div className="billing-product-list">
+            {popupProducts.length === 0 ? (
+              <Empty
+                description={
+                  availableProductCount === 0
+                    ? 'No products are currently available for billing.'
+                    : 'No matching products found'
+                }
+              />
+            ) : (
+              popupProducts.map((product) => {
+                const isSelected = selectedProducts[product.id] !== undefined;
+                const currentStock = getProductStock(product);
+                const remainingStock = getRemainingStockForCart(product);
+                const isDisabled = currentStock <= 0 || remainingStock <= 0;
 
-              return (
-                <List.Item
+                return (
+                  <div
+                    key={product.id}
                   className={`billing-product-row ${isSelected ? 'selected' : ''} ${isDisabled ? 'disabled' : ''}`}
                   onClick={() => toggleProductSelection(product)}
                 >
@@ -1041,7 +1090,7 @@ export default function Billing({ erp, user }) {
                       )}
                     </Space>
                   </Space>
-                  <Space onClick={(event) => event.stopPropagation()}>
+                  <Space className="billing-product-actions" onClick={(event) => event.stopPropagation()}>
                     <Text className="billing-money">{formatCurrency(product.price)}</Text>
                     {isSelected && (
                       <InputNumber
@@ -1064,10 +1113,11 @@ export default function Billing({ erp, user }) {
                       />
                     )}
                   </Space>
-                </List.Item>
-              );
-            }}
-          />
+                  </div>
+                );
+              })
+            )}
+          </div>
 
           <Text type="secondary" className="billing-selected-count">
             Selected: <Text className="billing-bill-no">{Object.keys(selectedProducts).length}</Text> product(s)
