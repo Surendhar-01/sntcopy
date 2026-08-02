@@ -375,17 +375,23 @@ function buildShiftReportEmail({ report, shopName, paymentBreakdown, itemSummary
     .join('');
   const stockTotals = remainingStockSummary?.totals || {};
   const stockRows = (remainingStockSummary?.products || [])
-    .map((item) => `
-      <tr>
-        <td>${escapeHtml(item.name)}</td>
-        <td>${escapeHtml(item.category || item.cat || '')}</td>
-        <td style="text-align:right">${toNumber(item.estimatedOpeningStock)}</td>
-        <td style="text-align:right">${toNumber(item.soldInShift)}</td>
-        <td style="text-align:right">${toNumber(item.refilledInShift)}</td>
-        <td style="text-align:right">${toNumber(item.currentStock)}</td>
-        <td>${escapeHtml(item.status)}</td>
-      </tr>
-    `)
+    .map((item) => {
+      const quantitySold = toNumber(item.soldInShift);
+      const price = toNumber(item.price);
+      const totalSaleValue = quantitySold * price;
+      return `
+        <tr>
+          <td>${escapeHtml(item.name)}</td>
+          <td style="text-align:right">${quantitySold}</td>
+          <td style="text-align:right">Rs. ${price.toFixed(2)}</td>
+          <td style="text-align:right">Rs. ${totalSaleValue.toFixed(2)}</td>
+          <td style="text-align:right">${toNumber(item.estimatedOpeningStock)}</td>
+          <td style="text-align:right">${toNumber(item.refilledInShift)}</td>
+          <td style="text-align:right">${quantitySold}</td>
+          <td style="text-align:right">${toNumber(item.currentStock)}</td>
+        </tr>
+      `;
+    })
     .join('');
 
   const html = `
@@ -414,19 +420,20 @@ function buildShiftReportEmail({ report, shopName, paymentBreakdown, itemSummary
         <tbody>${itemRows || '<tr><td colspan="3">No products sold in this shift</td></tr>'}</tbody>
       </table>
       <h3>Remaining Stock</h3>
-      <table cellpadding="8" cellspacing="0" style="border-collapse:collapse;width:100%;max-width:920px;border:1px solid #e5e7eb">
+      <table cellpadding="8" cellspacing="0" style="border-collapse:collapse;width:100%;max-width:1120px;border:1px solid #e5e7eb">
         <thead>
           <tr style="background:#f3f4f6">
-            <th align="left">Product</th>
-            <th align="left">Category</th>
-            <th align="right">Opening</th>
-            <th align="right">Sold</th>
-            <th align="right">Refilled</th>
-            <th align="right">Closing</th>
-            <th align="left">Status</th>
+            <th align="left">Name of the Product</th>
+            <th align="right">Quantity Sold</th>
+            <th align="right">Price Per Product</th>
+            <th align="right">Total Sale Value Per Product</th>
+            <th align="right">Opening Stock</th>
+            <th align="right">Receipts</th>
+            <th align="right">Sales</th>
+            <th align="right">Closing Stock</th>
           </tr>
         </thead>
-        <tbody>${stockRows || '<tr><td colspan="7">No stock details available</td></tr>'}</tbody>
+        <tbody>${stockRows || '<tr><td colspan="8">No stock details available</td></tr>'}</tbody>
       </table>
     </div>
   `;
@@ -455,7 +462,11 @@ function buildShiftReportEmail({ report, shopName, paymentBreakdown, itemSummary
     '',
     'Remaining Stock:',
     ...((remainingStockSummary?.products || []).length
-      ? (remainingStockSummary.products || []).map((item) => `- ${item.name}: opening ${toNumber(item.estimatedOpeningStock)}, sold ${toNumber(item.soldInShift)}, refill ${toNumber(item.refilledInShift)}, closing ${toNumber(item.currentStock)} (${item.status})`)
+      ? (remainingStockSummary.products || []).map((item) => {
+        const quantitySold = toNumber(item.soldInShift);
+        const price = toNumber(item.price);
+        return `- ${item.name}: qty sold ${quantitySold}, price Rs. ${price.toFixed(2)}, total Rs. ${(quantitySold * price).toFixed(2)}, opening ${toNumber(item.estimatedOpeningStock)}, receipts ${toNumber(item.refilledInShift)}, sales ${quantitySold}, closing ${toNumber(item.currentStock)}`;
+      })
       : ['- No stock details available']),
     '',
     'Excel attachment includes: Shift Summary, Payment Breakdown, Remaining Stock, Sales Details.',

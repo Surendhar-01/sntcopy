@@ -110,16 +110,14 @@ async function generateShiftExcelReport(reportData, billRows, remainingStockSumm
    */
   const stockSheet = workbook.addWorksheet('Remaining Stock');
   stockSheet.columns = [
-    { header: 'Product', key: 'product', width: 40 },
-    { header: 'Category', key: 'category', width: 20 },
-    { header: 'Unit', key: 'unit', width: 15 },
-    { header: 'Price', key: 'price', width: 15 },
-    { header: 'Opening Stock', key: 'opening', width: 20 },
-    { header: 'Sales', key: 'sold', width: 15 },
-    { header: 'Purchases', key: 'refilled', width: 20 },
-    { header: 'Total Stock', key: 'total', width: 20 },
-    { header: 'Closing Stock', key: 'current', width: 15 },
-    { header: 'Status', key: 'status', width: 20 }
+    { header: 'Name of the Product', key: 'product', width: 42 },
+    { header: 'Quantity Sold', key: 'quantitySold', width: 18 },
+    { header: 'Price Per Product', key: 'price', width: 20 },
+    { header: 'Total Sale Value Per Product', key: 'saleValue', width: 28 },
+    { header: 'Opening Stock', key: 'opening', width: 18 },
+    { header: 'Receipts', key: 'receipts', width: 15 },
+    { header: 'Sales', key: 'sales', width: 15 },
+    { header: 'Closing Stock', key: 'closing', width: 18 }
   ];
 
   stockSheet.getRow(1).font = headerFont;
@@ -127,59 +125,29 @@ async function generateShiftExcelReport(reportData, billRows, remainingStockSumm
 
   const stockItems = remainingStockSummary?.products || [];
   stockItems.forEach(p => {
-    // Current stock calculations (Opening - sold + refilled)
     const openingStock = Number(p.openingStock ?? (p.estimatedOpeningStock ?? 0));
     const soldInShift = Number(p.soldInShift ?? (p.sold ?? 0));
     const refilledInShift = Number(p.refilledInShift ?? (p.refilled ?? 0));
-    const currentStock = openingStock - soldInShift + refilledInShift;
-    
-    let status = 'Healthy';
-    if (currentStock === 0) {
-      status = 'Out of Stock';
-    } else if (currentStock <= 5) {
-      status = 'Low Stock';
-    }
+    const price = Number(p.price || 0);
+    const currentStock = Number(p.currentStock ?? (openingStock - soldInShift + refilledInShift));
 
-    const row = stockSheet.addRow({
+    stockSheet.addRow({
       product: p.name || 'N/A',
-      category: p.category || p.cat || 'N/A',
-      unit: p.unit || 'N/A',
-      price: Number(p.price || 0),
+      quantitySold: soldInShift,
+      price,
+      saleValue: soldInShift * price,
       opening: openingStock,
-      sold: soldInShift,
-      refilled: refilledInShift,
-      total: null,
-      current: null,
-      status: status
+      receipts: refilledInShift,
+      sales: soldInShift,
+      closing: currentStock
     });
-
-    const targetRowNumber = row.number;
-    row.getCell('total').value = {
-      formula: `=E${targetRowNumber}+G${targetRowNumber}`,
-      result: openingStock + refilledInShift
-    };
-    row.getCell('current').value = {
-      formula: `=H${targetRowNumber}-F${targetRowNumber}`,
-      result: currentStock
-    };
-
-    const statusCell = row.getCell('status');
-    if (status === 'Low Stock') {
-      statusCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFE066' } };
-      statusCell.font = { color: { argb: 'FF9C5700' }, bold: true };
-    } else if (status === 'Out of Stock') {
-      statusCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFB3B3' } };
-      statusCell.font = { color: { argb: 'FFA80000' }, bold: true };
-    } else {
-      statusCell.font = { color: { argb: 'FF008000' }, bold: true };
-    }
   });
 
   stockSheet.eachRow((row, rowNumber) => {
     row.eachCell((cell, colNumber) => {
       cell.border = borderStyle;
-      cell.alignment = { vertical: 'middle', horizontal: 'left' };
-      if (rowNumber > 1 && colNumber === 4) {
+      cell.alignment = { vertical: 'middle', horizontal: colNumber > 1 ? 'right' : 'left' };
+      if (rowNumber > 1 && [3, 4].includes(colNumber)) {
         cell.numFmt = '"Rs" #,##0.00';
       }
     });
