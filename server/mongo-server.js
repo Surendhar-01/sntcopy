@@ -268,6 +268,12 @@ async function sendShiftReportEmail({ recipient, subject, text, html, attachment
     port: smtpConfig.port,
     secure: smtpConfig.secure,
     auth: smtpConfig.auth,
+    connectionTimeout: 30000,
+    greetingTimeout: 30000,
+    socketTimeout: 60000,
+    tls: {
+      servername: smtpConfig.host,
+    },
   });
 
   return transporter.sendMail({
