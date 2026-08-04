@@ -46,6 +46,59 @@ if (typeof document !== "undefined" && !document.getElementById("combined-dashbo
   document.head.appendChild(style);
 }
 
+const dashboardEqualCardStyles = `
+.dashboard-stat-card.ant-card {
+  height: 138px !important;
+}
+
+.dashboard-stat-card .ant-card-body {
+  height: 100% !important;
+  min-height: 0 !important;
+}
+
+.dashboard-stat-card .stat-card-inner {
+  min-height: 0 !important;
+}
+
+.dashboard-stat-card .stat-card-label {
+  min-height: 34px;
+  display: flex;
+  align-items: flex-start;
+}
+
+.dashboard-stat-card .ant-statistic,
+.dashboard-stat-card .stat-card-text-value {
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+}
+
+.dashboard-stat-card .stat-card-sub {
+  min-height: 18px;
+}
+
+.dashboard-stat-card .stat-card-icon-wrap {
+  flex: 0 0 48px;
+}
+
+@media (max-width: 480px) {
+  .dashboard-stat-card.ant-card {
+    height: 126px !important;
+  }
+
+  .dashboard-stat-card .ant-card-body {
+    padding: 16px !important;
+  }
+}
+`;
+
+if (typeof document !== "undefined" && !document.getElementById("dashboard-equal-card-styles")) {
+  const style = document.createElement("style");
+  style.id = "dashboard-equal-card-styles";
+  style.textContent = dashboardEqualCardStyles;
+  document.head.appendChild(style);
+}
+
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend, Filler);
 
 const { Title: AntTitle, Text } = Typography;
