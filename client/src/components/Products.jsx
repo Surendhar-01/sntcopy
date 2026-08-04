@@ -455,7 +455,7 @@ export default function Products({ db, erp, user }) {
                     <Tag color={stockMeta.color}>{stockMeta.label}</Tag>
                   </div>
 
-                  <Space direction="vertical" size={8} className="product-card-body">
+                  <Space orientation="vertical" size={8} className="product-card-body">
                     <div>
                       <Text type="secondary" className="product-code">
                         {p.code || "No code"}

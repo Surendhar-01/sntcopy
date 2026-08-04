@@ -323,7 +323,7 @@ export default function LoginActivity({ db, erp, user }) {
                 <Empty
                   image={<SafetyOutlined className="login-empty-icon" />}
                   description={
-                    <Space direction="vertical" size={4}>
+                    <Space orientation="vertical" size={4}>
                       <Text strong>{emptyTitle}</Text>
                       <Text type="secondary">{emptyDescription}</Text>
                     </Space>

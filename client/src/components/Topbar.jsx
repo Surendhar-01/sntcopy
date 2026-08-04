@@ -47,6 +47,7 @@ const mobileTopbarFixStyles = `
   .topbar .antd-theme-segmented {
     grid-area: theme !important;
     justify-self: start !important;
+    margin-left: 46px;
     max-width: 100%;
   }
 
@@ -88,6 +89,10 @@ const mobileTopbarFixStyles = `
     padding-inline: 12px !important;
   }
 
+  .topbar .antd-theme-segmented {
+    margin-left: 44px;
+  }
+
   .antd-theme-segmented .ant-segmented-item {
     min-width: 30px;
   }
@@ -100,6 +105,35 @@ const mobileTopbarFixStyles = `
     max-width: 72px;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+}
+
+@media (max-width: 340px) {
+  .topbar {
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    padding-inline: 10px !important;
+  }
+
+  .topbar .antd-theme-segmented {
+    margin-left: 42px;
+  }
+
+  .topbar .antd-avatar-btn.ant-btn {
+    padding-inline: 4px !important;
+  }
+
+  .topbar .avatar-name {
+    max-width: 58px;
+  }
+
+  .topbar .shift-action-wrap {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .topbar .antd-shift-btn.ant-btn {
+    width: 100%;
+    min-width: 0;
   }
 }
 `;

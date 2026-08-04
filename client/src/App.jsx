@@ -27,6 +27,272 @@ if (typeof document !== "undefined" && !document.getElementById("combined-app-st
   document.head.appendChild(style);
 }
 
+const mobileResponsiveStyles = `
+@media (max-width: 900px) {
+  html,
+  body,
+  #root {
+    width: 100%;
+    min-width: 0;
+    overflow-x: hidden;
+  }
+
+  .app-shell,
+  .main,
+  .content,
+  .page-header,
+  .card,
+  .table-wrap,
+  .ant-card,
+  .ant-card-body,
+  .ant-card-head,
+  .ant-card-head-wrapper,
+  .ant-card-head-title,
+  .ant-card-extra,
+  .ant-row,
+  .ant-col,
+  .ant-space,
+  .ant-table-wrapper,
+  .ant-form,
+  .ant-form-item,
+  .ant-form-item-control,
+  .ant-form-item-control-input,
+  .ant-form-item-control-input-content {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .app-shell {
+    width: 100%;
+  }
+
+  .main {
+    width: 100%;
+    margin-left: 0 !important;
+  }
+
+  .content {
+    width: 100%;
+    padding: 14px;
+  }
+
+  .ant-row {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  .ant-col {
+    flex: 1 1 100%;
+  }
+
+  .ant-card-head-wrapper,
+  .ant-space {
+    flex-wrap: wrap;
+  }
+
+  .ant-card-extra {
+    margin-left: 0 !important;
+    padding-top: 8px;
+  }
+
+  .grid,
+  .grid-2,
+  .grid-3,
+  .grid-4,
+  .grid-5,
+  .form-row,
+  .reports-grid,
+  .dashboard-grid,
+  .settings-grid,
+  .products-grid,
+  .billing-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .form-row,
+  .page-header,
+  .card-header,
+  .table-toolbar,
+  .customers-filters,
+  .sales-controls,
+  .reports-filters,
+  .billing-actions,
+  .products-actions,
+  .settings-actions {
+    flex-direction: column;
+    align-items: stretch !important;
+  }
+
+  .search-bar,
+  .search-box,
+  .sort-select,
+  .form-group,
+  .form-group input,
+  .form-group select,
+  .form-group textarea,
+  .ant-input,
+  .ant-input-affix-wrapper,
+  .ant-input-number,
+  .ant-picker,
+  .ant-select,
+  .ant-space,
+  .ant-btn-block,
+  .btn-full {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .table-wrap,
+  .ant-table-wrapper,
+  .ant-table-container,
+  .ant-table-content {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .data-table,
+  .ant-table table {
+    min-width: 680px;
+  }
+
+  .ant-table-thead > tr > th,
+  .ant-table-tbody > tr > td,
+  .data-table th,
+  .data-table td {
+    padding: 10px 12px !important;
+    font-size: 0.8rem !important;
+    white-space: nowrap;
+  }
+
+  .modal-overlay {
+    align-items: flex-start;
+    padding: 10px;
+    overflow-y: auto;
+  }
+
+  .modal,
+  .ant-modal {
+    width: calc(100vw - 20px) !important;
+    max-width: calc(100vw - 20px) !important;
+    min-width: 0 !important;
+    margin: 10px auto !important;
+  }
+
+  .modal,
+  .ant-modal-content {
+    max-height: calc(100dvh - 20px);
+    overflow-y: auto;
+  }
+
+  .modal,
+  .ant-modal-body,
+  .ant-modal-header,
+  .ant-modal-footer {
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+  }
+
+  .ant-modal-footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .ant-modal-footer .ant-btn {
+    flex: 1 1 120px;
+  }
+}
+
+@media (max-width: 480px) {
+  .content {
+    padding: 12px 10px 16px;
+  }
+
+  .page-header {
+    margin-bottom: 14px;
+    padding: 0;
+  }
+
+  .page-title {
+    font-size: 1.22rem;
+    line-height: 1.25;
+  }
+
+  .page-description {
+    font-size: 0.84rem;
+    line-height: 1.45;
+  }
+
+  .card,
+  .ant-card-body {
+    padding: 12px !important;
+  }
+
+  .stat-card {
+    padding: 14px;
+  }
+
+  .stat-value {
+    font-size: 1.45rem;
+  }
+
+  .btn,
+  .ant-btn {
+    min-height: 38px;
+    white-space: normal;
+  }
+
+  .tabs {
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .tab {
+    flex: 0 0 auto;
+    padding: 8px 12px;
+    font-size: 0.86rem;
+  }
+
+  .empty-state {
+    padding: 28px 14px;
+  }
+
+  .ant-pagination {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 340px) {
+  .content {
+    padding-inline: 8px;
+  }
+
+  .card,
+  .ant-card-body {
+    padding: 10px !important;
+  }
+
+  .page-title {
+    font-size: 1.12rem;
+  }
+
+  .ant-table-thead > tr > th,
+  .ant-table-tbody > tr > td,
+  .data-table th,
+  .data-table td {
+    padding: 8px 10px !important;
+  }
+}
+`;
+
+if (typeof document !== "undefined" && !document.getElementById("mobile-responsive-styles")) {
+  const style = document.createElement("style");
+  style.id = "mobile-responsive-styles";
+  style.textContent = mobileResponsiveStyles;
+  document.head.appendChild(style);
+}
+
 // Memoize page components outside render loop to maintain component identities
 const Dashboard = React.memo(DashboardPage);
 const Billing = React.memo(BillingPage);

@@ -830,12 +830,46 @@ const introStyles = `
   .login-popup-card {
     width: 100%;
     max-height: none;
+    overflow-x: hidden;
   }
 
   .login-popup-card #loginPage,
   .login-popup-card .login-left-panel,
   .login-popup-card .login-right-panel {
     min-height: auto;
+  }
+
+  .login-popup-card #loginPage {
+    grid-template-columns: minmax(0, 1fr) !important;
+    width: 100%;
+    overflow: visible;
+  }
+
+  .login-popup-card .login-left-panel {
+    display: none;
+  }
+
+  .login-popup-card .login-right-panel {
+    width: 100%;
+    min-width: 0;
+    justify-content: flex-start;
+    padding: 72px 22px 28px;
+  }
+
+  .login-popup-card .login-box,
+  .login-popup-card .ant-form,
+  .login-popup-card .ant-form-item,
+  .login-popup-card .ant-form-item-control,
+  .login-popup-card .ant-form-item-control-input,
+  .login-popup-card .ant-form-item-control-input-content {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .login-popup-card .ant-input-affix-wrapper.antd-input,
+  .login-popup-card .antd-login-btn.ant-btn {
+    width: 100%;
+    max-width: 100%;
   }
 }
 `;

@@ -646,7 +646,7 @@ export default function Billing({ erp, user }) {
       key: 'name',
       width: 280,
       render: (name, item) => (
-        <Space direction="vertical" size={2} className="billing-item-cell">
+        <Space orientation="vertical" size={2} className="billing-item-cell">
           <Text className="billing-item-name">{name}</Text>
           <Text type="secondary">{formatCurrency(item.price)}</Text>
         </Space>
@@ -913,7 +913,7 @@ export default function Billing({ erp, user }) {
                           })}
                         </Text>
                       </Space>
-                      <Space direction="vertical" size={8} className="billing-recent-copy">
+                      <Space orientation="vertical" size={8} className="billing-recent-copy">
                         <Text className="billing-item-name">{bill.customer}</Text>
                         <Space>
                           <Tag color="green">{bill.payment}</Tag>
@@ -1080,7 +1080,7 @@ export default function Billing({ erp, user }) {
                       onClick={(event) => event.stopPropagation()}
                       onChange={() => toggleProductSelection(product)}
                     />
-                    <Space direction="vertical" size={2}>
+                    <Space orientation="vertical" size={2}>
                       <Text className="billing-item-name">{product.name}</Text>
                       {product.code && <Text type="secondary">{product.code}</Text>}
                       {currentStock > 0 ? (

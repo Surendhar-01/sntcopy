@@ -41,6 +41,23 @@ if (typeof document !== "undefined" && !document.getElementById("combined-settin
   document.head.appendChild(style);
 }
 
+const settingsCompatibilityStyles = `
+.settings-gst-suffix.ant-btn[disabled] {
+  width: 44px;
+  color: var(--text2) !important;
+  background: var(--input-bg) !important;
+  border-color: var(--input-border) !important;
+  cursor: default;
+}
+`;
+
+if (typeof document !== "undefined" && !document.getElementById("settings-compatibility-styles")) {
+  const style = document.createElement("style");
+  style.id = "settings-compatibility-styles";
+  style.textContent = settingsCompatibilityStyles;
+  document.head.appendChild(style);
+}
+
 const EMPTY_ACCOUNTS = [];
 const DEFAULT_SETTINGS = {
   shop: "",
@@ -560,10 +577,12 @@ export default function Settings({ db, erp }) {
                 min={0}
                 step={0.1}
                 value={gstValue}
-                addonAfter="%"
                 className="settings-gst-input"
                 onChange={(value) => setGstValue(Number(value ?? 0))}
               />
+              <Button disabled className="settings-gst-suffix">
+                %
+              </Button>
               <Button
                 type="primary"
                 icon={<SaveOutlined />}
