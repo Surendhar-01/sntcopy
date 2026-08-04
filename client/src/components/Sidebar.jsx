@@ -79,6 +79,31 @@ if (typeof document !== "undefined" && !document.getElementById("sidebar-interac
   document.head.appendChild(style);
 }
 
+const sidebarMobileFabStyles = `
+.sidebar-fab .anticon,
+.sidebar-fab svg {
+  color: #ffffff !important;
+  fill: currentColor !important;
+  font-size: 15px !important;
+}
+
+.sidebar-fab {
+  width: 36px !important;
+  height: 36px !important;
+  top: 15px !important;
+  left: 14px !important;
+  border-radius: 10px !important;
+  color: #ffffff !important;
+}
+`;
+
+if (typeof document !== "undefined" && !document.getElementById("sidebar-mobile-fab-styles")) {
+  const style = document.createElement("style");
+  style.id = "sidebar-mobile-fab-styles";
+  style.textContent = sidebarMobileFabStyles;
+  document.head.appendChild(style);
+}
+
 function isVisible(item, user) {
   return typeof item.visible === 'function' ? item.visible(user) : true;
 }
@@ -145,8 +170,8 @@ export default function Sidebar({ currentPage, setCurrentPage, user, onLogout })
         aria-label={isMobileOpen ? 'Close navigation' : 'Open navigation'}
       >
         {isMobileOpen
-          ? <MenuFoldOutlined style={{ fontSize: 18, color: '#fff' }} />
-          : <MenuUnfoldOutlined style={{ fontSize: 18, color: '#fff' }} />
+          ? <MenuFoldOutlined style={{ fontSize: 15, color: '#fff' }} />
+          : <MenuUnfoldOutlined style={{ fontSize: 15, color: '#fff' }} />
         }
       </button>
 

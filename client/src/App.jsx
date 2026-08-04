@@ -160,9 +160,16 @@ const mobileResponsiveStyles = `
   .ant-table-tbody > tr > td,
   .data-table th,
   .data-table td {
-    padding: 10px 12px !important;
+    height: auto !important;
+    min-height: 0 !important;
+    padding: 8px 10px !important;
     font-size: 0.8rem !important;
+    line-height: 1.3 !important;
     white-space: nowrap;
+  }
+
+  .ant-table-tbody > tr {
+    height: 42px !important;
   }
 
   .modal-overlay {
@@ -281,7 +288,11 @@ const mobileResponsiveStyles = `
   .ant-table-tbody > tr > td,
   .data-table th,
   .data-table td {
-    padding: 8px 10px !important;
+    padding: 7px 9px !important;
+  }
+
+  .ant-table-tbody > tr {
+    height: 38px !important;
   }
 }
 `;
@@ -290,6 +301,140 @@ if (typeof document !== "undefined" && !document.getElementById("mobile-responsi
   const style = document.createElement("style");
   style.id = "mobile-responsive-styles";
   style.textContent = mobileResponsiveStyles;
+  document.head.appendChild(style);
+}
+
+const mobileResponsiveHardeningStyles = `
+@media (max-width: 900px) {
+  img,
+  video,
+  canvas,
+  svg {
+    max-width: 100%;
+  }
+
+  .content > *,
+  .ant-card,
+  .ant-card-body,
+  .ant-space-item,
+  .ant-flex,
+  .ant-typography,
+  .ant-statistic,
+  .ant-statistic-content,
+  .ant-list,
+  .ant-list-item,
+  .ant-form-item-row,
+  .ant-form-item-label,
+  .ant-form-item-control {
+    min-width: 0;
+  }
+
+  .ant-typography,
+  .ant-card-head-title,
+  .ant-statistic-title,
+  .ant-statistic-content,
+  .page-title,
+  .page-description,
+  .card-title {
+    overflow-wrap: anywhere;
+  }
+
+  .ant-table-wrapper,
+  .ant-table,
+  .ant-table-container {
+    max-width: 100%;
+  }
+
+  .ant-table-pagination.ant-pagination {
+    flex-wrap: wrap;
+    gap: 6px 4px;
+    margin: 12px 8px !important;
+  }
+
+  .ant-pagination-options,
+  .ant-pagination-total-text {
+    display: none !important;
+  }
+
+  .ant-segmented {
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .ant-segmented-group {
+    min-width: 0;
+  }
+
+  .ant-card-head {
+    min-width: 0;
+  }
+
+  .ant-card-head-wrapper {
+    gap: 8px;
+  }
+
+  .ant-form-item-label {
+    padding-bottom: 4px !important;
+  }
+
+  .ant-form-item-label > label {
+    min-height: 0;
+    white-space: normal;
+  }
+
+  .ant-input-number-group-wrapper,
+  .ant-input-number-affix-wrapper,
+  .ant-input-number {
+    max-width: 100%;
+  }
+
+  .ant-picker-dropdown,
+  .ant-select-dropdown {
+    max-width: calc(100vw - 16px);
+  }
+
+  .ant-modal-root .ant-modal-wrap {
+    padding: 8px;
+  }
+
+  .ant-modal-root .ant-modal {
+    top: 0;
+    padding-bottom: 0;
+  }
+}
+
+@media (max-width: 380px) {
+  .content {
+    padding: 10px 8px 14px;
+  }
+
+  .ant-card-head {
+    padding-inline: 12px !important;
+  }
+
+  .ant-card-head-title {
+    font-size: 0.96rem;
+  }
+
+  .ant-btn {
+    padding-inline: 10px;
+  }
+
+  .ant-input,
+  .ant-input-affix-wrapper,
+  .ant-input-number,
+  .ant-picker,
+  .ant-select-selector {
+    min-height: 36px;
+  }
+}
+`;
+
+if (typeof document !== "undefined" && !document.getElementById("mobile-responsive-hardening-styles")) {
+  const style = document.createElement("style");
+  style.id = "mobile-responsive-hardening-styles";
+  style.textContent = mobileResponsiveHardeningStyles;
   document.head.appendChild(style);
 }
 

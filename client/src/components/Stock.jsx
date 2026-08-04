@@ -32,6 +32,110 @@ if (typeof document !== "undefined" && !document.getElementById("combined-stock-
   document.head.appendChild(style);
 }
 
+const stockMobileCompactStyles = `
+@media (max-width: 768px) {
+  .stock-table-card .ant-table-measure-row,
+  .stock-table-card .ant-table-measure-row td {
+    height: 0 !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    visibility: collapse !important;
+  }
+
+  .stock-table-card .ant-table-tbody > tr {
+    height: 38px !important;
+  }
+
+  .stock-table-card .ant-table-thead > tr > th,
+  .stock-table-card .ant-table-tbody > tr > td {
+    height: 38px !important;
+    min-height: 0 !important;
+    padding: 0 10px !important;
+    line-height: 1.25 !important;
+    vertical-align: middle !important;
+  }
+
+  .stock-table-card .ant-card-head {
+    min-height: 48px;
+    padding-inline: 14px;
+  }
+
+  .stock-table-card .ant-card-head-title,
+  .stock-table-card .ant-card-extra {
+    padding-block: 8px;
+  }
+
+  .stock-table-card .ant-card-head-wrapper {
+    align-items: center;
+  }
+
+  .stock-table-card .ant-card-extra .ant-btn {
+    height: 34px;
+    min-height: 34px;
+    padding-inline: 12px;
+    font-size: 0.86rem;
+  }
+
+  .stock-table-card .ant-pagination {
+    margin: 10px 12px 12px !important;
+  }
+
+  .stock-management-card .ant-table-tbody > tr {
+    height: 56px !important;
+  }
+
+  .stock-management-card .ant-table-tbody > tr > td {
+    height: 56px !important;
+    padding: 6px 10px !important;
+    line-height: 1.3 !important;
+  }
+
+  .stock-management-card .ant-table-thead > tr > th {
+    height: 40px !important;
+    padding-block: 8px !important;
+  }
+
+  .stock-management-card .stock-product-cell {
+    gap: 10px !important;
+  }
+
+  .stock-management-card .stock-product-avatar {
+    width: 34px;
+    height: 34px;
+    flex-basis: 34px;
+    min-width: 34px;
+    font-size: 0.72rem;
+  }
+
+  .stock-management-card .stock-product-code {
+    margin-top: 2px;
+  }
+
+  .stock-refill-card .ant-table-tbody > tr {
+    height: 56px !important;
+  }
+
+  .stock-refill-card .ant-table-tbody > tr > td {
+    height: 56px !important;
+    padding: 6px 10px !important;
+    line-height: 1.3 !important;
+  }
+
+  .stock-refill-card .ant-table-thead > tr > th {
+    height: 40px !important;
+    padding-block: 8px !important;
+  }
+}
+`;
+
+if (typeof document !== "undefined" && !document.getElementById("stock-mobile-compact-styles")) {
+  const style = document.createElement("style");
+  style.id = "stock-mobile-compact-styles";
+  style.textContent = stockMobileCompactStyles;
+  document.head.appendChild(style);
+}
+
 const { Text, Title } = Typography;
 
 const EMPTY_PRODUCTS = [];
@@ -363,7 +467,7 @@ export default function Stock({ db, erp, user }) {
 
       <div className="stock-page">
         <Card
-          className="stock-table-card"
+          className="stock-table-card stock-management-card"
           title={
             <Space>
               <InboxOutlined />
@@ -385,7 +489,7 @@ export default function Stock({ db, erp, user }) {
         </Card>
 
         <Card
-          className="stock-table-card"
+          className="stock-table-card stock-refill-card"
           title={
             <Space>
               <HistoryOutlined />
@@ -408,6 +512,7 @@ export default function Stock({ db, erp, user }) {
             rowKey="id"
             columns={refillColumns}
             dataSource={refills}
+            size="small"
             pagination={{ pageSize: 6, showSizeChanger: false }}
             scroll={{ x: 960 }}
             tableLayout="fixed"

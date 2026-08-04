@@ -98,6 +98,63 @@ if (typeof document !== "undefined" && !document.getElementById("billing-product
   document.head.appendChild(style);
 }
 
+const billingActionsMobileStyles = `
+.billing-actions.ant-space {
+  display: grid !important;
+  width: auto !important;
+  max-width: none !important;
+  box-sizing: border-box;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px !important;
+  align-items: stretch;
+}
+
+.billing-actions .ant-space-item {
+  min-width: 0;
+}
+
+.billing-actions .ant-btn {
+  width: 100%;
+  min-width: 0;
+  min-height: 42px;
+  justify-content: center;
+  border-radius: 8px;
+  font-weight: 700;
+  white-space: normal;
+}
+
+@media (max-width: 640px) {
+  .billing-actions.ant-space {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin: 0 16px 16px;
+  }
+
+  .billing-actions .ant-btn {
+    min-height: 44px;
+    padding-inline: 10px;
+  }
+}
+
+@media (max-width: 340px) {
+  .billing-actions.ant-space {
+    gap: 8px !important;
+    margin-inline: 12px;
+  }
+
+  .billing-actions .ant-btn {
+    min-height: 42px;
+    font-size: 0.82rem;
+  }
+}
+`;
+
+if (typeof document !== "undefined" && !document.getElementById("billing-actions-mobile-styles")) {
+  const style = document.createElement("style");
+  style.id = "billing-actions-mobile-styles";
+  style.textContent = billingActionsMobileStyles;
+  document.head.appendChild(style);
+}
+
 const formatCurrency = (value) => `Rs. ${Number(value || 0).toFixed(2)}`;
 const isSameUserName = (left, right) =>
   String(left || '').trim().toLowerCase() === String(right || '').trim().toLowerCase();

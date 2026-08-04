@@ -4,7 +4,6 @@ import {
   BulbOutlined,
   MoonOutlined,
   DesktopOutlined,
-  UserOutlined,
   LogoutOutlined,
   ThunderboltOutlined,
   PlayCircleOutlined,
@@ -26,14 +25,13 @@ const mobileTopbarFixStyles = `
 @media (max-width: 600px) {
   .topbar {
     display: grid !important;
-    grid-template-columns: minmax(0, 1fr) auto !important;
+    grid-template-columns: minmax(104px, 1fr) auto auto !important;
     grid-template-areas:
-      "theme user"
-      "shift shift" !important;
+      "shift theme user" !important;
     align-items: center !important;
-    gap: 10px 12px !important;
-    padding: 10px 14px !important;
-    min-height: 110px;
+    gap: 7px !important;
+    padding: 12px 12px 10px 62px !important;
+    min-height: 66px;
   }
 
   .topbar-project-title {
@@ -46,59 +44,100 @@ const mobileTopbarFixStyles = `
 
   .topbar .antd-theme-segmented {
     grid-area: theme !important;
-    justify-self: start !important;
-    margin-left: 46px;
+    justify-self: end !important;
+    height: 36px;
+    min-width: 96px;
+    margin-left: 0;
     max-width: 100%;
+  }
+
+  .topbar .antd-theme-segmented .ant-segmented-group,
+  .topbar .antd-theme-segmented .ant-segmented-item,
+  .topbar .antd-theme-segmented .ant-segmented-item-label {
+    min-height: 28px;
+  }
+
+  .topbar .antd-theme-segmented .ant-segmented-item {
+    min-width: 31px;
+  }
+
+  .topbar .antd-theme-segmented .ant-segmented-item-label {
+    padding: 0 7px;
+    font-size: 13px;
   }
 
   .topbar .topbar-user-menu {
     grid-area: user !important;
     justify-self: end !important;
+    align-self: center !important;
   }
 
   .topbar .shift-action-wrap {
     grid-area: shift !important;
     width: 100%;
-    display: grid !important;
-    grid-template-columns: auto minmax(0, 1fr);
+    min-width: 0;
+    display: flex !important;
     align-items: center;
-    gap: 10px;
+    justify-content: flex-start;
+    gap: 5px;
+    padding-left: 0;
   }
 
   .topbar .shift-duration {
-    justify-self: start;
-    font-size: 0.82rem;
+    flex: 0 0 auto;
+    min-width: 48px;
+    font-size: 0.68rem;
+    line-height: 1;
+    text-align: right;
   }
 
   .topbar .antd-shift-btn.ant-btn {
-    justify-self: start;
-    min-width: 128px;
-    height: 40px;
-    padding-inline: 18px !important;
+    flex: 0 0 62px;
+    width: auto;
+    min-width: 0;
+    height: 38px;
+    border-radius: 14px !important;
+    padding-inline: 6px !important;
+    font-size: 0.68rem !important;
+    line-height: 1.05 !important;
   }
 
   .topbar .antd-avatar-btn.ant-btn {
-    height: 40px;
-    padding: 2px 6px !important;
+    width: 36px;
+    height: 36px;
+    padding: 0 !important;
   }
+
+  .topbar .antd-avatar-btn .ant-space {
+    gap: 0 !important;
+  }
+
+  .topbar .antd-topbar-avatar.ant-avatar {
+    width: 32px !important;
+    height: 32px !important;
+    line-height: 32px !important;
+    font-size: 0.82rem !important;
+  }
+
+  .topbar .avatar-name {
+    display: none;
+  }
+
 }
 
 @media (max-width: 380px) {
   .topbar {
-    gap: 8px !important;
-    padding-inline: 12px !important;
-  }
-
-  .topbar .antd-theme-segmented {
-    margin-left: 44px;
+    grid-template-columns: minmax(98px, 1fr) auto auto !important;
+    gap: 6px !important;
+    padding: 11px 10px 9px 58px !important;
   }
 
   .antd-theme-segmented .ant-segmented-item {
-    min-width: 30px;
+    min-width: 26px;
   }
 
   .antd-theme-segmented .ant-segmented-item-label {
-    padding: 0 7px;
+    padding: 0 5px;
   }
 
   .topbar .avatar-name {
@@ -110,30 +149,63 @@ const mobileTopbarFixStyles = `
 
 @media (max-width: 340px) {
   .topbar {
-    grid-template-columns: minmax(0, 1fr) auto !important;
-    padding-inline: 10px !important;
+    grid-template-columns: minmax(94px, 1fr) auto auto !important;
+    padding: 10px 8px 8px 56px !important;
+    gap: 5px !important;
+  }
+
+  .topbar .shift-action-wrap {
+    gap: 4px;
+    padding-left: 0;
+  }
+
+  .topbar .shift-duration {
+    min-width: 44px;
+    font-size: 0.62rem;
   }
 
   .topbar .antd-theme-segmented {
-    margin-left: 42px;
+    height: 36px;
+    min-width: 88px;
+  }
+
+  .topbar .antd-theme-segmented .ant-segmented-group,
+  .topbar .antd-theme-segmented .ant-segmented-item,
+  .topbar .antd-theme-segmented .ant-segmented-item-label {
+    min-height: 28px;
+  }
+
+  .topbar .antd-theme-segmented .ant-segmented-item {
+    min-width: 27px;
+  }
+
+  .topbar .antd-theme-segmented .ant-segmented-item-label {
+    padding: 0 5px;
   }
 
   .topbar .antd-avatar-btn.ant-btn {
-    padding-inline: 4px !important;
+    width: 36px;
+    height: 36px;
+  }
+
+  .topbar .antd-topbar-avatar.ant-avatar {
+    width: 32px !important;
+    height: 32px !important;
+    line-height: 32px !important;
   }
 
   .topbar .avatar-name {
     max-width: 58px;
   }
 
-  .topbar .shift-action-wrap {
-    grid-template-columns: 1fr;
-    gap: 6px;
-  }
-
   .topbar .antd-shift-btn.ant-btn {
-    width: 100%;
+    flex-basis: 56px;
     min-width: 0;
+    height: 34px;
+    border-radius: 12px !important;
+    padding-inline: 5px !important;
+    font-size: 0.62rem !important;
+    line-height: 1 !important;
   }
 }
 `;
@@ -433,7 +505,6 @@ export default function Topbar({ user, roleLayout, erp, session, setUser, setSes
                 <Avatar
                   size={30}
                   className="antd-topbar-avatar"
-                  icon={<UserOutlined />}
                 >
                   {avatarInitial}
                 </Avatar>

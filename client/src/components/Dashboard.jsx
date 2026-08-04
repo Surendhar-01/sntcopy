@@ -83,11 +83,50 @@ const dashboardEqualCardStyles = `
 
 @media (max-width: 480px) {
   .dashboard-stat-card.ant-card {
-    height: 126px !important;
+    height: auto !important;
+    min-height: 112px !important;
   }
 
   .dashboard-stat-card .ant-card-body {
-    padding: 16px !important;
+    padding: 14px 18px !important;
+    min-height: 0 !important;
+  }
+
+  .dashboard-stat-card .stat-card-inner {
+    gap: 10px;
+    min-height: 84px !important;
+  }
+
+  .dashboard-stat-card .stat-card-label {
+    min-height: 22px;
+    margin-bottom: 4px;
+  }
+
+  .dashboard-stat-card .ant-statistic,
+  .dashboard-stat-card .stat-card-text-value {
+    min-height: 30px;
+  }
+
+  .dashboard-stat-card .stat-card-sub {
+    min-height: 16px;
+    margin-top: 2px;
+  }
+
+  .dashboard-stat-card .stat-card-icon-wrap {
+    width: 42px;
+    height: 42px;
+    flex-basis: 42px;
+    min-width: 42px;
+  }
+
+  .dashboard-stat-card .stat-card-icon-wrap .anticon,
+  .dashboard-stat-card .stat-card-icon-wrap svg {
+    font-size: 28px !important;
+  }
+
+  .dashboard-antd-wrap > .ant-row {
+    row-gap: 10px !important;
+    margin-bottom: 10px !important;
   }
 }
 `;
