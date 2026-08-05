@@ -1,30 +1,17 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { SidebarContext as SidebarContextValue } from './useSidebar';
 
-const SIDEBAR_PIN_KEY = 'sri_nikil_sidebar_pinned';
 const MOBILE_MEDIA_QUERY = '(max-width: 900px)';
 
-function readStoredSidebarPinned() {
-  try {
-    return localStorage.getItem(SIDEBAR_PIN_KEY) === 'true';
-  } catch {
-    return false;
-  }
-}
-
 export function SidebarProvider({ children }) {
-  const [isPinned, setIsPinned] = useState(readStoredSidebarPinned);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(() => (
     typeof window !== 'undefined' ? window.matchMedia(MOBILE_MEDIA_QUERY).matches : false
   ));
 
-  const isExpanded = isMobile ? isMobileOpen : true;
-  const isCollapsed = !isMobile && !isExpanded;
-
-  useEffect(() => {
-    localStorage.setItem(SIDEBAR_PIN_KEY, String(isPinned));
-  }, [isPinned]);
+  const isExpanded = isMobile ? isMobileOpen : !isCollapsed;
+  const isCollapsedForView = !isMobile && isCollapsed;
 
   useEffect(() => {
     const mediaQuery = window.matchMedia(MOBILE_MEDIA_QUERY);
@@ -58,26 +45,35 @@ export function SidebarProvider({ children }) {
   }, [isMobile]);
 
   const closeMobileSidebar = useCallback(() => setIsMobileOpen(false), []);
-  const togglePin = useCallback(() => setIsPinned((current) => !current), []);
+  const setMobileSidebarOpen = useCallback((open) => setIsMobileOpen(Boolean(open)), []);
+  const toggleSidebar = useCallback(() => {
+    if (isMobile) {
+      setIsMobileOpen((current) => !current);
+      return;
+    }
+
+    setIsCollapsed((current) => !current);
+  }, [isMobile]);
 
   const value = useMemo(() => ({
     closeMobileSidebar,
-    isCollapsed,
+    isCollapsed: isCollapsedForView,
     isExpanded,
     isMobile,
     isMobileOpen,
-    isPinned,
+    setMobileSidebarOpen,
     toggleMobileSidebar,
-    togglePin
+    toggleSidebar,
+    togglePin: toggleSidebar
   }), [
     closeMobileSidebar,
-    isCollapsed,
+    isCollapsedForView,
     isExpanded,
     isMobile,
     isMobileOpen,
-    isPinned,
+    setMobileSidebarOpen,
     toggleMobileSidebar,
-    togglePin
+    toggleSidebar
   ]);
 
   return (

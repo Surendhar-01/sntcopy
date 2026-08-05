@@ -243,8 +243,8 @@ export default function LoginActivity({ db, erp, user }) {
         <Popconfirm
           title="Delete login log?"
           description="This login activity record will be removed."
-          okText="Delete"
-          cancelText="Cancel"
+          okText="Yes"
+          cancelText="No"
           okButtonProps={{ danger: true }}
           onConfirm={() => handleDeleteLog(log.id)}
         >
@@ -299,16 +299,25 @@ export default function LoginActivity({ db, erp, user }) {
             </Space>
           }
           extra={
-            <Button
-              danger
-              icon={<DeleteOutlined />}
-              onClick={() => setShowClearConfirm(true)}
+            <Popconfirm
+              title="Clear login activity?"
+              description={clearMessage}
+              okText="Yes"
+              cancelText="No"
+              okButtonProps={{ danger: true }}
+              onConfirm={handleClearLogs}
               disabled={!loginLogs.length || isClearing}
-              loading={isClearing}
-              className="login-clear-btn"
             >
-              {clearLabel}
-            </Button>
+              <Button
+                danger
+                icon={<DeleteOutlined />}
+                disabled={!loginLogs.length || isClearing}
+                loading={isClearing}
+                className="login-clear-btn"
+              >
+                {clearLabel}
+              </Button>
+            </Popconfirm>
           }
         >
           <Table

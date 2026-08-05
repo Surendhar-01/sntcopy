@@ -410,8 +410,8 @@ export default function Pricing({ db, erp, user }) {
         <Popconfirm
           title="Delete log?"
           description="This price change entry will be removed."
-          okText="Delete"
-          cancelText="Cancel"
+          okText="Yes"
+          cancelText="No"
           okButtonProps={{ danger: true }}
           onConfirm={() => deleteHistory(history.id)}
         >
@@ -489,15 +489,24 @@ export default function Pricing({ db, erp, user }) {
             </Space>
           }
           extra={
-            <Button
-              danger
-              icon={<DeleteOutlined />}
-              onClick={() => setShowClearConfirm(true)}
+            <Popconfirm
+              title="Clear price history?"
+              description="Clear all price history records permanently?"
+              okText="Yes"
+              cancelText="No"
+              okButtonProps={{ danger: true }}
+              onConfirm={handleClearLog}
               disabled={!priceHistory.length || isClearing}
-              loading={isClearing}
             >
-              Clear
-            </Button>
+              <Button
+                danger
+                icon={<DeleteOutlined />}
+                disabled={!priceHistory.length || isClearing}
+                loading={isClearing}
+              >
+                Clear
+              </Button>
+            </Popconfirm>
           }
         >
           <Table

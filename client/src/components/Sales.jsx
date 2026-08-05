@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   CalendarOutlined,
   FileTextOutlined,
+  SyncOutlined,
   SearchOutlined,
   SortAscendingOutlined,
 } from "@ant-design/icons";
@@ -273,7 +274,7 @@ export default function Sales({ db, fetchBills, user }) {
               suffixIcon={<SortAscendingOutlined />}
               className="sales-sort"
             />
-            <Button onClick={resetFilters}>Reset</Button>
+            <Button icon={<SyncOutlined />} onClick={resetFilters}>Reset</Button>
           </Space>
           <Text type="secondary" className="sales-result-count">
             Showing {filteredBills.length} of {bills.length} bills

@@ -1,14 +1,15 @@
 import React, { useEffect, useEffectEvent, useMemo, useState } from 'react';
 import {
-  CloseOutlined,
+  ClearOutlined,
   DeleteOutlined,
-  EyeOutlined,
+  CloseCircleOutlined,
   FileAddOutlined,
+  FileDoneOutlined,
+  FileSearchOutlined,
   FileTextOutlined,
   MinusOutlined,
   PlusOutlined,
   PrinterOutlined,
-  SaveOutlined,
   SearchOutlined,
   ShopOutlined,
   ShoppingCartOutlined,
@@ -23,6 +24,7 @@ import {
   Input,
   InputNumber,
   Modal,
+  Popconfirm,
   Select,
   Space,
   Table,
@@ -749,14 +751,22 @@ export default function Billing({ erp, user }) {
       align: 'center',
       width: 80,
       render: (_, item, index) => (
-        <Tooltip title="Remove item">
-          <Button
-            danger
-            type="text"
-            icon={<DeleteOutlined />}
-            onClick={() => removeItem(index)}
-          />
-        </Tooltip>
+        <Popconfirm
+          title="Remove item?"
+          description="This item will be removed from the bill."
+          okText="Yes"
+          cancelText="No"
+          okButtonProps={{ danger: true }}
+          onConfirm={() => removeItem(index)}
+        >
+          <Tooltip title="Remove item">
+            <Button
+              danger
+              type="text"
+              icon={<DeleteOutlined />}
+            />
+          </Tooltip>
+        </Popconfirm>
       ),
     },
   ];
@@ -922,18 +932,28 @@ export default function Billing({ erp, user }) {
               </div>
 
               <Space wrap className="billing-actions">
-                <Button type="primary" icon={<SaveOutlined />} onClick={handleSaveBill}>
+                <Button type="primary" icon={<FileDoneOutlined />} onClick={handleSaveBill}>
                   Save Bill
                 </Button>
-                <Button icon={<EyeOutlined />} onClick={reviewBill}>
+                <Button icon={<FileSearchOutlined />} onClick={reviewBill}>
                   Review Bill
                 </Button>
                 <Button icon={<PrinterOutlined />} onClick={printBill}>
                   Print Bill
                 </Button>
-                <Button danger icon={<CloseOutlined />} onClick={() => setItems([])}>
-                  Clear
-                </Button>
+                <Popconfirm
+                  title="Clear bill items?"
+                  description="All items in this bill will be removed."
+                  okText="Yes"
+                  cancelText="No"
+                  okButtonProps={{ danger: true }}
+                  onConfirm={() => setItems([])}
+                  disabled={!items.length}
+                >
+                  <Button danger icon={<ClearOutlined />} disabled={!items.length}>
+                    Clear
+                  </Button>
+                </Popconfirm>
               </Space>
             </Card>
           </div>
@@ -979,17 +999,26 @@ export default function Billing({ erp, user }) {
                       </Space>
                     </div>
 
-                    <Tooltip title="Remove from recent list">
-                      <Button
-                        danger
-                        type="text"
-                        icon={<DeleteOutlined />}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          hideRecentBill(bill.id);
-                        }}
-                      />
-                    </Tooltip>
+                    <Popconfirm
+                      title="Remove recent bill?"
+                      description="This bill will be hidden from the recent list."
+                      okText="Yes"
+                      cancelText="No"
+                      okButtonProps={{ danger: true }}
+                      onConfirm={(event) => {
+                        event?.stopPropagation?.();
+                        hideRecentBill(bill.id);
+                      }}
+                    >
+                      <Tooltip title="Remove from recent list">
+                        <Button
+                          danger
+                          type="text"
+                          icon={<DeleteOutlined />}
+                          onClick={(event) => event.stopPropagation()}
+                        />
+                      </Tooltip>
+                    </Popconfirm>
                   </div>
                 ))}
               </div>
@@ -1008,6 +1037,7 @@ export default function Billing({ erp, user }) {
             <Button
               key="close"
               type="primary"
+              icon={<CloseCircleOutlined />}
               onClick={() => {
                 setViewBill(null);
                 setIsReviewMode(false);

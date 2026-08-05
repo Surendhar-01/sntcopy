@@ -4,7 +4,8 @@ import {
   BarsOutlined,
   DeleteOutlined,
   FilterOutlined,
-  PlusOutlined,
+  PlusCircleOutlined,
+  SyncOutlined,
   SearchOutlined,
   TagsOutlined,
 } from "@ant-design/icons";
@@ -328,8 +329,8 @@ export default function Products({ db, erp, user }) {
               <Popconfirm
                 title="Delete product?"
                 description="This product will be removed from the catalog."
-                okText="Delete"
-                cancelText="Cancel"
+                okText="Yes"
+                cancelText="No"
                 okButtonProps={{ danger: true }}
                 onConfirm={() => deleteProd(product.id)}
               >
@@ -361,7 +362,7 @@ export default function Products({ db, erp, user }) {
         {isAdmin && (
           <Button
             type="primary"
-            icon={<PlusOutlined />}
+            icon={<PlusCircleOutlined />}
             onClick={openAddModal}
             className="products-primary-btn"
           >
@@ -399,7 +400,7 @@ export default function Products({ db, erp, user }) {
             onChange={setSortBy}
             className="products-sort"
           />
-          <Button onClick={resetFilters}>Reset</Button>
+          <Button icon={<SyncOutlined />} onClick={resetFilters}>Reset</Button>
           <Segmented
             value={viewMode}
             onChange={setViewMode}
@@ -432,8 +433,8 @@ export default function Products({ db, erp, user }) {
                             key="delete"
                             title="Delete product?"
                             description="This product will be removed from the catalog."
-                            okText="Delete"
-                            cancelText="Cancel"
+                            okText="Yes"
+                            cancelText="No"
                             okButtonProps={{ danger: true }}
                             onConfirm={() => deleteProd(p.id)}
                           >

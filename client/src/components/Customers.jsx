@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
   CalendarOutlined,
+  SyncOutlined,
   SearchOutlined,
   SortAscendingOutlined,
   TeamOutlined,
@@ -265,7 +266,7 @@ export default function Customers({ db, fetchCustomers }) {
               suffixIcon={<SortAscendingOutlined />}
               className="customers-sort"
             />
-            <Button onClick={resetFilters}>Reset</Button>
+            <Button icon={<SyncOutlined />} onClick={resetFilters}>Reset</Button>
           </Space>
           <Text type="secondary" className="customers-result-count">
             Showing {filteredAndSortedCustomers.length} of {customers.length} customers

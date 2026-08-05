@@ -3,9 +3,10 @@ import { Button } from 'antd';
 import {
   AppstoreOutlined,
   BarChartOutlined,
-  CloseOutlined,
+  CloseCircleOutlined,
   DatabaseOutlined,
   LoginOutlined,
+  RocketOutlined,
   SafetyCertificateOutlined,
   TeamOutlined,
   ThunderboltOutlined,
@@ -994,7 +995,7 @@ export default function IntroPage({ onRoleSelect, onLogin, selectedRole, onClose
           <div className="intro-primary-actions">
             <Button
               className="intro-start-btn"
-              icon={<ThunderboltOutlined />}
+              icon={<RocketOutlined />}
               onClick={() => setShowRoles((current) => !current)}
             >
               Get Started
@@ -1080,7 +1081,7 @@ export default function IntroPage({ onRoleSelect, onLogin, selectedRole, onClose
           <div className="login-popup-card">
             <Button
               aria-label="Close login"
-              icon={<CloseOutlined />}
+              icon={<CloseCircleOutlined />}
               className="login-popup-close"
               onClick={onCloseLogin}
             />

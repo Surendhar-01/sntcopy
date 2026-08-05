@@ -1,15 +1,16 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
+  CheckCircleOutlined,
   CloudDownloadOutlined,
+  CloudSyncOutlined,
   DeleteOutlined,
   DatabaseOutlined,
-  LockOutlined,
-  PlusOutlined,
-  SaveOutlined,
+  KeyOutlined,
+  PercentageOutlined,
+  PlusCircleOutlined,
   SettingOutlined,
   ShopOutlined,
   TeamOutlined,
-  UploadOutlined,
 } from "@ant-design/icons";
 import {
   Button,
@@ -401,7 +402,7 @@ export default function Settings({ db, erp }) {
           <Text type="secondary">Protected</Text>
         ) : (
           <Button
-            icon={<LockOutlined />}
+            icon={<KeyOutlined />}
             onClick={() => resetStaffPassword(account.user)}
           >
             Reset
@@ -420,8 +421,8 @@ export default function Settings({ db, erp }) {
           <Popconfirm
             title="Delete account?"
             description={`${account.user} will lose login access.`}
-            okText="Delete"
-            cancelText="Cancel"
+            okText="Yes"
+            cancelText="No"
             okButtonProps={{ danger: true }}
             onConfirm={() => deleteStaff(account.user)}
           >
@@ -494,7 +495,7 @@ export default function Settings({ db, erp }) {
               </Form.Item>
               <Button
                 type="primary"
-                icon={<SaveOutlined />}
+                icon={<CheckCircleOutlined />}
                 loading={isSavingSettings}
                 onClick={handleSaveSettings}
               >
@@ -518,7 +519,7 @@ export default function Settings({ db, erp }) {
                 </Text>
                 <Button
                   type="primary"
-                  icon={<PlusOutlined />}
+                  icon={<PlusCircleOutlined />}
                   onClick={openStaffModal}
                 >
                   Add Account
@@ -554,7 +555,7 @@ export default function Settings({ db, erp }) {
               >
                 Download Backup
               </Button>
-              <Button icon={<UploadOutlined />} onClick={restoreDB}>
+              <Button icon={<CloudSyncOutlined />} onClick={restoreDB}>
                 Restore Database
               </Button>
             </Space.Compact>
@@ -585,7 +586,7 @@ export default function Settings({ db, erp }) {
               </Button>
               <Button
                 type="primary"
-                icon={<SaveOutlined />}
+                icon={<PercentageOutlined />}
                 loading={isSavingGst}
                 onClick={handleUpdateGst}
               >

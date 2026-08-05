@@ -1,14 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { Avatar, Button, Dropdown, Segmented, Tooltip, Space } from 'antd';
+import { Avatar, Button, Dropdown, Popconfirm, Segmented, Tooltip, Space } from 'antd';
 import {
   BulbOutlined,
   MoonOutlined,
   DesktopOutlined,
   LogoutOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
   ThunderboltOutlined,
   PlayCircleOutlined,
 } from '@ant-design/icons';
 import ClearConfirmModal from './ClearConfirmModal';
+import { useSidebar } from '../context/useSidebar';
 import { useTheme } from '../context/useTheme';
 import { normalizeRole, USER_ROLES } from '../utils/roles';
 
@@ -18,6 +21,42 @@ if (typeof document !== "undefined" && !document.getElementById("combined-topbar
   const style = document.createElement("style");
   style.id = "combined-topbar-styles";
   style.textContent = topbarStyles;
+  document.head.appendChild(style);
+}
+
+const sidebarToggleTopbarStyles = `
+.topbar-sidebar-toggle.ant-btn {
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 !important;
+  margin-right: 10px;
+  border: 1px solid var(--border) !important;
+  background: var(--bg3) !important;
+  color: var(--text2) !important;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+}
+
+.topbar-sidebar-toggle.ant-btn:hover {
+  background: var(--surface-hover) !important;
+  color: var(--text) !important;
+}
+
+@media (max-width: 900px) {
+  .topbar-sidebar-toggle.ant-btn {
+    display: none;
+  }
+}
+`;
+
+if (typeof document !== "undefined" && !document.getElementById("topbar-sidebar-toggle-styles")) {
+  const style = document.createElement("style");
+  style.id = "topbar-sidebar-toggle-styles";
+  style.textContent = sidebarToggleTopbarStyles;
   document.head.appendChild(style);
 }
 
@@ -217,6 +256,42 @@ if (typeof document !== "undefined" && !document.getElementById("mobile-topbar-f
   document.head.appendChild(style);
 }
 
+const mobileNavbarAlignmentStyles = `
+@media (max-width: 900px) {
+  .topbar {
+    min-height: 66px !important;
+    padding: 12px 12px 10px !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .topbar {
+    grid-template-columns: minmax(100px, 1fr) auto auto !important;
+    grid-template-areas: "shift theme user" !important;
+    align-items: center !important;
+  }
+
+  .topbar .shift-action-wrap,
+  .topbar .antd-theme-segmented,
+  .topbar .topbar-user-menu {
+    align-self: center !important;
+  }
+}
+
+@media (max-width: 340px) {
+  .topbar {
+    padding-left: 8px !important;
+  }
+}
+`;
+
+if (typeof document !== "undefined" && !document.getElementById("mobile-navbar-alignment-styles")) {
+  const style = document.createElement("style");
+  style.id = "mobile-navbar-alignment-styles";
+  style.textContent = mobileNavbarAlignmentStyles;
+  document.head.appendChild(style);
+}
+
 function isClearedSessionError(error) {
   const message = String(error?.message || error || '').toLowerCase();
   return (
@@ -246,6 +321,7 @@ function getEndShiftMessage(response) {
 
 export default function Topbar({ user, roleLayout, erp, session, setUser, setSession, onLogout }) {
   const { setTheme, theme } = useTheme();
+  const { isCollapsed, toggleSidebar } = useSidebar();
   const [currentTime, setCurrentTime] = useState(Date.now());
   const [isEndingShift, setIsEndingShift] = useState(false);
   const [isStartingShift, setIsStartingShift] = useState(false);
@@ -447,8 +523,23 @@ export default function Topbar({ user, roleLayout, erp, session, setUser, setSes
     {
       key: 'logout',
       icon: <LogoutOutlined style={{ color: '#ff8a8a' }} />,
-      label: <span style={{ color: 'var(--red, #ef4444)' }}>Logout</span>,
-      onClick: () => { if (onLogout) onLogout(); },
+      label: (
+        <Popconfirm
+          title="Logout?"
+          description="Are you sure you want to logout?"
+          okText="Yes"
+          cancelText="No"
+          okButtonProps={{ danger: true }}
+          onConfirm={() => { if (onLogout) onLogout(); }}
+        >
+          <span
+            style={{ color: 'var(--red, #ef4444)' }}
+            onClick={(event) => event.stopPropagation()}
+          >
+            Logout
+          </span>
+        </Popconfirm>
+      ),
     },
   ];
 
@@ -457,6 +548,16 @@ export default function Topbar({ user, roleLayout, erp, session, setUser, setSes
   return (
     <>
       <div className="topbar" data-role={roleLayout?.key || USER_ROLES.STAFF}>
+        <Tooltip title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
+          <Button
+            type="text"
+            className="topbar-sidebar-toggle"
+            aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            icon={isCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+            onClick={toggleSidebar}
+          />
+        </Tooltip>
+
         {/* Shift controls */}
         {showShiftWrap && (
           <div className="shift-action-wrap">

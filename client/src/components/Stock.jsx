@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
+  ClearOutlined,
   DeleteOutlined,
   HistoryOutlined,
   InboxOutlined,
-  PlusOutlined,
-  ReloadOutlined,
+  PlusCircleOutlined,
 } from "@ant-design/icons";
 import {
   Button,
@@ -364,7 +364,7 @@ export default function Stock({ db, erp, user }) {
       render: (_, product) => (
         <Button
           type="primary"
-          icon={<PlusOutlined />}
+          icon={<PlusCircleOutlined />}
           onClick={() => openRefillModal(product)}
         >
           Refill
@@ -419,8 +419,8 @@ export default function Stock({ db, erp, user }) {
         <Popconfirm
           title="Delete refill?"
           description="This refill entry will be removed."
-          okText="Delete"
-          cancelText="Cancel"
+          okText="Yes"
+          cancelText="No"
           okButtonProps={{ danger: true }}
           onConfirm={() => deleteRefill(refill.id)}
         >
@@ -497,15 +497,24 @@ export default function Stock({ db, erp, user }) {
             </Space>
           }
           extra={
-            <Button
-              danger
-              icon={<ReloadOutlined />}
-              onClick={() => setShowClearConfirm(true)}
+            <Popconfirm
+              title="Clear refill history?"
+              description="Clear all refill history records permanently?"
+              okText="Yes"
+              cancelText="No"
+              okButtonProps={{ danger: true }}
+              onConfirm={handleClearRefills}
               disabled={!refills.length || isClearing}
-              loading={isClearing}
             >
-              Clear
-            </Button>
+              <Button
+                danger
+                icon={<ClearOutlined />}
+                disabled={!refills.length || isClearing}
+                loading={isClearing}
+              >
+                Clear
+              </Button>
+            </Popconfirm>
           }
         >
           <Table

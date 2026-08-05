@@ -5,6 +5,7 @@ import {
   DollarOutlined,
   HistoryOutlined,
   LoginOutlined,
+  SyncOutlined,
   ShoppingCartOutlined,
   TeamOutlined,
 } from "@ant-design/icons";
@@ -334,7 +335,7 @@ export default function Reports({ db, user }) {
               minDate={startDate || undefined}
               className="reports-date"
             />
-            <Button onClick={clearDates}>Clear Dates</Button>
+            <Button icon={<SyncOutlined />} onClick={clearDates}>Clear Dates</Button>
           </Space>
         </Card>
 

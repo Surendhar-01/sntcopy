@@ -21,6 +21,9 @@ import {
   WarningOutlined,
   CalendarOutlined,
   InboxOutlined,
+  CloseCircleOutlined,
+  PlusCircleOutlined,
+  SaveOutlined,
 } from '@ant-design/icons';
 import {
   Chart as ChartJS,
@@ -471,7 +474,7 @@ export default function Dashboard({ db, erp, user }) {
     {
       title: 'Action', key: 'action', align: 'right',
       render: (_, r) => (
-        <Button size="small" type="primary" onClick={() => { setRefillProduct(r); refillForm.resetFields(); }}>
+        <Button size="small" type="primary" icon={<PlusCircleOutlined />} onClick={() => { setRefillProduct(r); refillForm.resetFields(); }}>
           Refill
         </Button>
       )
@@ -613,7 +616,7 @@ export default function Dashboard({ db, erp, user }) {
         open={showLowStockPopup}
         onCancel={() => setShowLowStockPopup(false)}
         title="Low Stock Items"
-        footer={<Button onClick={() => setShowLowStockPopup(false)}>Close</Button>}
+        footer={<Button icon={<CloseCircleOutlined />} onClick={() => setShowLowStockPopup(false)}>Close</Button>}
         width={680}
         className="dashboard-antd-modal"
       >
@@ -651,8 +654,8 @@ export default function Dashboard({ db, erp, user }) {
                 <InputNumber min={1} placeholder="Enter quantity" style={{ width: '100%' }} autoFocus size="large" />
               </Form.Item>
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                <Button onClick={() => { setRefillProduct(null); refillForm.resetFields(); }}>Cancel</Button>
-                <Button type="primary" htmlType="submit" loading={isRefilling}>
+                <Button icon={<CloseCircleOutlined />} onClick={() => { setRefillProduct(null); refillForm.resetFields(); }}>Cancel</Button>
+                <Button type="primary" htmlType="submit" icon={<SaveOutlined />} loading={isRefilling}>
                   {isRefilling ? 'Saving...' : 'Save Refill'}
                 </Button>
               </div>
@@ -666,7 +669,7 @@ export default function Dashboard({ db, erp, user }) {
         open={showTodaySalesPopup}
         onCancel={() => setShowTodaySalesPopup(false)}
         title="Today's Sales"
-        footer={<Button onClick={() => setShowTodaySalesPopup(false)}>Close</Button>}
+        footer={<Button icon={<CloseCircleOutlined />} onClick={() => setShowTodaySalesPopup(false)}>Close</Button>}
         width={600}
         className="dashboard-antd-modal"
       >
