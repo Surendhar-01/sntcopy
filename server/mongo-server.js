@@ -159,6 +159,10 @@ const swaggerDocument = {
   },
 };
 
+app.get('/api-docs.json', (req, res) => {
+  res.json(swaggerDocument);
+});
+
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 function hashPassword(password) {
@@ -219,6 +223,52 @@ async function ensureDefaultAccounts() {
 function toNumber(value, fallback = 0) {
   const next = Number(value);
   return Number.isFinite(next) ? next : fallback;
+}
+
+function nonNegativeNumber(value, fallback = 0) {
+  return Math.max(0, toNumber(value, fallback));
+}
+
+function normalizeProduct(product) {
+  if (!product) return product;
+
+  const stock = nonNegativeNumber(product.stock);
+  const sold = nonNegativeNumber(product.sold);
+  const openingStock = Math.max(nonNegativeNumber(product.opening_stock), stock);
+
+  return {
+    ...product,
+    price: nonNegativeNumber(product.price),
+    stock,
+    sold,
+    opening_stock: openingStock,
+  };
+}
+
+function serializeProduct(product) {
+  return serialize(normalizeProduct(product));
+}
+
+function serializeProducts(products) {
+  return (products || []).map(serializeProduct);
+}
+
+async function clampProductInventory(filter = {}) {
+  await c('products').updateMany(filter, [
+    {
+      $set: {
+        stock: { $max: [{ $ifNull: ['$stock', 0] }, 0] },
+        sold: { $max: [{ $ifNull: ['$sold', 0] }, 0] },
+        opening_stock: {
+          $max: [
+            { $ifNull: ['$opening_stock', 0] },
+            { $max: [{ $ifNull: ['$stock', 0] }, 0] },
+            0,
+          ],
+        },
+      },
+    },
+  ]);
 }
 
 function refreshRuntimeMailEnv() {
@@ -515,7 +565,7 @@ async function syncCounter(name, collectionName) {
 }
 
 async function syncShiftLoginLogs() {
-  const shifts = await c('shifts').find().sort({ shiftStart: 1 }).toArray();
+  const shifts = await c('shifts').find({ loginLogCleared: { $ne: true } }).sort({ shiftStart: 1 }).toArray();
 
   for (const shift of shifts) {
     if (!shift?.id) continue;
@@ -638,6 +688,7 @@ app.get('/', (req, res) => {
 app.get('/api/db', async (req, res, next) => {
   try {
     await syncShiftLoginLogs();
+    await clampProductInventory();
     const [products, bills, sales, customers, refills, priceHistory, loginLogs, accounts, settings] = await Promise.all([
       c('products').find().sort({ id: 1 }).toArray(),
       c('bills').find().sort({ date: -1 }).toArray(),
@@ -651,7 +702,7 @@ app.get('/api/db', async (req, res, next) => {
     ]);
 
     res.json({
-      products: serializeMany(products),
+      products: serializeProducts(products),
       bills: serializeMany(bills),
       sales: serializeMany(sales),
       customers: serializeMany(customers),
@@ -668,7 +719,8 @@ app.get('/api/db', async (req, res, next) => {
 
 app.get('/api/products', async (req, res, next) => {
   try {
-    res.json(serializeMany(await c('products').find().sort({ id: 1 }).toArray()));
+    await clampProductInventory();
+    res.json(serializeProducts(await c('products').find().sort({ id: 1 }).toArray()));
   } catch (error) {
     next(error);
   }
@@ -683,15 +735,18 @@ app.post('/api/products', async (req, res, next) => {
       name: req.body.name || '',
       cat: req.body.cat || req.body.category || '',
       unit: req.body.unit || '',
-      price: toNumber(req.body.price),
-      stock: toNumber(req.body.stock),
-      opening_stock: toNumber(req.body.opening_stock, toNumber(req.body.stock)),
-      sold: toNumber(req.body.sold),
+      price: nonNegativeNumber(req.body.price),
+      stock: nonNegativeNumber(req.body.stock),
+      opening_stock: Math.max(
+        nonNegativeNumber(req.body.opening_stock, nonNegativeNumber(req.body.stock)),
+        nonNegativeNumber(req.body.stock),
+      ),
+      sold: nonNegativeNumber(req.body.sold),
       image: req.body.image || '',
       created_at: new Date(),
     };
     await c('products').insertOne(product);
-    res.status(201).json(serialize(product));
+    res.status(201).json(serializeProduct(product));
   } catch (error) {
     next(error);
   }
@@ -748,15 +803,15 @@ app.post('/api/bills', async (req, res, next) => {
 
     for (const item of items) {
       const product = productById.get(toNumber(item.id));
-      const qty = toNumber(item.qty);
-      if (!product || qty <= 0 || toNumber(product.stock) < qty) {
+      const qty = nonNegativeNumber(item.qty);
+      if (!product || qty <= 0 || nonNegativeNumber(product.stock) < qty) {
         return res.status(400).json({ error: `Insufficient stock for ${item.name || item.id}` });
       }
     }
 
     for (const item of items) {
       const id = toNumber(item.id);
-      const qty = toNumber(item.qty);
+      const qty = nonNegativeNumber(item.qty);
       await c('products').updateOne(
         { id },
         { $inc: { stock: -qty, sold: qty } },
@@ -806,9 +861,17 @@ app.delete('/api/bills/:id', async (req, res, next) => {
     const bill = await c('bills').findOne({ id });
     if (bill) {
       for (const item of normalizeBillItems(bill.items)) {
+        const qty = nonNegativeNumber(item.qty);
         await c('products').updateOne(
           { id: toNumber(item.id) },
-          { $inc: { stock: toNumber(item.qty), sold: -toNumber(item.qty) } },
+          [
+            {
+              $set: {
+                stock: { $add: [{ $max: [{ $ifNull: ['$stock', 0] }, 0] }, qty] },
+                sold: { $max: [{ $subtract: [{ $max: [{ $ifNull: ['$sold', 0] }, 0] }, qty] }, 0] },
+              },
+            },
+          ],
         );
       }
       await c('bills').deleteOne({ id });
@@ -824,9 +887,17 @@ app.delete('/api/bills', async (req, res, next) => {
     const bills = await c('bills').find().toArray();
     for (const bill of bills) {
       for (const item of normalizeBillItems(bill.items)) {
+        const qty = nonNegativeNumber(item.qty);
         await c('products').updateOne(
           { id: toNumber(item.id) },
-          { $inc: { stock: toNumber(item.qty), sold: -toNumber(item.qty) } },
+          [
+            {
+              $set: {
+                stock: { $add: [{ $max: [{ $ifNull: ['$stock', 0] }, 0] }, qty] },
+                sold: { $max: [{ $subtract: [{ $max: [{ $ifNull: ['$sold', 0] }, 0] }, qty] }, 0] },
+              },
+            },
+          ],
         );
       }
     }
@@ -865,7 +936,7 @@ app.get('/api/refills', async (req, res, next) => {
 app.post('/api/refills', async (req, res, next) => {
   try {
     const productId = toNumber(req.body.product_id || req.body.productId || req.body.id);
-    const qty = toNumber(req.body.qty);
+    const qty = nonNegativeNumber(req.body.qty);
     const product = await findProductById(productId);
     if (!product || qty <= 0) return res.status(400).json({ error: 'Invalid product or quantity' });
 
@@ -894,9 +965,22 @@ app.delete('/api/refills/:id', async (req, res, next) => {
     const id = toNumber(req.params.id);
     const refill = await c('refills').findOne({ id });
     if (refill) {
+      const qty = nonNegativeNumber(refill.qty);
       await c('products').updateOne(
         { id: toNumber(refill.product_id) },
-        { $inc: { stock: -toNumber(refill.qty), opening_stock: -toNumber(refill.qty) } },
+        [
+          {
+            $set: {
+              stock: { $max: [{ $subtract: [{ $max: [{ $ifNull: ['$stock', 0] }, 0] }, qty] }, 0] },
+              opening_stock: {
+                $max: [
+                  { $subtract: [{ $max: [{ $ifNull: ['$opening_stock', 0] }, 0] }, qty] },
+                  0,
+                ],
+              },
+            },
+          },
+        ],
       );
       await c('refills').deleteOne({ id });
     }
@@ -910,9 +994,22 @@ app.delete('/api/refills', async (req, res, next) => {
   try {
     const refills = await c('refills').find().toArray();
     for (const refill of refills) {
+      const qty = nonNegativeNumber(refill.qty);
       await c('products').updateOne(
         { id: toNumber(refill.product_id) },
-        { $inc: { stock: -toNumber(refill.qty), opening_stock: -toNumber(refill.qty) } },
+        [
+          {
+            $set: {
+              stock: { $max: [{ $subtract: [{ $max: [{ $ifNull: ['$stock', 0] }, 0] }, qty] }, 0] },
+              opening_stock: {
+                $max: [
+                  { $subtract: [{ $max: [{ $ifNull: ['$opening_stock', 0] }, 0] }, qty] },
+                  0,
+                ],
+              },
+            },
+          },
+        ],
       );
     }
     await c('refills').deleteMany({});
@@ -1096,7 +1193,17 @@ app.put('/api/login-logs/:id/logout', async (req, res, next) => {
 
 app.delete('/api/login-logs/:id', async (req, res, next) => {
   try {
-    await c('login_logs').deleteOne({ id: toNumber(req.params.id) });
+    const logId = toNumber(req.params.id);
+    const existingLog = await c('login_logs').findOne({ id: logId });
+    await c('login_logs').deleteOne({ id: logId });
+
+    if (existingLog?.shiftSessionId) {
+      await c('shifts').updateOne(
+        { id: toNumber(existingLog.shiftSessionId) },
+        { $set: { loginLogCleared: true } },
+      );
+    }
+
     res.json({ success: true });
   } catch (error) {
     next(error);
@@ -1109,8 +1216,25 @@ app.delete('/api/login-logs', async (req, res, next) => {
       .split(',')
       .map((role) => role.trim().toLowerCase())
       .filter(Boolean);
-    const filter = roles.length ? { role: { $in: roles.map((role) => new RegExp(`^${role}$`, 'i')) } } : {};
+    const rolePatterns = roles.map((role) => new RegExp(`^${role.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i'));
+    const filter = rolePatterns.length ? { role: { $in: rolePatterns } } : {};
+    const logsToClear = await c('login_logs')
+      .find({ ...filter, shiftSessionId: { $exists: true, $ne: null } })
+      .project({ shiftSessionId: 1 })
+      .toArray();
+    const shiftIdsToClear = logsToClear
+      .map((log) => toNumber(log.shiftSessionId))
+      .filter((id) => Number.isFinite(id));
+
     await c('login_logs').deleteMany(filter);
+
+    if (shiftIdsToClear.length) {
+      await c('shifts').updateMany(
+        { id: { $in: shiftIdsToClear } },
+        { $set: { loginLogCleared: true } },
+      );
+    }
+
     res.json({ success: true });
   } catch (error) {
     next(error);
@@ -1339,7 +1463,15 @@ app.post('/api/shifts/end', async (req, res, next) => {
       created_at: new Date(),
     });
 
-    await c('products').updateMany({}, [{ $set: { opening_stock: '$stock', sold: 0 } }]);
+    await c('products').updateMany({}, [
+      {
+        $set: {
+          stock: { $max: [{ $ifNull: ['$stock', 0] }, 0] },
+          opening_stock: { $max: [{ $ifNull: ['$stock', 0] }, 0] },
+          sold: 0,
+        },
+      },
+    ]);
 
     res.json({
       success: true,
@@ -1369,9 +1501,10 @@ app.put('/api/products/opening-stock/sync', async (req, res, next) => {
   try {
     const products = await c('products').find().toArray();
     for (const product of products) {
+      const stock = nonNegativeNumber(product.stock);
       await c('products').updateOne(
         { id: product.id },
-        { $set: { opening_stock: toNumber(product.stock), sold: 0 } },
+        { $set: { stock, opening_stock: stock, sold: 0 } },
       );
     }
     res.json({ success: true });
@@ -1389,7 +1522,15 @@ app.post('/api/reset-sales-data', async (req, res, next) => {
       c('price_history').deleteMany({}),
       c('login_logs').deleteMany({}),
       c('shifts').deleteMany({}),
-      c('products').updateMany({}, [{ $set: { stock: '$opening_stock', sold: 0 } }]),
+      c('products').updateMany({}, [
+        {
+          $set: {
+            opening_stock: { $max: [{ $ifNull: ['$opening_stock', 0] }, 0] },
+            stock: { $max: [{ $ifNull: ['$opening_stock', 0] }, 0] },
+            sold: 0,
+          },
+        },
+      ]),
     ]);
     res.json({ success: true });
   } catch (error) {
@@ -1415,6 +1556,7 @@ initializeMongo()
     const server = app.listen(port, () => {
       console.log(`Express Mongo API running on http://localhost:${port}`);
       console.log(`MongoDB database: ${mongoDbName}`);
+      console.log(`Swagger docs: http://localhost:${port}/api-docs`);
     });
 
     server.on('error', (error) => {

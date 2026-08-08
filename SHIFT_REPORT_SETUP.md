@@ -180,6 +180,6 @@ SHIFT_REPORT_EMAIL=anithaami1208@gmail.com
 ```
 
 **Key Files**:
-- Server: `server/index.js` (lines 1033-1270)
+- Server: `server/mongo-server.js`
 - Client: `client/src/components/Topbar.jsx` (lines 79-110)
 - API Hook: `client/src/hooks/useERPData.js` (line 694)

@@ -134,10 +134,44 @@ const dashboardEqualCardStyles = `
 }
 `;
 
+const dashboardChartEmptyStyles = `
+.dashboard-chart-empty.ant-empty {
+  align-items: center;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  margin: 0;
+  min-height: 296px;
+  width: 100%;
+}
+
+.dashboard-chart-empty .ant-empty-description {
+  color: var(--text2, #64748b) !important;
+}
+
+:root[data-theme='dark'] .dashboard-chart-empty .ant-empty-description {
+  color: #cbd5e1 !important;
+}
+
+@media (max-width: 768px) {
+  .dashboard-chart-empty.ant-empty {
+    min-height: 260px;
+  }
+}
+`;
+
 if (typeof document !== "undefined" && !document.getElementById("dashboard-equal-card-styles")) {
   const style = document.createElement("style");
   style.id = "dashboard-equal-card-styles";
   style.textContent = dashboardEqualCardStyles;
+  document.head.appendChild(style);
+}
+
+if (typeof document !== "undefined" && !document.getElementById("dashboard-chart-empty-styles")) {
+  const style = document.createElement("style");
+  style.id = "dashboard-chart-empty-styles";
+  style.textContent = dashboardChartEmptyStyles;
   document.head.appendChild(style);
 }
 
@@ -553,7 +587,7 @@ export default function Dashboard({ db, erp, user }) {
                 {topSellingProducts.length > 0 ? (
                   <Pie data={topProductsData} options={{ maintainAspectRatio: false, animation: sharedAnimation, plugins: { legend: { position: 'right', labels: { color: effectiveTheme === 'dark' ? '#f8fafc' : '#111827' } } } }} />
                 ) : (
-                  <Empty description="No sold products yet" />
+                  <Empty className="dashboard-chart-empty" description="No sold products yet" />
                 )}
               </div>
             </Card>
@@ -589,7 +623,7 @@ export default function Dashboard({ db, erp, user }) {
                   })}
                 </div>
               ) : (
-                <Empty description="No sold products yet" />
+                <Empty className="dashboard-chart-empty" description="No sold products yet" />
               )}
             </div>
           </Card>

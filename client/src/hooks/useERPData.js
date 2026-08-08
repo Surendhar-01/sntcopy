@@ -148,14 +148,20 @@ function normalizeDb(data) {
     ? (merged.settings[0] || {})
     : (merged.settings || {});
 
-  merged.products = incomingProducts.map((product, index) => ({
-    ...product,
-    price: Number(product.price || 0),
-    stock: Number(product.stock || 0),
-    sold: Number(product.sold || 0),
-    opening_stock: Math.max(Number(product.opening_stock ?? 0), Number(product.stock || 0)),
-    image: product.image || defaultProducts[index]?.image || 'https://placehold.co/150x150?text=Product'
-  }));
+  merged.products = incomingProducts.map((product, index) => {
+    const stock = Math.max(0, Number(product.stock || 0));
+    const sold = Math.max(0, Number(product.sold || 0));
+    const openingStock = Math.max(0, Number(product.opening_stock ?? stock), stock);
+
+    return {
+      ...product,
+      price: Math.max(0, Number(product.price || 0)),
+      stock,
+      sold,
+      opening_stock: openingStock,
+      image: product.image || defaultProducts[index]?.image || 'https://placehold.co/150x150?text=Product'
+    };
+  });
 
   merged.bills = (Array.isArray(merged.bills) ? merged.bills : []).map((bill) => ({
     ...bill,
@@ -382,14 +388,20 @@ export function useERPData() {
     const promise = (async () => {
       try {
         const data = await apiRequest('/api/products');
-        const normalized = (Array.isArray(data) ? data : []).map((product, index) => ({
-          ...product,
-          price: Number(product.price || 0),
-          stock: Number(product.stock || 0),
-          sold: Number(product.sold || 0),
-          opening_stock: Math.max(Number(product.opening_stock ?? 0), Number(product.stock || 0)),
-          image: product.image || defaultProducts[index]?.image || 'https://placehold.co/150x150?text=Product'
-        }));
+        const normalized = (Array.isArray(data) ? data : []).map((product, index) => {
+          const stock = Math.max(0, Number(product.stock || 0));
+          const sold = Math.max(0, Number(product.sold || 0));
+          const openingStock = Math.max(0, Number(product.opening_stock ?? stock), stock);
+
+          return {
+            ...product,
+            price: Math.max(0, Number(product.price || 0)),
+            stock,
+            sold,
+            opening_stock: openingStock,
+            image: product.image || defaultProducts[index]?.image || 'https://placehold.co/150x150?text=Product'
+          };
+        });
         setProducts(normalized);
         lastFetched.current.products = Date.now();
         return normalized;

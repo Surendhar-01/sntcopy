@@ -6,11 +6,9 @@
   "scripts": {
     "dev": "concurrently \"npm run server\" \"npm run dev:client\"",
     "dev:client": "vite",
-    "server": "npm run start:mongo --prefix server",
-    "server:mysql": "node server/index.js",
+    "server": "npm start --prefix server",
     "dev:mongo": "concurrently \"npm run server\" \"npm run dev:client\"",
     "start:all": "npm run dev",
-    "export-db": "node scripts/export_db_from_api.js",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
@@ -25,7 +23,6 @@
     "exceljs": "^4.4.0",
     "express": "^5.1.0",
     "mongodb": "^7.5.0",
-    "mysql2": "^3.15.3",
     "nodemailer": "^9.0.1",
     "react": "^19.2.4",
     "react-chartjs-2": "^5.3.1",

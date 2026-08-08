@@ -158,6 +158,16 @@ if (typeof document !== "undefined" && !document.getElementById("billing-actions
 }
 
 const formatCurrency = (value) => `Rs. ${Number(value || 0).toFixed(2)}`;
+const clampBillingQty = (value, maxQty) => {
+  const parsedQty = parseInt(value, 10);
+  const safeMaxQty = Math.max(1, Number(maxQty || 1));
+
+  if (!Number.isFinite(parsedQty)) {
+    return 1;
+  }
+
+  return Math.max(1, Math.min(safeMaxQty, parsedQty));
+};
 const isSameUserName = (left, right) =>
   String(left || '').trim().toLowerCase() === String(right || '').trim().toLowerCase();
 
@@ -354,7 +364,7 @@ export default function Billing({ erp, user }) {
       const product = db.products.find((p) => String(p.id) === String(prodId));
       if (product) {
         const remainingStock = getRemainingStockForCart(product);
-        const parsedQty = parseInt(selectedProducts[prodId], 10) || 1;
+        const parsedQty = clampBillingQty(selectedProducts[prodId], remainingStock);
         if (remainingStock <= 0) {
           showToast(`${product.name} is out of stock.`, 'error');
           return;
@@ -1186,10 +1196,33 @@ export default function Billing({ erp, user }) {
                         precision={0}
                         value={selectedProducts[product.id]}
                         className="billing-product-qty"
+                        parser={(displayValue) => (
+                          clampBillingQty(String(displayValue || '').replace(/\D/g, ''), remainingStock)
+                        )}
+                        formatter={(value, info) => {
+                          const inputValue = info.userTyping ? info.input : value;
+                          const digits = String(inputValue ?? '').replace(/\D/g, '');
+                          return digits ? String(clampBillingQty(digits, remainingStock)) : '';
+                        }}
+                        onInput={(text) => {
+                          const digits = String(text || '').replace(/\D/g, '');
+                          if (!digits) {
+                            return;
+                          }
+
+                          const parsed = parseInt(digits, 10);
+                          if (parsed > remainingStock) {
+                            showToast(`Only ${remainingStock} item(s) are available in stock.`, 'error');
+                            setSelectedProducts((prev) => ({
+                              ...prev,
+                              [product.id]: remainingStock,
+                            }));
+                          }
+                        }}
                         onChange={(value) => {
-                          const parsed = Number(value || 1);
-                          const nextValue = Math.max(1, Math.min(remainingStock, parsed));
-                          if (nextValue < parsed) {
+                          const parsed = parseInt(value, 10);
+                          const nextValue = clampBillingQty(parsed, remainingStock);
+                          if (Number.isFinite(parsed) && nextValue < parsed) {
                             showToast(`Only ${remainingStock} item(s) are available in stock.`, 'error');
                           }
                           setSelectedProducts((prev) => ({

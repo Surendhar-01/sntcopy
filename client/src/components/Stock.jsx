@@ -141,10 +141,14 @@ const { Text, Title } = Typography;
 const EMPTY_PRODUCTS = [];
 const EMPTY_REFILLS = [];
 
-const getOpeningStock = (product) => Number(product.opening_stock || 0);
-const getSold = (product) => Number(product.sold || 0);
-const getStock = (product) => Number(product.stock || 0);
-const getPrice = (product) => Number(product.price || 0);
+const getNonNegativeNumber = (value) => Math.max(0, Number(value || 0));
+const getOpeningStock = (product) => Math.max(
+  getNonNegativeNumber(product.opening_stock),
+  getNonNegativeNumber(product.stock),
+);
+const getSold = (product) => getNonNegativeNumber(product.sold);
+const getStock = (product) => getNonNegativeNumber(product.stock);
+const getPrice = (product) => getNonNegativeNumber(product.price);
 
 const getStockStatus = (stock) => {
   if (stock <= 0) {
